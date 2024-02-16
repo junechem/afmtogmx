@@ -1,8 +1,8 @@
 import afmtogmx
 import os
 
-base_off = os.getcwd() + r"/test/compare/base.off"
-compare_off = os.getcwd() + r"/test/compare/compare.off"
+base_off = os.path.dirname(afmtogmx.__file__) + r"/../../test/compare/base.off"
+compare_off = os.path.dirname(afmtogmx.__file__) + r"/../../test/compare/compare.off"
 
 
 base_off = afmtogmx.ReadOFF(off_loc=base_off)
