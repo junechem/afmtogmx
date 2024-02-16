@@ -1,7 +1,9 @@
 import afmtogmx
+import os
 
-base_off = r"C:\Users\rjweldon\Desktop\Wang_Laptop_College\Projects\AFMTools_v2_update\test\compare\base.off"
-compare_off = r"C:\Users\rjweldon\Desktop\Wang_Laptop_College\Projects\AFMTools_v2_update\test\compare\compare.off"
+base_off = os.getcwd() + r"/test/compare/base.off"
+compare_off = os.getcwd() + r"/test/compare/compare.off"
+
 
 base_off = afmtogmx.ReadOFF(off_loc=base_off)
 compare_off = afmtogmx.ReadOFF(off_loc=compare_off)
