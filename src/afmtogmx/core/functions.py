@@ -639,11 +639,12 @@ def _normalization_process(normalization, all_atoms, charges, total_charge, afte
         print("New Charge: ", new_charge)
         print("")
 
-        if afternorm_atom:
+        if afternorm_atom in all_atoms:
             afternorm_charge = 0
             for atom in all_atoms:
                 charges[atom] = round(charges[atom], 5)
                 afternorm_charge += charges[atom]
+
             adjust_by = round(afternorm_charge/atom_instances[afternorm_atom], 5)
             charges[afternorm_atom] = round(charges[afternorm_atom] - adjust_by, 5)
         total_charge_five_digits = 0
