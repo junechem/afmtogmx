@@ -636,6 +636,10 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
             new_charge += charges[atom]  # calculate the new leftover charge, will be effectively zero
         print("New Charge: ", new_charge)
         print("")
+        afternorm_charge = 0
+        for atom in all_atoms:
+            afternorm_charge += round(charges[atom], 5)
+        print(afternorm_charge)
         return charges  # return neutralized dictionary
 
 def _filter_bonded(bonded):
