@@ -1,4 +1,5 @@
-
+"""This module contains various functions related to comparing two different force fields, denoted as
+base_off and compare_off"""
 def gen_difference_string(base_off, compare_off, name_translation = {}):
     """Generate title which details all nonbonded differences between compare_off and base_off
 
