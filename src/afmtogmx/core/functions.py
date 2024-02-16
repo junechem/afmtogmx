@@ -574,7 +574,7 @@ def _get_known_atom_charge(known_atom, nonbonded, sign):
     return single_charge
 
 
-def _normalize_charges(normalization, charges, bonded, tolerance):
+def _normalize_charges(normalization, charges, bonded, tolerance, afternorm_atom):
     """Normalizes charges if it is found that leftover charge is greater than some tolerance value
 
     :param normalization: normalization method. Current options are only 'M-POPULOUS'
@@ -594,14 +594,14 @@ def _normalize_charges(normalization, charges, bonded, tolerance):
             print(f"Modifying charges for molecule {mol}")
             print(f"Initial Total Charge: {total_charge}")
             # pass to function _normalization_process to perform heavy lifting
-            updated_charges[mol] = _normalization_process(normalization, all_atoms, charges[mol], total_charge)
+            updated_charges[mol] = _normalization_process(normalization, all_atoms, charges[mol], total_charge, afternorm_atom)
         else:
             updated_charges[mol] = charges[mol]  # if already within tolerance, keep the same charges
 
     return updated_charges
 
 
-def _normalization_process(normalization, all_atoms, charges, total_charge):
+def _normalization_process(normalization, all_atoms, charges, total_charge, afternorm_atom):
     """Performs heavy lifting of normalizing/neutralizing molecules if above the tolerance level
 
     :param normalization: Normalization method; currently only support M-POPULOUS. M-POPULOUS divides the leftover
@@ -610,6 +610,8 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
     :param all_atoms: list of all atoms, with repeats, from each molname
     :param charges: charges dictionary
     :param total_charge: total charge before modifying charges per molecule
+    :param afternorm_atom: atom which should have charge modified (generally on order of 1E-5) after normalization
+    process has already taken place
     :return: charges dictionary per molname with neutralized molecule
     """
 
@@ -636,10 +638,19 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
             new_charge += charges[atom]  # calculate the new leftover charge, will be effectively zero
         print("New Charge: ", new_charge)
         print("")
-        afternorm_charge = 0
-        for atom in all_atoms:
-            afternorm_charge += round(charges[atom], 5)
-        print(afternorm_charge, 'afternorm charge')
+
+        if afternorm_atom:
+            afternorm_charge = 0
+            for atom in all_atoms:
+                charges[atom] = round(charges[atom], 5)
+                afternorm_charge += charges[atom]
+            adjust_by = round(afternorm_charge/atom_instances[afternorm_atom], 5)
+            charges[afternorm_atom] = round(charges[afternorm_atom] - adjust_by, 5)
+        total_charge_five_digits = 0
+        for atom, number_of in atom_instances.items():
+            total_charge_five_digits += round(charges[atom],5)*number_of
+        print(f"The total charge when rounding to 5 digits (as is written to .top files) is "
+              f"{total_charge_five_digits}")
         return charges  # return neutralized dictionary
 
 def _filter_bonded(bonded):

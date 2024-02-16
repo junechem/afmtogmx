@@ -86,7 +86,7 @@ class ReadOFF:
                     self.nonbonded[atom_pair][f'{inter_term}'].append(params)  # populate with parameters
 
     def calc_charges(self, known_atom=None, known_atom_charge=None, normalization="M-POPULOUS", known_charge_sign=None,
-                     tolerance=1E-5):
+                     tolerance=1E-5, afternorm_atom = ""):
         """Populates self.charges with nonzero charges derived from the .off file.
 
         :param known_atom: atom which other charges should be derived from
@@ -94,6 +94,11 @@ class ReadOFF:
         :param normalization: method of normalizition/neutralizing molecules. Currently only support M-POPULOUS: see below
         :param known_charge_sign: Either '+' or '-'. Sign of known_atom charge; to be used in conjuction with known_atom iff known_atom_charge is not used.
         :param tolerance: If excess total charge > tolerance, perform normalization
+        :param afternorm_atom: Optional, str; after normalization method, when rounding charges to 5 digits (as is done when
+        writing topology files using off.gen_bonded_topology()) there is often still some small leftover charge.
+        Specify an atom which this leftover charge will be subtracted from. This allows gromacs input files to be run
+        based on this script without modification. If this is specified the off.charges dictionary will contain charges
+        up to 5 digits for each atom
 
         Methods of Normalization:
         M-POPULOUS:     For each molname, the number of unique atoms per molecule are counted, and the most populous
@@ -109,7 +114,7 @@ class ReadOFF:
             charges = functions._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
 
         self.charges = functions._normalize_charges(normalization=normalization.upper(), charges=charges,
-                                                    bonded=self.bonded, tolerance=tolerance)
+                                                    bonded=self.bonded, tolerance=tolerance, afternorm_atom= afternorm_atom)
 
     def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], spacing=0.0005, length=3,
                              scale_C6=True):
