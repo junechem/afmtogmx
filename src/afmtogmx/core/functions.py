@@ -639,7 +639,7 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
         afternorm_charge = 0
         for atom in all_atoms:
             afternorm_charge += round(charges[atom], 5)
-        print(afternorm_charge)
+        print(afternorm_charge, 'afternorm charge')
         return charges  # return neutralized dictionary
 
 def _filter_bonded(bonded):
