@@ -1,3 +1,6 @@
+"""This module contains functions mainly related to the production of topology files; for now 
+this only generates .top files
+"""
 import re
 
 

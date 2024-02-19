@@ -1,4 +1,6 @@
 from afmtogmx.core import topology, tabulated_potentials, functions
+""" This module contains the main class, ReadOFF, which is used to generate input files for gmx
+"""
 
 
 class ReadOFF:

@@ -1,3 +1,6 @@
+"""This class contains functions mainly related to generation of tabulated potentials, both 
+bonded and nonbonded
+"""
 import numpy as np
 from copy import deepcopy
 from afmtogmx.core import functions
