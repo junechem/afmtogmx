@@ -282,3 +282,12 @@ def _write_bonded_tabpot(tabpot, prefix, write_to):
     final_tabpot = np.array([col1, col2, col3]).T
     to_dir_prefix = write_to + "/" + prefix
     np.savetxt(f"{to_dir_prefix}_b{int(tabpot[0])}.xvg", X = final_tabpot, fmt = '% 20.8E', newline = '\n')
+
+def _translate_pairs(atom_pair, name_translation):
+    """This will return translated pairs of atoms as a tuple"""
+    at1, at2 = atom_pair[:]
+    if at1 in name_translation:
+        at1 = name_translation[at1]
+    if at2 in name_translation:
+        at2 = name_translation[at2]
+    return (at1, at2)
