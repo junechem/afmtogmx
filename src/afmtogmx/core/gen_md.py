@@ -336,6 +336,9 @@ class ReadOFF:
         for atom_pair, tabpot in nonbonded_tabpot.items():
             tabulated_potentials._write_nonbonded_pair_tabpot(atom_pair=atom_pair, tabpot = tabpot, name_translation = name_translation, write_to = write_to, prefix = prefix)
 
+        if write_blank:
+            tabulated_potentials._write_blank_nonbonded(prefix=prefix, write_to = write_to)
+
     @staticmethod
     def write_bonded_tabpot(bonded_tabpot = {}, prefix ="MOL", to_dir =""):
         """Generate bonded tabulated potentials for either QUA bonds or QBB terms in the .off file.

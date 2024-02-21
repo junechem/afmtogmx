@@ -268,6 +268,15 @@ def _write_nonbonded_pair_tabpot(atom_pair, tabpot, name_translation, write_to, 
 
     np.savetxt(f"{to_dir_prefix}_{At1}_{At2}.xvg", X = final_tabpot, fmt = '% 20.8E', newline = '\n')
 
+def _write_blank_nonbonded(prefix, write_to):
+    """Writes an empty nonbonded tabulated potential file, 5 nm, spacing = 0.0005 nm"""
+    x_values = np.arange(0, 5.0005, 0.0005)
+    zeros = np.zeros(len(x_values))
+    final_zeros_tabpot = np.array([x_values, zeros, zeros, zeros, zeros, zeros, zeros]).T
+    to_dir_prefix = write_to + "/" + prefix
+    np.savetxt(f'{to_dir_prefix}.xvg', X = final_zeros_tabpot, fmt = '% 20.8E', newline = '\n')
+
+
 def _write_bonded_tabpot(tabpot, prefix, write_to):
     col1, col2, col3 = tabpot[1], tabpot[2], tabpot[3]
     final_tabpot = np.array([col1, col2, col3]).T
