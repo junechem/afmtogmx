@@ -333,22 +333,30 @@ class ReadOFF:
 
         write_to = tabulated_potentials._to_dir(write_to_dir=to_dir)
 
-        pair_interactions = ""
-        unique_atoms = []
+        pair_interactions = []
+        unique_atoms_notranslation = []
 
         for atom_pair, tabpot in nonbonded_tabpot.items():  # Write nonbonded tabulated potentials
             tabulated_potentials._write_nonbonded_pair_tabpot(atom_pair=atom_pair, tabpot = tabpot, name_translation = name_translation, write_to = write_to, prefix = prefix)
-            pair_interactions += f'{atom_pair[0]} {atom_pair[1]}  '
-            if atom_pair[0] not in unique_atoms:
-                unique_atoms.append(atom_pair[0])
-            if atom_pair[1] not in unique_atoms:
-                unique_atoms.append(atom_pair[1])
+            pair_interactions.append(tabulated_potentials._translate_pairs(atom_pair=atom_pair, name_translation=name_translation))
+            if atom_pair[0] not in unique_atoms_notranslation:
+                unique_atoms_notranslation.append(atom_pair[0])
+            if atom_pair[1] not in unique_atoms_notranslation:
+                unique_atoms_notranslation.append(atom_pair[1])
+
+        unique_atoms_translated = []
+        for atom in unique_atoms_notranslation:  # translate atoms for writing energygrps
+            if atom in name_translation:
+                unique_atoms_translated.append(name_translation[atom])
+            else:
+                unique_atoms_translated.append(atom)
 
         print("\nUnique atoms for energygrps: \n")
-        print(' '.join(unique_atoms))
+        print(' '.join(unique_atoms_translated))
 
         print("\nTotal pair interactions for energygrp_table: \n")
-        print(pair_interactions)
+        individual_pairs = [' '.join(i) for i in pair_interactions]
+        print('  '.join(individual_pairs))
 
         if write_blank:  # write blank file if requested
             tabulated_potentials._write_blank_nonbonded(prefix=prefix, write_to = write_to)
