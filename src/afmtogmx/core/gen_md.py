@@ -333,10 +333,24 @@ class ReadOFF:
 
         write_to = tabulated_potentials._to_dir(write_to_dir=to_dir)
 
-        for atom_pair, tabpot in nonbonded_tabpot.items():
-            tabulated_potentials._write_nonbonded_pair_tabpot(atom_pair=atom_pair, tabpot = tabpot, name_translation = name_translation, write_to = write_to, prefix = prefix)
+        pair_interactions = ""
+        unique_atoms = []
 
-        if write_blank:
+        for atom_pair, tabpot in nonbonded_tabpot.items():  # Write nonbonded tabulated potentials
+            tabulated_potentials._write_nonbonded_pair_tabpot(atom_pair=atom_pair, tabpot = tabpot, name_translation = name_translation, write_to = write_to, prefix = prefix)
+            pair_interactions += f'{atom_pair[0]} {atom_pair[1]}  '
+            if atom_pair[0] not in unique_atoms:
+                unique_atoms.append(atom_pair[0])
+            if atom_pair[1] not in unique_atoms:
+                unique_atoms.append(atom_pair[1])
+
+        print("\nUnique atoms for energygrps: \n")
+        print(' '.join(unique_atoms))
+
+        print("\nTotal pair interactions for energygrp_table: \n")
+        print(pair_interactions)
+
+        if write_blank:  # write blank file if requested
             tabulated_potentials._write_blank_nonbonded(prefix=prefix, write_to = write_to)
 
     @staticmethod
