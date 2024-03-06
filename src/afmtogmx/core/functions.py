@@ -614,15 +614,14 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
     :return: charges dictionary per molname with neutralized molecule
     """
     atom_instances = defaultdict(int)  # count number of atoms per molecule
+    abs_total_charge = 0
+    for atom in all_atoms:
+        atom_instances[atom] += 1
+        abs_total_charge += abs(charges[atom])
+
+    atom_instances = dict(sorted(atom_instances.items(), key=lambda item: item[1], reverse=True))  # sort number of
+    # atoms per molecule as from highest number to lowest number of atoms
     if normalization == "M-POPULOUS":
-        abs_total_charge = 0
-        for atom in all_atoms:
-            atom_instances[atom] += 1
-            abs_total_charge += abs(charges[atom])
-
-        atom_instances = dict(sorted(atom_instances.items(), key=lambda item: item[1], reverse=True))  # sort number of
-        # atoms per molecule as from highest number to lowest number of atoms
-
         for atom in atom_instances:
             if charges[atom] != 0:  # when nonzero charge is found
                 num_atoms = atom_instances[atom]
