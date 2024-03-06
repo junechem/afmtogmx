@@ -89,7 +89,7 @@ class ReadOFF:
 
     def calc_charges(self, known_atom=None, known_atom_charge=None, normalization="M-POPULOUS", known_charge_sign=None,
                      tolerance=1E-5):
-        """Populates self.charges with nonzero charges derived from the .off file.
+        """Populates self.charges with nonzero charges derived from the .off file. Will always round charges to 5 digits
 
         :param known_atom: atom which other charges should be derived from
         :param known_atom_charge: if charge of known_atom is known (eg BLYPSP-4F proton charge), calculate charges based on known_atom and known_atom_charge
