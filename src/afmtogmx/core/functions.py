@@ -636,7 +636,8 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
             new_charge += charges[atom]  # calculate the new leftover charge, will be effectively zero
         print("New Charge: ", new_charge)
         print("")
-
+    for atom, charge in charges.items():
+        charges[atom] = round(charge, 5)
 
     return charges  # return neutralized dictionary
 
