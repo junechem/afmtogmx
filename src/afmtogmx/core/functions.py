@@ -1,6 +1,7 @@
 import numpy as np
 from copy import deepcopy
 import re
+from collections import defaultdict
 
 """This module contains several valuable functions for the generation of input files for MD"""
 
@@ -612,10 +613,8 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
     :param total_charge: total charge before modifying charges per molecule
     :return: charges dictionary per molname with neutralized molecule
     """
-
+    atom_instances = defaultdict(int)  # count number of atoms per molecule
     if normalization == "M-POPULOUS":
-        from collections import defaultdict
-        atom_instances = defaultdict(int)  # count number of atoms per molecule
         abs_total_charge = 0
         for atom in all_atoms:
             atom_instances[atom] += 1
@@ -636,6 +635,7 @@ def _normalization_process(normalization, all_atoms, charges, total_charge):
             new_charge += charges[atom]  # calculate the new leftover charge, will be effectively zero
         print("New Charge: ", new_charge)
         print("")
+
     for atom, charge in charges.items():
         charges[atom] = round(charge, 5)
 
