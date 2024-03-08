@@ -68,5 +68,5 @@ So, a good final workflow going from intra.off file to functional force field is
     >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top', bonded_tabpot = bonded_tabpot)  # bonded_tabpot is optional depending on if there are bonded tabulated interactions defined in the .off file
 
 """
-from afmtogmx.core import topology, tabulated_potentials, gen_md, functions, compare
+from afmtogmx.core import topology, tabulated_potentials, gen_md, functions, compare, chargefxns
 from afmtogmx.core.gen_md import ReadOFF
