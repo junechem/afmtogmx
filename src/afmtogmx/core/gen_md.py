@@ -1,4 +1,4 @@
-from afmtogmx.core import topology, tabulated_potentials, functions
+from afmtogmx.core import topology, tabulated_potentials, functions, chargefxns
 """ This module contains the main class, ReadOFF, which is used to generate input files for gmx
 """
 
@@ -102,15 +102,15 @@ class ReadOFF:
         atom (with n atoms) with a nonzero charge has the excess-total-charge/n subtracted from the charge, resulting in
         functionally zero charge.
         """
-        charges = functions._gen_empty_charge_dict(self.bonded)
+        charges = chargefxns._gen_empty_charge_dict(self.bonded)
 
         if known_atom and known_atom_charge:
-            charges = functions._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
+            charges = chargefxns._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
         elif known_atom and known_charge_sign:
-            known_atom_charge = functions._get_known_atom_charge(known_atom, self.nonbonded, sign=known_charge_sign)
-            charges = functions._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
+            known_atom_charge = chargefxns._get_known_atom_charge(known_atom, self.nonbonded, sign=known_charge_sign)
+            charges = chargefxns._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
 
-        self.charges = functions._normalize_charges(normalization=normalization.upper(), charges=charges,
+        self.charges = chargefxns._normalize_charges(normalization=normalization.upper(), charges=charges,
                                                     bonded=self.bonded, tolerance=tolerance)
 
     def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], spacing=0.0005, length=3,
