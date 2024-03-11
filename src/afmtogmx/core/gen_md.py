@@ -1,4 +1,4 @@
-from afmtogmx.core import topology, tabulated_potentials, functions, chargefxns
+from afmtogmx.core import topology, tabulated_potentials, functions, chargefxns, residues
 """ This module contains the main class, ReadOFF, which is used to generate input files for gmx
 """
 
@@ -376,6 +376,33 @@ class ReadOFF:
         for molname, molname_dict in bonded_tabpot.items():
             for params, table_list in molname_dict.items():
                 tabulated_potentials._write_bonded_tabpot(tabpot=table_list, prefix=prefix, write_to=write_to)
+
+
+    def gen_residues(self, residue_definition = {}, residue_atnums = {}):
+        """Populate off.residues with proper information
+
+        :param residue_definition: Dictionary, format:
+
+        [molname][ResidueName1 : [AtType1, AtType2, ...], ResidueName2 : [AtType1, AtType2, ...]]
+
+        :param residue_atnums: Dictionary, format:
+
+        [molname][ResidueName : [[RangeOfAtoms], [RangeOfAtoms]...], ResidueName2 : [[RangeOfAtoms], [RangeOfAtoms]...]]
+
+        Each molname does not need to be specified. If a certain molname
+        """
+
+        print("Generating Residues")
+
+        # Check if molecule names, atom types, and atom numbers provided are actually in the .off file
+        residues._check_residue_definitions(bonded = self.bonded, residue_definition = residue_definition)
+        residues._check_residue_atnums(bonded = self.bonded, residue_atnums= residue_atnums)
+
+        self.residues['Definitions'] = residue_definition
+        self.residues['Residues'] = residue_atnums
+
+        print("Done generating residues")
+
 
 
 
