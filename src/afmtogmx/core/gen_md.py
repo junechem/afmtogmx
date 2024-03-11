@@ -381,15 +381,46 @@ class ReadOFF:
     def gen_residues(self, residue_definition = {}, residue_atnums = {}):
         """Populate off.residues with proper information
 
+        *   residue_definition dictionary must have the following format:
+
+            { molname : { Residue1Name : [AtType1, AtType2, ...], Residue2Name : ...}}
+
+            Where molname is a molecule name in the .off file, ResidueNName is the desired residue name, and
+            [AtType1, AtType2...] is a list containing strings which match the atom types found in the residue. You must
+            specify multiple copies of each atom type if they are found in your residue. For example, if CH3 is a
+            residue in a molecule named Ethane:
+
+            residue_defition = { 'Ethane' : {'CH3' : [C, H, H, H]}}
+
+        * residue_atnums dictionary must have the following format:
+
+            { molname : {Residue1Name : [[Atnum1, Atnum2, ...], [Atnum1, Atnum2, ...]]}}
+
+            Where molname is a molecule name in the .off file, ResidueNName is the desired residue name, and the list
+            contains information regarding each atom number that is part of the desired residue. For example, if CH3 is
+            a residue in a molecule named Ethane, and the atom numbers in the .off file for the whole molecule is:
+
+            1   C
+            2   H
+            3   H
+            4   H
+            5   C
+            6   H
+            7   H
+            8   H
+            9   NETF
+            10  TORQ
+
+            the residue_atnums dictionary should look like:
+
+            residue_atnums = { 'Ethane' : { 'CH3' : [[1, 2, 3, 4], [5, 6, 7, 8]]}}
+
         :param residue_definition: Dictionary, format:
 
         [molname][ResidueName1 : [AtType1, AtType2, ...], ResidueName2 : [AtType1, AtType2, ...]]
 
         :param residue_atnums: Dictionary, format:
 
-        [molname][ResidueName : [[RangeOfAtoms], [RangeOfAtoms]...], ResidueName2 : [[RangeOfAtoms], [RangeOfAtoms]...]]
-
-        Each molname does not need to be specified. If a certain molname
         """
 
         print("Generating Residues")
