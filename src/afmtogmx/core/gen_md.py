@@ -32,7 +32,7 @@ class ReadOFF:
 
         self._gen_sections_dict()  # Calls funtion to generate sections dict
         self._gen_bonded()  # Creates self.bonded dictionary with all sections populated with fited parameters
-        self.charges = functions._gen_empty_charge_dict(self.bonded)  # Charges dictionary with each atom set to 0.0
+        self.charges = chargefxns._gen_empty_charge_dict(self.bonded)  # Charges dictionary with each atom set to 0.0
         # charge. Using calc_charges will update self.charges with the proper charges, or self.charges can be manually
         # set
         self._gen_nonbonded()  # Creates self.nonbonded dictionary with all sections populated with fitted parameters
