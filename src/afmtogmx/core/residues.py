@@ -1,4 +1,3 @@
-
 def _check_residue_definitions(bonded, residue_definition):
     """Make sure that all residues and atom types are present in the .off file
 
@@ -23,8 +22,13 @@ def _check_residue_definitions(bonded, residue_definition):
                       f" input")
                 exit(1)
 
-def _check_residue_atnums(bonded, residue_atnums):
 
+def _check_residue_atnums(bonded, residue_atnums):
+    """This is a check to make sure that atom numbers specified in residue_atnums are actually in the .off file
+
+    :param bonded: self.bonded
+    :param residue_atnums: residue_atnums dictionary
+    """
     for molname, residues in residue_atnums.items():
         if molname not in bonded:
             print(f"Molname {molname} from residue_definitions not found in .off file. Check input")
