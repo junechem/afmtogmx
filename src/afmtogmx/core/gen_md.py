@@ -88,7 +88,7 @@ class ReadOFF:
                     self.nonbonded[atom_pair][f'{inter_term}'].append(params)  # populate with parameters
 
     def calc_charges(self, known_atom=None, known_atom_charge=None, normalization="M-POPULOUS", known_charge_sign=None,
-                     tolerance=1E-5):
+                     tolerance=1E-5, neutral_residues = False, residue_priority ={}):
         """Populates self.charges with nonzero charges derived from the .off file. Will always round charges to 5 digits
 
         :param known_atom: atom which other charges should be derived from
@@ -102,16 +102,33 @@ class ReadOFF:
         atom (with n atoms) with a nonzero charge has the excess-total-charge/n subtracted from the charge, resulting in
         functionally zero charge.
         """
-        charges = chargefxns._gen_empty_charge_dict(self.bonded)
+        print("\nCalculating Charges\n")
 
+        charges = chargefxns._gen_empty_charge_dict(self.bonded)
         if known_atom and known_atom_charge:
+            print(f"\nCharges based on atom {known_atom} with charge {known_atom_charge}")
             charges = chargefxns._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
         elif known_atom and known_charge_sign:
+            print(f"\nCharges based on atom {known_atom}")
             known_atom_charge = chargefxns._get_known_atom_charge(known_atom, self.nonbonded, sign=known_charge_sign)
+            print(f"\nCalculated {known_atom} charge: {known_atom_charge}")
             charges = chargefxns._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
 
-        self.charges = chargefxns._normalize_charges(normalization=normalization.upper(), charges=charges,
-                                                    bonded=self.bonded, tolerance=tolerance)
+        if not neutral_residues:  # If no neutral residues specified, populate and normalize self.charges as usual
+            print("\nPopulating object.charges dictionary\n")
+            self.charges = chargefxns._normalize_charges(normalization=normalization.upper(), charges=charges,
+                                                        bonded=self.bonded, tolerance=tolerance)
+        elif neutral_residues and not residue_priority:
+            print("\nWARNING: Residue priority not set during charge calculation. This may result in charges for "
+                  "unimportant residues being calculated first. If two residues share the same atom type, it is "
+                  "highly recommend to specify one of these residues to the residue_priority dictionary option.")
+        else:
+            # Check to make sure that all molnames, residue names specified in residue_priority exist within the
+            # .off file and the specified residues
+            residues._check_molname_resname(self.bonded, self.residues, residue_priority)
+
+
+            pass
 
     def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], spacing=0.0005, length=3,
                              scale_C6=True):
