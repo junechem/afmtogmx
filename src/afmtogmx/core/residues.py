@@ -1,3 +1,6 @@
+from copy import deepcopy
+
+
 def _check_residue_definitions(bonded, residue_definition):
     """Make sure that all residues and atom types are present in the .off file
 
@@ -63,3 +66,24 @@ def _check_molname_resname(bonded, residues, residue_priority):
                 print(f"\nResidue name {resname} not found in defined off.residues dictionary. Check residue_priority "
                       f"input")
                 exit(1)
+
+
+def _set_residue_definitions(residues, residue_defintion):
+    """Sets self.residues properly
+
+    :return: properly formatted self.residues['Definitions']
+    :param residues: self.residues
+    :param residue_defintion: user supplied residue_definition dictionary
+    """
+    complete_residues = deepcopy(residues)
+    for molname, residue_dict in residue_defintion.items():
+        complete_residues['Definitions'][molname] = deepcopy(residue_dict)
+
+    return complete_residues
+
+def _set_residue_atnums(residues, residue_atnums):
+
+    complete_residues = deepcopy(residues)
+    for molname, residue_dict in residue_atnums.items():
+        complete_residues['Residues'][molname] = deepcopy(residue_dict)
+    return complete_residues
