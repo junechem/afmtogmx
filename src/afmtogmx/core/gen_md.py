@@ -114,21 +114,18 @@ class ReadOFF:
             print(f"\nCalculated {known_atom} charge: {known_atom_charge}")
             charges = chargefxns._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
 
-        if not neutral_residues:  # If no neutral residues specified, populate and normalize self.charges as usual
-            print("\nPopulating object.charges dictionary\n")
-            self.charges = chargefxns._normalize_charges(normalization=normalization.upper(), charges=charges,
-                                                        bonded=self.bonded, tolerance=tolerance)
-        elif neutral_residues and not residue_priority:
+        if neutral_residues and residue_priority:
+            residues._check_molname_resname(self.bonded, self.residues, residue_priority)
+        elif neutral_residues:
             print("\nWARNING: Residue priority not set during charge calculation. This may result in charges for "
                   "unimportant residues being calculated first. If two residues share the same atom type, it is "
                   "highly recommend to specify one of these residues to the residue_priority dictionary option.")
-        else:
-            # Check to make sure that all molnames, residue names specified in residue_priority exist within the
-            # .off file and the specified residues
-            residues._check_molname_resname(self.bonded, self.residues, residue_priority)
+
+        self.charges = chargefxns._normalize_charges(normalization = normalization.upper(), charges=charges,
+                                                     bonded = self.bonded, residues = self.residues,
+                                                     residue_priority = residue_priority)
 
 
-            pass
 
     def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], spacing=0.0005, length=3,
                              scale_C6=True):
@@ -446,8 +443,8 @@ class ReadOFF:
         residues._check_residue_definitions(bonded = self.bonded, residue_definition = residue_definition)
         residues._check_residue_atnums(bonded = self.bonded, residue_atnums= residue_atnums)
 
-        self.residues['Definitions'] = residue_definition
-        self.residues['Residues'] = residue_atnums
+        self.residues = residues._set_residue_definitions(self.residues, residue_definition)
+        self.residues = residues._set_residue_atnums(self.residues, residue_atnums)
 
         print("Done generating residues")
 
