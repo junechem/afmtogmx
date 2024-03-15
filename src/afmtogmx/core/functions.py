@@ -538,3 +538,13 @@ def _remove_empty_and_cou_interactions_nonbonded(nonbonded):
         if pair_dict:
             cleaned_dict[pair] = pair_dict
     return cleaned_dict
+
+def _remove_netf_torq_atname(all_atoms):
+    all_atoms_list = []
+    all_atoms_list = [v[1] for k, v in all_atoms.items() if v[1] != "NETF" and v[1] != "TORQ"]
+    return all_atoms_list
+
+def _remove_netf_torq_atnum(all_atoms):
+    removed_netf_torq = [int(k) for k, v in all_atoms.items() if v[1] != 'NETF' and v[1] !='TORQ']
+
+    return removed_netf_torq
