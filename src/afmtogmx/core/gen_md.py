@@ -36,7 +36,7 @@ class ReadOFF:
         # charge. Using calc_charges will update self.charges with the proper charges, or self.charges can be manually
         # set
         self._gen_nonbonded()  # Creates self.nonbonded dictionary with all sections populated with fitted parameters
-        self.residues = {"Definitions" : {k : None for k, v in self.bonded.items()}, "Residues" : {k : None for k, v in self.bonded.items()}}
+        self.residues = {"Definitions" : {k : {'All' : functions._remove_netf_torq_atname(v['ATO']['All'])} for k, v in self.bonded.items()}, "Residues" : {k : {'All' : [functions._remove_netf_torq_atnum(v['ATO']['All'])]} for k, v in self.bonded.items()}}
 
     def _gen_sections_dict(self):
         """Loads an off file into memory, breaks into sections, and stores it as the variable self.sections"""
