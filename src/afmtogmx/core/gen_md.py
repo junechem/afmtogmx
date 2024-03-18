@@ -122,7 +122,7 @@ class ReadOFF:
                   "highly recommend to specify one of these residues to the residue_priority dictionary option.")
 
         self.charges = chargefxns._normalize_charges(normalization = normalization.upper(), charges=charges,
-                                                     bonded = self.bonded, residues = self.residues,
+                                                     bonded = self.bonded, residue_dict = self.residues,
                                                      residue_priority = residue_priority)
 
 
