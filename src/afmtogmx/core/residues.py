@@ -93,3 +93,29 @@ def _set_residue_atnums(residues, residue_atnums):
     for molname, residue_dict in residue_atnums.items():
         complete_residues['Residues'][molname] = deepcopy(residue_dict)
     return complete_residues
+
+
+def _generate_residue_priority(residue_dict, bonded, residue_priority):
+    """Produces complete and properly formatted residue_priority dictionary for use in chargefxns._normalize_charges
+
+    :param residue_dict: self.residues
+    :param bonded: self.bonded
+    :param residue_priority: residue_priority dictionary as passed to ReadOFF.calc_charges
+    :return:
+    """
+    if not residue_priority:  # Generate residue priority based on order in dictionary;
+        residue_priority = {k: tuple(v.keys()) for k, v, in residue_dict['Definitions'].items()}
+
+    for molname, bonded_dict in bonded.items():  # If provided residue_priority is incomplete for some molecules,
+        # add items that are not already in residue_priority to it, with order maintained
+        if molname not in residue_priority:
+            residue_priority[molname] = ('All',)
+        else:
+            set_of_priority_residues = set(residue_priority[molname])
+            set_of_defined_residues = set(residue_dict['Definitions'][molname].keys())
+            if set_of_defined_residues != set_of_priority_residues:
+                ordered_list = [i for i in residue_priority[molname]]
+                for item in set_of_defined_residues:
+                    if item not in ordered_list: ordered_list.append(item)
+                residue_priority[molname] = tuple(ordered_list)
+    return residue_priority
