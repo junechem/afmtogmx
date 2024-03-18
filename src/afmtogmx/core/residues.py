@@ -81,8 +81,14 @@ def _set_residue_definitions(residues, residue_defintion):
 
     return complete_residues
 
-def _set_residue_atnums(residues, residue_atnums):
 
+def _set_residue_atnums(residues, residue_atnums):
+    """Sets atom numbers in appropriate format for self.residues['Residues'] dictionary
+
+    :param residues: self.residues
+    :param residue_atnums: residues_atnums dictionary argument in ReadOFF.gen_residues method
+    :return: properly formatted self.residues['Residues']
+    """
     complete_residues = deepcopy(residues)
     for molname, residue_dict in residue_atnums.items():
         complete_residues['Residues'][molname] = deepcopy(residue_dict)
