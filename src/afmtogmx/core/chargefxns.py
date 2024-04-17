@@ -1,5 +1,6 @@
 import numpy as np
 from collections import defaultdict
+from afmtogmx.core import residues
 
 
 def _gen_empty_charge_dict(bonded):
@@ -14,6 +15,7 @@ def _gen_empty_charge_dict(bonded):
                      pair[1] != 'NETF' and pair[1] != 'TORQ'}  # setting each atom in each mol charge == 0.0,placeholder
         charges[mol] = all_atoms  # set charges[mol] equal to what we just defined and return
     return charges
+
 
 def _gen_charges_from_known(charges, nonbonded, known_atom, known_atom_charge):
     """Generates charges for each atom based on a known atom charge, often times
@@ -40,6 +42,7 @@ def _gen_charges_from_known(charges, nonbonded, known_atom, known_atom_charge):
             if atom in temp_charges:
                 charges[molname][atom] = temp_charges[atom]  # assign charges to each atom in charges, per molname
     return charges
+
 
 def _get_known_atom_charge(known_atom, nonbonded, sign):
     """If no atom charge is known, calculate charges based on single ('known_atom', 'known_atom') pair, with some
@@ -69,7 +72,8 @@ def _get_known_atom_charge(known_atom, nonbonded, sign):
 
     return single_charge
 
-def _normalize_charges(normalization, charges, bonded, tolerance):
+
+def _normalize_charges_old(normalization, charges, bonded, tolerance):
     """Normalizes charges if it is found that leftover charge is greater than some tolerance value
 
     :param normalization: normalization method. Current options are only 'M-POPULOUS'
@@ -96,6 +100,58 @@ def _normalize_charges(normalization, charges, bonded, tolerance):
     return updated_charges
 
 
+def _normalize_charges(normalization, charges, bonded, residue_dict, residue_priority):
+    """Begins process of normalizing charges, properly formats required objects, returns fully neutralized self.charges
+    dictionary
+
+    :param normalization: str, unused, method of normalization
+    :param charges: dictionary, preliminary non-normalized charges dictionary
+    :param bonded: self.bonded
+    :param residue_dict: self.residues
+    :param residue_priority: dictionary, residue_priority
+    """
+    updated_charges = _gen_empty_charge_dict(bonded)
+    fixed_atoms = _gen_preliminary_fixed_atoms(bonded, charges)
+    residue_priority = residues._generate_residue_priority(residue_dict, bonded, residue_priority)
+    for molname, residue_tuple in residue_priority.items():
+        for resname in residue_tuple:
+            _neutralize_residue(updated_charges, residue_dict, resname, charges, fixed_atoms, molname, normalization)
+
+def _gen_preliminary_fixed_atoms(bonded, charges):
+    """Produces preliminary fixed_atoms dictionary, marking atoms that are supposed to have a 0.0 charge as fixed
+
+    :param bonded: self.bonded
+    :param charges: preliminary, non-normalized charges dictionary
+    :return: fixed_charges, dictionary, properly formatted
+    """
+    fixed_atoms = _gen_empty_charge_dict(bonded)
+
+    for molname, charges_dict in charges.items():
+        for atname, charge in charges_dict.items():
+            # Fix atoms that should have a zero charge, otherwise, mark as not fixed
+            fixed_atoms[molname][atname] = False if charge != 0.0 else True
+    return fixed_atoms
+
+def _neutralize_residue(updated_charges, residue_dict, resname, charges, fixed_atoms, molname, normalization):
+    atoms_in_residue = residue_dict['Definitions'][molname][resname]
+    modifiable_atoms = set([i for i in atoms_in_residue if not fixed_atoms[molname][i]])
+    hold_charges = {}
+    # set current resname charge dict
+    print(resname)
+    for atom in set(atoms_in_residue):
+        if atom in modifiable_atoms:
+            hold_charges[atom] = round(charges[molname][atom], 5)
+        else:
+            hold_charges[atom] = charges[molname][atom]
+
+    total_charge = 0.0
+    for atom in atoms_in_residue:
+        total_charge += hold_charges[atom]
+    print(total_charge)
+
+
+
+    pass
 
 def _normalization_process(normalization, all_atoms, charges, total_charge):
     """Performs heavy lifting of normalizing/neutralizing molecules if above the tolerance level
