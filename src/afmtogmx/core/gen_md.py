@@ -127,7 +127,7 @@ class ReadOFF:
 
 
 
-    def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], spacing=0.0005, length=3,
+    def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], excl_pairs = [], spacing=0.0005, length=3,
                              scale_C6=True):
         """Return dictionary holding nonbonded tabulated potentials for all pairs. By default, it is assumed that the
         only attractive interactions are 'POW_6', 'DPO_6', 'SRD_6', 'PEX_6', that is, POW interactions which are raised
@@ -178,6 +178,8 @@ class ReadOFF:
         Default behavior is to write tabulated potentials for all molnames
         :param excl_interactions:  Non-required. list containing interactions EXACTLY as they appear in the .off file
         which tabulated parameters should not be written for.
+        :param excl_pairs, list: Non-required, list containing pairs which nonbonded tabpot files should not be produced
+        for
         :param spacing:  Default: 0.0005 nm. Float (in nm) for spacing between x-values in the generated tables.
         :param length:   Default: 3 nm. Float (in nm) for the total length of the generated tables
         :param scale_C6: Default: True. Boolean which controls whether columns 4 and 5 of generated tables are scaled
@@ -190,8 +192,17 @@ class ReadOFF:
         filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=excl_interactions,
                                                                     incl_atoms=total_incl_atoms)
 
-        return tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=special_pairs, spacing=spacing,
+        tabpot =  tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=special_pairs, spacing=spacing,
                                                         length=length, scale_C6=scale_C6)
+        final_tabpot = {}
+        for k, v in tabpot.items():
+            if list(k) not in excl_pairs and list(k[::-1]) not in excl_pairs:
+                final_tabpot[k] = v
+            else:
+                continue
+
+        return final_tabpot
+
 
     def gen_bonded_tabpot(self, incl_mol=[], spacing=0.0001, length=0.3):
         """Generates bonded tabulated potentials for each molecule containing bond type 'QUA' in the .off file.
