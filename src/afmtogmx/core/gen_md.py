@@ -178,7 +178,7 @@ class ReadOFF:
         Default behavior is to write tabulated potentials for all molnames
         :param excl_interactions:  Non-required. list containing interactions EXACTLY as they appear in the .off file
         which tabulated parameters should not be written for.
-        :param excl_pairs, list: Non-required, list containing pairs which nonbonded tabpot files should not be produced
+        :param excl_pairs, list: Non-required, list of lists containing pairs which nonbonded tabpot files should not be produced
         for
         :param spacing:  Default: 0.0005 nm. Float (in nm) for spacing between x-values in the generated tables.
         :param length:   Default: 3 nm. Float (in nm) for the total length of the generated tables
@@ -190,18 +190,10 @@ class ReadOFF:
         total_incl_atoms = tabulated_potentials._gen_included_atoms(incl_mol, self.bonded)  # list containing atoms which are in
         # incl_mol
         filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=excl_interactions,
-                                                                    incl_atoms=total_incl_atoms)
+                                                                    incl_atoms=total_incl_atoms, excl_pairs = excl_pairs)
 
-        tabpot =  tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=special_pairs, spacing=spacing,
+        return  tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=special_pairs, spacing=spacing,
                                                         length=length, scale_C6=scale_C6)
-        final_tabpot = {}
-        for k, v in tabpot.items():
-            if list(k) not in excl_pairs and list(k[::-1]) not in excl_pairs:
-                final_tabpot[k] = v
-            else:
-                continue
-
-        return final_tabpot
 
 
     def gen_bonded_tabpot(self, incl_mol=[], spacing=0.0001, length=0.3):
@@ -228,7 +220,7 @@ class ReadOFF:
 
         return bonded_tabpams  # return completed tabpam dictionary
 
-    def gen_nonbonded_topology(self, name_translation={}, template_file="", incl_mol=[], excl_interactions=[],
+    def gen_nonbonded_topology(self, name_translation={}, template_file="", incl_mol=[], excl_interactions=[], excl_pairs = [],
                                scale_C6=True, special_pairs={}, write_to=""):
         """Generates [ nonbond_params ] section of topology file and writes topology file (default name nonbond_topol.top).
 
@@ -236,6 +228,7 @@ class ReadOFF:
         :param template_file: Path/To/Template.top, required; should contain at least 1 section [ nonbond_params ] with a blank line following it.
         :param incl_mol: List of strings, optional; molnames to write nonbond_params for.
         :param excl_interactions: List of strings, optional; interactions as written in the .off file which should not be included in the nonbond_params section. Use case: Specific BLYPSP-4F interactions, interactions that should be written to [ pairs ], etc.
+        :param excl_pairs: list of lists containing pairs which should not be written in the nonbonded section of a topology file
         :param scale_C6: Boolean, optional, default = True; adjust C6 parameters to allow for correct dispersion corrections in the gromacs simulation
         :param special_pairs: Dictionary, optional; see discussion in gen_nonbonded_tabpot
         :param write_to: Path/to/output.top, optional; Default behavior is to write to nonbond_topol.top in current directory
@@ -258,7 +251,7 @@ class ReadOFF:
 
         incl_atoms = tabulated_potentials._gen_included_atoms(incl_mol, self.bonded)  # generate atoms to include
         filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=excl_interactions,
-                                                                    incl_atoms=incl_atoms)  # filter based on excl, incl
+                                                                    incl_atoms=incl_atoms, excl_pairs = excl_pairs)  # filter based on excl, incl
         template_nonbonded_location = topology._find_keyword_location(template_file=f, keyword="nonbond_params",
                                                                       begin=0)  # find location of [nonbonded_params ]
         #  in template, taking acount of comments, etc.
