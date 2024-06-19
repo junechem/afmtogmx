@@ -32,7 +32,7 @@ def _gen_included_atoms(incl_mol, bonded):
     return included_atoms
 
 
-def _filter_nonbonded(nonbonded, excluded_int, incl_atoms):
+def _filter_nonbonded(nonbonded, excluded_int, incl_atoms, excl_pairs):
     """Takes in nonbonded, and removes excluded interactions, excluded molnames, and reformats to match
     format of INTERACTION_POWER for interactions including POW, PEX, DPO, SRD. All other interaction names are truncated
     at 3 characters.
@@ -43,6 +43,7 @@ def _filter_nonbonded(nonbonded, excluded_int, incl_atoms):
     have a tabulated potential (as the C1-C1 intra will rely on a tablep file). If the intra EXP is named as
     'EXPINTRA', then excluded_int = ['EXPINTRA'] will not write tabulated potentials for C1-C1 'EXPINTRA'
     :param incl_atoms: list containing all atoms which pair interactions may be written for
+    :param excl_pairs: list of lists containing pairs of atoms which should be filtered
     :return: dictionary with all pairs and interactions that should have tabulated potentials written for them
     """
     variable_power_interactions = ['POW', 'PEX', 'DPO', 'SRD']  # list for which name of interaction should be modified
@@ -53,6 +54,8 @@ def _filter_nonbonded(nonbonded, excluded_int, incl_atoms):
     temp_2_nonbonded = {}
     # Remove atoms not in incl_atoms, and interactions not in excluded_int; otherwise leave the same
     for pair, int_dict in temp_nonbonded.items():
+        if list(pair) in excl_pairs or list(pair[::-1]) in excl_pairs:
+            continue
         for interact, param_list in int_dict.items():
             if interact not in excluded_int and pair[0] in incl_atoms and pair[1] in incl_atoms:
                 if pair not in temp_2_nonbonded:
