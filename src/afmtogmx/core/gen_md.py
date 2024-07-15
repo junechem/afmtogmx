@@ -91,6 +91,13 @@ class ReadOFF:
                      tolerance=1E-5, neutral_residues = False, residue_priority ={}):
         """Populates self.charges with nonzero charges derived from the .off file. Will always round charges to 5 digits
 
+        :param residue_priority: Dictionary, Non-required, should contain molnames as the keys with an ordered tuple
+        containing the names of the residues (as set by the user in gen_residues) in order of highest priority to
+        lowest. The higher priority residues will be neutralized first, and any atom types which are shared between
+        higher priority residues and lower priority residues will not be modified when neutralizing lower priority
+        residues.
+        :param neutral_residues: Boolean, Default False, flag used to determine if individual residues should be
+        neutralized rather than entire molecules.
         :param known_atom: atom which other charges should be derived from
         :param known_atom_charge: if charge of known_atom is known (eg BLYPSP-4F proton charge), calculate charges based on known_atom and known_atom_charge
         :param normalization: method of normalizition/neutralizing molecules. Currently only support M-POPULOUS: see below
