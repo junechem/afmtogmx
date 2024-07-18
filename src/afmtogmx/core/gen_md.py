@@ -135,7 +135,7 @@ class ReadOFF:
 
 
     def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], excl_pairs = [], spacing=0.0005, length=3,
-                             scale_C6=True):
+                             scale_C6=True, sc_sigma = 0.0):
         """Return dictionary holding nonbonded tabulated potentials for all pairs. By default, it is assumed that the
         only attractive interactions are 'POW_6', 'DPO_6', 'SRD_6', 'PEX_6', that is, POW interactions which are raised
         to the 6th power, DPO interactions which are raised to the 6th power, and so on.
@@ -179,6 +179,8 @@ class ReadOFF:
              for each pair that has an attractive potential by C6; for all default attractive interactions, this is
              parameter 2 as listed in the CRYOFF manual. scale_C6 is disabled for custom attractive interactions.
 
+        :param sc_sigma: float, non-required. If given, the tabulated potentials will be scaled by the proper amount
+        so that a free energy calculation using the sc-sigma value in the grompp.mdp file will be correct.
         :param special_pairs: Non-Required. dictionary following format {pair : list} where 'list' is a list of
         interactions that should be considered attractive and placed in columns 4 and 5 for that pair
         :param incl_mol: Non-Required. list containing molnames which tabulated potentials should be generated for.
@@ -199,8 +201,17 @@ class ReadOFF:
         filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=excl_interactions,
                                                                     incl_atoms=total_incl_atoms, excl_pairs = excl_pairs)
 
-        return  tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=special_pairs, spacing=spacing,
+        tabpot = tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=special_pairs, spacing=spacing,
                                                         length=length, scale_C6=scale_C6)
+        if sc_sigma != 0.0:
+            nonbonded_string = topology._gen_nonbonded_string(scale_C6=scale_C6, special_pairs=special_pairs, nonbonded = filtered_nonbonded,
+                                                              name_translation={})
+            tabpot = tabulated_potentials._scale_for_FE(sc_sigma=sc_sigma, nonbonded_string = nonbonded_string, tabpot = tabpot)
+        else:
+            pass
+
+
+        return  tabpot
 
 
     def gen_bonded_tabpot(self, incl_mol=[], spacing=0.0001, length=0.3):

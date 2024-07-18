@@ -203,6 +203,31 @@ def gen_nonbond_table(x, interaction, params, ATT, scale_C6):
         print(f"Interaction {interact} not yet added to script. Add fxn to tabulated_potentials.py or ask Ray to do it")
 
 
+def _scale_for_FE(sc_sigma, nonbonded_string, tabpot):
+    """Scale nonbonded tabulated parameters for use with free energy calculations
+
+    :param sc_sigma: float, sc_sigma value as it will be set in the grompp.mp file
+    :param nonbonded_string: output from topology._gen_nonbonded_string()
+    """
+
+    for line in nonbonded_string.split('\n'):
+        entries = line.split()
+        if len(entries) == 0:
+            continue
+        C6, C12 = float(entries[-2]), float(entries[-1])
+        if C6 != 0 and C12 != 0:
+            atom_pair = tuple(entries[0:2])
+            new_c12 = C6 * (sc_sigma**6)
+            scale_c12 = 1/new_c12
+            tabpot[atom_pair][5] = tabpot[atom_pair][5]*scale_c12
+            tabpot[atom_pair][6] = tabpot[atom_pair][6]*scale_c12
+        else:
+            pass
+    return tabpot
+
+
+
+
 def gen_bonded_tabpam(bond_dict, spacing, length, num_tables):
     """Generate bonded tabulated parameters in format {(parameters) : [table_number, x, U(x), F(x)], ... }
 
