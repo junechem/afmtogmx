@@ -239,9 +239,12 @@ class ReadOFF:
         return bonded_tabpams  # return completed tabpam dictionary
 
     def gen_nonbonded_topology(self, name_translation={}, template_file="", incl_mol=[], excl_interactions=[], excl_pairs = [],
-                               scale_C6=True, special_pairs={}, write_to=""):
+                               scale_C6=True, special_pairs={}, write_to="", sc_sigma = 0.0):
         """Generates [ nonbond_params ] section of topology file and writes topology file (default name nonbond_topol.top).
 
+        :param sc_sigma: float, non-required. If given, the nonbonded_params C12 will be scaled by the proper amount to
+        enable the use of sc_sigma in the grompp.mdp file for free energy calculations
+        so that a free energy calculation using the sc-sigma value in the grompp.mdp file will be correct.
         :param name_translation: Dictionary, optional; format {'AtIn.off' : 'AtIn.top',...}; If atom not in name_translation, atom name from .off will be used
         :param template_file: Path/To/Template.top, required; should contain at least 1 section [ nonbond_params ] with a blank line following it.
         :param incl_mol: List of strings, optional; molnames to write nonbond_params for.
@@ -277,6 +280,22 @@ class ReadOFF:
                                                           name_translation=name_translation,
                                                           nonbonded=filtered_nonbonded)  # generate string containing
         #  all nonbonded pairs with proper C6, C12
+
+        if sc_sigma != 0.0:
+            new_nonbonded_string = ""
+            for line in nonbonded_string.split('\n'):
+                entries = line.split()
+                if len(entries) == 0:
+                    continue
+                C6, C12 = float(entries[-2]), float(entries[-1])
+                if C6 != 0 and C12 != 0:
+                    atom_pair = tuple(entries[:2])
+                    new_c12 = C6*(sc_sigma**6)
+                    new_nonbonded_string += topology.single_nonbonded_pair_string(pair = tuple(atom_pair), name_translation={}, C6=C6, C12=new_c12)
+                else:
+                    new_nonbonded_string += line + "\n"
+            nonbonded_string = new_nonbonded_string
+
         with open(write_to, 'w') as w:  # Write to file location
             w.write(f[:template_nonbonded_location[1]])
             w.write(nonbonded_string)
