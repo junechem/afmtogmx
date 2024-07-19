@@ -1,6 +1,8 @@
 """This class contains functions mainly related to generation of tabulated potentials, both 
 bonded and nonbonded
 """
+import copy
+
 import numpy as np
 from copy import deepcopy
 from afmtogmx.core import functions
@@ -176,6 +178,7 @@ def _gen_nonbond_tabpam(nonbonded, spec_pairs, spacing, length, scale_C6, charge
 
 def gen_nonbond_table(x, interaction, params, ATT, scale_C6):
     interact = interaction[:3]
+    params = copy.deepcopy(params)
 
     if interact == 'EXP':
         params[0], params[1] = 4.184 * params[0], 10 * params[1]
