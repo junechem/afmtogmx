@@ -1,0 +1,33 @@
+[ defaults ]
+; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ
+1               1               no               0.0     0.0
+
+[ atomtypes ]
+; name      at.num  mass     charge ptype  C6      C12
+C               6       12.011  0.0     A       0.0     0.0
+H               1       1.0079  0.0     A       0.0     0.0
+
+[ nonbond_params ]
+H      H      1      0.000000000000E+00  1.000000000000E+00  
+C      C      1      6.730902889600E-03  1.000000000000E+00  
+C      H      1      0.000000000000E+00  1.000000000000E+00  
+
+
+[ moleculetype ]
+UNK     0
+
+[ atoms ]
+
+[ bonds ]
+
+[ angles ]
+
+[ dihedrals ]
+
+[ exclusions ]
+
+[ system ]
+Methane
+
+[ molecules ]
+UNK         1

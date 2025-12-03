@@ -1,9 +1,40 @@
-# TASKS.md - Configuration Object Pattern Implementation
+# TASKS.md
 
-## Overview
+## Completed Tasks
+
+### ✅ Project Setup & Documentation (2025-12-03)
+- [x] Set up GitHub repository (junechem/afmtogmx)
+- [x] Configure git credentials for junechem account
+- [x] Create CLAUDE.md with comprehensive project documentation
+- [x] Create environment.yml for conda dependencies
+- [x] Create pyproject.toml for Python package configuration
+- [x] Update .gitignore for Python projects
+- [x] Create main and in_progress branches
+
+### ✅ Regression Testing Infrastructure (2025-12-03)
+- [x] Create test/baseline_outputs/ directory structure
+- [x] Create Test 1: Methane (basic) - template, generator script, and baseline outputs
+- [x] Install numpy dependency
+
+## In Progress
+
+### 🔄 Regression Testing Suite
+- [ ] Create Test 2: Ethane (slightly complex bonding)
+- [ ] Create Test 3: Water (with charges)
+- [ ] Create Test 4: Butanediol (with name_translation)
+- [ ] Create Test 5: Methane (with sc_sigma for FE calculations)
+- [ ] Create Test 6: Ethane (with excl_pairs)
+- [ ] Create regression test runner script (compare_outputs.py)
+- [ ] Document testing approach in TESTING.md
+
+## Future Work
+
+### Configuration Object Pattern Implementation
+
+#### Overview
 Implement a configuration system for the ReadOFF class to avoid repeating common parameters across multiple method calls. This maintains backward compatibility while providing a cleaner API.
 
-## Goals
+#### Goals
 - Store shared configuration options once in the ReadOFF instance
 - Allow methods to use config as fallback when parameters not explicitly provided
 - Maintain 100% backward compatibility with existing code
