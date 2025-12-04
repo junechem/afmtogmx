@@ -49,25 +49,6 @@ def _check_residue_atnums(bonded, residue_atnums):
             exit(1)
 
 
-def _check_molname_resname(bonded, residues, residue_priority):
-    """Checks to see if molnames, resnames defined in residue_priority are present in self.residues
-
-    :param bonded: self.bonded
-    :param residues: self.residues
-    :param residue_priority: dictionary
-    """
-    for molname, priorities in residue_priority.items():
-        if molname not in bonded:
-            print(f"\nMolname {molname} from residue_priority not found in .off file. Please check residue_priority "
-                  f"input")
-            exit(1)
-        for resname in priorities:
-            if resname not in residues['Definitions'][molname] or resname not in residues['Residues'][molname]:
-                print(f"\nResidue name {resname} not found in defined off.residues dictionary. Check residue_priority "
-                      f"input")
-                exit(1)
-
-
 def _set_residue_definitions(residues, residue_defintion):
     """Sets self.residues properly
 
@@ -95,27 +76,3 @@ def _set_residue_atnums(residues, residue_atnums):
     return complete_residues
 
 
-def _generate_residue_priority(residue_dict, bonded, residue_priority):
-    """Produces complete and properly formatted residue_priority dictionary for use in chargefxns._normalize_charges
-
-    :param residue_dict: self.residues
-    :param bonded: self.bonded
-    :param residue_priority: residue_priority dictionary as passed to ReadOFF.calc_charges
-    :return:
-    """
-    if not residue_priority:  # Generate residue priority based on order in dictionary;
-        residue_priority = {k: tuple(v.keys()) for k, v, in residue_dict['Definitions'].items()}
-
-    for molname, bonded_dict in bonded.items():  # If provided residue_priority is incomplete for some molecules,
-        # add items that are not already in residue_priority to it, with order maintained
-        if molname not in residue_priority:
-            residue_priority[molname] = ('All',)
-        else:
-            set_of_priority_residues = set(residue_priority[molname])
-            set_of_defined_residues = set(residue_dict['Definitions'][molname].keys())
-            if set_of_defined_residues != set_of_priority_residues:
-                ordered_list = [i for i in residue_priority[molname]]
-                for item in set_of_defined_residues:
-                    if item not in ordered_list: ordered_list.append(item)
-                residue_priority[molname] = tuple(ordered_list)
-    return residue_priority

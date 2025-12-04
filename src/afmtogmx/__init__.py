@@ -7,15 +7,11 @@ within the package gen_md. We suggest using the package in the following way:
 
 From here, bonded and nonbonded parameters are stored as dictionaries at off.bonded, off.nonbonded
 
+If charges are needed, they must be manually assigned to the off.charges dictionary. By default, all atom charges are
+0.0. The dictionary format is: {"MolName": {"AtomName": charge_value}}. For example:
 
-If charges are available in the .off file, they can be calculated using
-
-    >>> off.calc_charges(Options)
-
-This populates the dictionary stored at off.charges with atom charges. By default, all atoms charges are 0.0 until
-off.calc_charges(Options) is called. The dictionary off.charges may be set by hand, but it must match the format of the
-off.charges dictionary
-See the helpdocs for what options may be used with off.calc_charges(Options))
+    >>> off.charges['H20QM']['OQM'] = -0.82
+    >>> off.charges['H20QM']['HQM'] = 0.41
 
 
 To generate nonbonded tabulated potentials, the recommended workflow is as follows:
@@ -59,7 +55,8 @@ So, a good final workflow going from intra.off file to functional force field is
 
     >>> import afmtogmx as afm
     >>> off = afm.ReadOFF(off_loc = "path/to/intra.off")
-    >>> off.calc_charges(Options)  # only use this line if charges present in .off file
+    >>> # Manually set charges if needed:
+    >>> # off.charges['MolName']['AtomName'] = charge_value
     >>> nonbonded_tabpot = off.gen_nonbonded_tabpot()
     >>> bonded_tabpot = off.gen_bonded_tabpot()  # optional depending on if bonded tabulated interactions in .off file
     >>> off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)
@@ -68,5 +65,5 @@ So, a good final workflow going from intra.off file to functional force field is
     >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top', bonded_tabpot = bonded_tabpot)  # bonded_tabpot is optional depending on if there are bonded tabulated interactions defined in the .off file
 
 """
-from afmtogmx.core import topology, tabulated_potentials, gen_md, functions, compare, chargefxns
+from afmtogmx.core import topology, tabulated_potentials, gen_md, functions, compare
 from afmtogmx.core.gen_md import ReadOFF

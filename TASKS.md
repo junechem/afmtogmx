@@ -22,7 +22,16 @@
 - [x] Create Test 6: Ethane (excl_pairs) - tests excluding specific atom pair interactions
 - [x] Document testing approach in TESTING.md
 - **Note**: All template.top files need empty lines between [ atoms ], [ bonds ], [ angles ], etc. sections
-- **Note**: Remove all charge calculation functions (calc_charges, charge normalization, etc.) from the project. Only keep the ability to manually read/assign charges to the off.charges dictionary.
+
+### ✅ Remove Charge Calculation Functions (2025-12-04)
+- [x] Removed calc_charges() method from ReadOFF class
+- [x] Deleted chargefxns.py module entirely (192 lines)
+- [x] Removed charge-only functions from residues.py (_check_molname_resname, _generate_residue_priority)
+- [x] Updated __init__.py documentation to show manual charge assignment
+- [x] Updated CLAUDE.md to remove all charge calculation references
+- [x] Verified all 6 regression tests still pass
+- **Result**: Only manual charge assignment via off.charges dictionary is now supported
+- **Net change**: Removed 286 lines of code (314 deletions, 28 insertions)
 
 ## In Progress
 

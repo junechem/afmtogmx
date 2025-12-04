@@ -1,4 +1,4 @@
-from afmtogmx.core import topology, tabulated_potentials, functions, chargefxns, residues
+from afmtogmx.core import topology, tabulated_potentials, functions, residues
 """ This module contains the main class, ReadOFF, which is used to generate input files for gmx
 """
 
@@ -32,9 +32,12 @@ class ReadOFF:
 
         self._gen_sections_dict()  # Calls funtion to generate sections dict
         self._gen_bonded()  # Creates self.bonded dictionary with all sections populated with fited parameters
-        self.charges = chargefxns._gen_empty_charge_dict(self.bonded)  # Charges dictionary with each atom set to 0.0
-        # charge. Using calc_charges will update self.charges with the proper charges, or self.charges can be manually
-        # set
+        # Initialize charges dictionary with all charges set to 0.0
+        # Format: {"Mol1" : {'At1' : 0.0, 'At2' : 0.0...}, 'Mol2':...}
+        # User can manually set charges via self.charges dictionary
+        self.charges = {mol: {pair[1]: 0.0 for key, pair in self.bonded[mol]['ATO']['All'].items()
+                              if pair[1] != 'NETF' and pair[1] != 'TORQ'}
+                        for mol in self.bonded}
         self._gen_nonbonded()  # Creates self.nonbonded dictionary with all sections populated with fitted parameters
         self.residues = {"Definitions" : {k : {'All' : functions._remove_netf_torq_atname(v['ATO']['All'])} for k, v in self.bonded.items()}, "Residues" : {k : {'All' : [functions._remove_netf_torq_atnum(v['ATO']['All'])]} for k, v in self.bonded.items()}}
 
@@ -86,52 +89,6 @@ class ReadOFF:
                     self.nonbonded[atom_pair][f'{inter_term}'].append(params)  # populate with parameters
                 else:
                     self.nonbonded[atom_pair][f'{inter_term}'].append(params)  # populate with parameters
-
-    def calc_charges(self, known_atom=None, known_atom_charge=None, normalization="M-POPULOUS", known_charge_sign=None,
-                     tolerance=1E-5, neutral_residues = False, residue_priority ={}):
-        """Populates self.charges with nonzero charges derived from the .off file. Will always round charges to 5 digits
-
-        :param residue_priority: Dictionary, Non-required, should contain molnames as the keys with an ordered tuple
-        containing the names of the residues (as set by the user in gen_residues) in order of highest priority to
-        lowest. The higher priority residues will be neutralized first, and any atom types which are shared between
-        higher priority residues and lower priority residues will not be modified when neutralizing lower priority
-        residues.
-        :param neutral_residues: Boolean, Default False, flag used to determine if individual residues should be
-        neutralized rather than entire molecules.
-        :param known_atom: atom which other charges should be derived from
-        :param known_atom_charge: if charge of known_atom is known (eg BLYPSP-4F proton charge), calculate charges based on known_atom and known_atom_charge
-        :param normalization: method of normalizition/neutralizing molecules. Currently only support M-POPULOUS: see below
-        :param known_charge_sign: Either '+' or '-'. Sign of known_atom charge; to be used in conjuction with known_atom iff known_atom_charge is not used.
-        :param tolerance: If excess total charge > tolerance, perform normalization
-
-        Methods of Normalization:
-        M-POPULOUS:     For each molname, the number of unique atoms per molecule are counted, and the most populous
-        atom (with n atoms) with a nonzero charge has the excess-total-charge/n subtracted from the charge, resulting in
-        functionally zero charge.
-        """
-        print("\nCalculating Charges\n")
-
-        charges = chargefxns._gen_empty_charge_dict(self.bonded)
-        if known_atom and known_atom_charge:
-            print(f"\nCharges based on atom {known_atom} with charge {known_atom_charge}")
-            charges = chargefxns._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
-        elif known_atom and known_charge_sign:
-            print(f"\nCharges based on atom {known_atom}")
-            known_atom_charge = chargefxns._get_known_atom_charge(known_atom, self.nonbonded, sign=known_charge_sign)
-            print(f"\nCalculated {known_atom} charge: {known_atom_charge}")
-            charges = chargefxns._gen_charges_from_known(charges, self.nonbonded, known_atom, known_atom_charge)
-
-        if neutral_residues and residue_priority:
-            residues._check_molname_resname(self.bonded, self.residues, residue_priority)
-        elif neutral_residues:
-            print("\nWARNING: Residue priority not set during charge calculation. This may result in charges for "
-                  "unimportant residues being calculated first. If two residues share the same atom type, it is "
-                  "highly recommend to specify one of these residues to the residue_priority dictionary option.")
-
-        self.charges = chargefxns._normalize_charges(normalization = normalization.upper(), charges=charges,
-                                                     bonded = self.bonded, residue_dict = self.residues,
-                                                     residue_priority = residue_priority)
-
 
 
     def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], excl_pairs = [], spacing=0.0005, length=3,

@@ -22,7 +22,7 @@ off = afm.ReadOFF(off_loc="path/to/intra.off")
 After initialization, `ReadOFF` objects contain:
 - `off.bonded`: Dictionary with fitted bonded parameters organized by molecule name and interaction type (ATO, BON, ANG, BD3, DIH, CDI)
 - `off.nonbonded`: Dictionary with nonbonded parameters organized by atom pairs and interaction types
-- `off.charges`: Dictionary with atomic charges per molecule (default 0.0 until `calc_charges()` is called)
+- `off.charges`: Dictionary with atomic charges per molecule (default 0.0 for all atoms; must be manually set if needed)
 - `off.residues`: Dictionary with residue definitions and atom number mappings
 - `off.sections`: Internal dictionary splitting .off file into 5 sections (ff_input, intra_potential, inter_potential, molecular_definition, table_potential)
 
@@ -51,16 +51,9 @@ After initialization, `ReadOFF` objects contain:
 - Template-based topology file modification
 - Atom name translation support
 
-**chargefxns.py** (192 lines)
-- Derives atomic charges from coulombic interactions in .off file
-- Charge normalization methods (currently "M-POPULOUS")
-- Residue-based charge neutralization
-- Works from known atom charges or derives from self-interactions
-
 **residues.py** (121 lines)
 - Manages residue definitions and atom number mappings
 - Validates user-provided residue definitions
-- Generates residue priority for charge neutralization
 
 **compare.py** (67 lines)
 - Compares two force fields (two ReadOFF objects)
@@ -71,7 +64,7 @@ After initialization, `ReadOFF` objects contain:
 The typical workflow follows this sequence:
 
 1. **Read .off file**: `off = afm.ReadOFF(off_loc="path/to/intra.off")`
-2. **Calculate charges** (if coulombic interactions present): `off.calc_charges(...)`
+2. **Set charges manually** (if needed): `off.charges['MolName']['AtomName'] = charge_value`
 3. **Generate tabulated potentials**:
    - `nonbonded_tabpot = off.gen_nonbonded_tabpot(...)`
    - `bonded_tabpot = off.gen_bonded_tabpot(...)` (if needed)
@@ -104,17 +97,19 @@ Example: `special_pairs = {('At1', 'At2'): ['POW_6', 'POW_8']}`
 
 By default (`scale_C6=True`), columns 4-5 in tabulated potentials are scaled by the C6 parameter to enable GROMACS dispersion corrections. This assumes only one attractive interaction per pair.
 
-### Charge Calculation
+### Manual Charge Assignment
 
-Charges are derived from coulombic (COU) interactions in the .off file using:
-- A known atom with known charge, OR
-- A known atom with self-interaction and charge sign (derives charge as ±√(self-interaction))
+Charges must be manually assigned to the `off.charges` dictionary. By default, all atom charges are 0.0. The dictionary format is:
+```python
+off.charges['MolName']['AtomName'] = charge_value
+```
 
-Charges are normalized using "M-POPULOUS" method: excess charge distributed to most populous atom type with nonzero charge.
-
-### Residue-Based Neutralization
-
-Set `neutral_residues=True` in `calc_charges()` to neutralize individual residues rather than entire molecules. Use `residue_priority` dictionary to control which residues are neutralized first when atom types are shared.
+Example for water (TIP3P-like charges):
+```python
+off.charges['H20QM']['OQM'] = -0.82
+off.charges['H20QM']['HQM'] = 0.41
+off.charges['H20QM']['EQM'] = 0.0
+```
 
 ### Soft-Core Scaling
 
@@ -126,7 +121,7 @@ Based on recent commits:
 - Bug fix for `gen_nonbond_tabpam` function (commit 6289640)
 - Added C12 column scaling for HFE (Hydration Free Energy) calculations (commits 5c102af, 96f8e83)
 - Added `excl_pairs` functionality to exclude specific atom pairs from tabulated potentials
-- Charge normalization rewrite in progress (`chargefxns_old.py` is previous version)
+- Removed all charge calculation functions - only manual charge assignment is now supported
 
 ## Development Notes
 

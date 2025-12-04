@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python generate_test2.py:*)",
+      "Bash(mkdir:*)",
+      "Bash(python generate_test3.py:*)",
+      "Bash(python generate_test4.py:*)",
+      "Bash(python generate_test5.py:*)",
+      "Bash(python generate_test6.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

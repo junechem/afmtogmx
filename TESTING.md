@@ -61,7 +61,7 @@ Each test directory contains:
 
 **Run**: `python generate_test3.py`
 
-**Note**: Charge calculation functions (calc_charges, normalization) will be removed from the project. This test demonstrates manual charge assignment, which is the only supported method going forward.
+**Note**: Charge calculation functions (calc_charges, normalization) have been removed from the project. This test demonstrates manual charge assignment, which is the only supported method.
 
 ---
 
@@ -219,7 +219,7 @@ Without empty lines, the topology generation will fail to populate these section
 
 ### Charge Handling
 
-**Important**: Charge calculation functions (calc_charges, charge normalization, residue neutralization) are being removed from the project. Only manual charge assignment is supported:
+**Important**: Charge calculation functions (calc_charges, charge normalization, residue neutralization) have been removed from the project. Only manual charge assignment is supported:
 
 ```python
 off = afm.ReadOFF(off_loc="intra.off")
