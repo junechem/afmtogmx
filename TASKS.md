@@ -126,26 +126,28 @@ def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=
                          excl_pairs=[], spacing=0.0005, length=3, scale_C6=True, sc_sigma=0.0)
 ```
 
-**New signature** (change defaults to None):
+**New signature** (parameter names match config keys, defaults to None):
 ```python
 def gen_nonbonded_tabpot(self, special_pairs=None, incl_mol=None, excl_interactions=None,
-                         excl_pairs=None, spacing=None, length=None, scale_C6=None, sc_sigma=None)
+                         excl_pairs=None, spacing_nonbonded=None, length_nonbonded=None,
+                         scale_C6=None, sc_sigma=None)
 ```
 
 **Add at the beginning of method** (before line 199):
 ```python
-# Use provided values, or fall back to config, or use original defaults
-special_pairs = special_pairs if special_pairs is not None else self.config.get('special_pairs', {})
-incl_mol = incl_mol if incl_mol is not None else self.config.get('incl_mol', [])
-excl_interactions = excl_interactions if excl_interactions is not None else self.config.get('excl_interactions', [])
-excl_pairs = excl_pairs if excl_pairs is not None else self.config.get('excl_pairs', [])
-spacing = spacing if spacing is not None else self.config.get('spacing_nonbonded', 0.0005)
-length = length if length is not None else self.config.get('length_nonbonded', 3)
-scale_C6 = scale_C6 if scale_C6 is not None else self.config.get('scale_C6', True)
-sc_sigma = sc_sigma if sc_sigma is not None else self.config.get('sc_sigma', 0.0)
+from types import SimpleNamespace
+
+# Resolve parameters: explicit value → config → default (one line!)
+p = SimpleNamespace(**{
+    k: v if v is not None else self.config[k]
+    for k, v in locals().items() if k in self.config
+})
+
+# Access via: p.spacing_nonbonded, p.incl_mol, p.special_pairs, etc.
+# Update rest of function to use p.* instead of variable names
 ```
 
-**Update docstring** to mention config fallback behavior.
+**Update docstring** to mention config fallback behavior and new parameter names.
 
 ---
 
@@ -157,20 +159,25 @@ sc_sigma = sc_sigma if sc_sigma is not None else self.config.get('sc_sigma', 0.0
 def gen_bonded_tabpot(self, incl_mol=[], spacing=0.0001, length=0.3)
 ```
 
-**New signature**:
+**New signature** (parameter names match config keys):
 ```python
-def gen_bonded_tabpot(self, incl_mol=None, spacing=None, length=None)
+def gen_bonded_tabpot(self, incl_mol=None, spacing_bonded=None, length_bonded=None)
 ```
 
 **Add at the beginning of method**:
 ```python
-# Use provided values, or fall back to config, or use original defaults
-incl_mol = incl_mol if incl_mol is not None else self.config.get('incl_mol', [])
-spacing = spacing if spacing is not None else self.config.get('spacing_bonded', 0.0001)
-length = length if length is not None else self.config.get('length_bonded', 0.3)
+from types import SimpleNamespace
+
+# Resolve parameters: explicit value → config → default (one line!)
+p = SimpleNamespace(**{
+    k: v if v is not None else self.config[k]
+    for k, v in locals().items() if k in self.config
+})
+
+# Access via: p.incl_mol, p.spacing_bonded, p.length_bonded
 ```
 
-**Update docstring**.
+**Update docstring** to mention new parameter names.
 
 ---
 
@@ -184,7 +191,7 @@ def gen_nonbonded_topology(self, name_translation={}, template_file="", incl_mol
                           scale_C12=1.0, special_pairs={}, sc_sigma=0.0)
 ```
 
-**New signature**:
+**New signature** (parameter names match config keys):
 ```python
 def gen_nonbonded_topology(self, name_translation=None, template_file="", incl_mol=None,
                           excl_interactions=None, excl_pairs=None, write_to="", scale_C6=None,
@@ -193,15 +200,15 @@ def gen_nonbonded_topology(self, name_translation=None, template_file="", incl_m
 
 **Add at the beginning of method**:
 ```python
-# Use provided values, or fall back to config, or use original defaults
-name_translation = name_translation if name_translation is not None else self.config.get('name_translation', {})
-incl_mol = incl_mol if incl_mol is not None else self.config.get('incl_mol', [])
-excl_interactions = excl_interactions if excl_interactions is not None else self.config.get('excl_interactions', [])
-excl_pairs = excl_pairs if excl_pairs is not None else self.config.get('excl_pairs', [])
-scale_C6 = scale_C6 if scale_C6 is not None else self.config.get('scale_C6', True)
-scale_C12 = scale_C12 if scale_C12 is not None else self.config.get('scale_C12', 1.0)
-special_pairs = special_pairs if special_pairs is not None else self.config.get('special_pairs', {})
-sc_sigma = sc_sigma if sc_sigma is not None else self.config.get('sc_sigma', 0.0)
+from types import SimpleNamespace
+
+# Resolve parameters: explicit value → config → default (one line!)
+p = SimpleNamespace(**{
+    k: v if v is not None else self.config[k]
+    for k, v in locals().items() if k in self.config
+})
+
+# Access via: p.name_translation, p.incl_mol, p.scale_C6, etc.
 ```
 
 **Update docstring**.
@@ -217,7 +224,7 @@ def gen_bonded_topology(self, name_translation={}, incl_mol=[], template_file=""
                        write_to="", bonded_tabpot={})
 ```
 
-**New signature**:
+**New signature** (parameter names match config keys):
 ```python
 def gen_bonded_topology(self, name_translation=None, incl_mol=None, template_file="",
                        write_to="", bonded_tabpot={})
@@ -225,9 +232,15 @@ def gen_bonded_topology(self, name_translation=None, incl_mol=None, template_fil
 
 **Add at the beginning of method**:
 ```python
-# Use provided values, or fall back to config, or use original defaults
-name_translation = name_translation if name_translation is not None else self.config.get('name_translation', {})
-incl_mol = incl_mol if incl_mol is not None else self.config.get('incl_mol', [])
+from types import SimpleNamespace
+
+# Resolve parameters: explicit value → config → default (one line!)
+p = SimpleNamespace(**{
+    k: v if v is not None else self.config[k]
+    for k, v in locals().items() if k in self.config
+})
+
+# Access via: p.name_translation, p.incl_mol
 ```
 
 **Update docstring**.
@@ -239,11 +252,7 @@ incl_mol = incl_mol if incl_mol is not None else self.config.get('incl_mol', [])
 
 **Note**: This is currently a static method, which cannot access `self.config`.
 
-**Options**:
-1. Make it an instance method (recommended)
-2. Keep it static but add a convenience instance method wrapper
-
-**Recommended approach**: Convert to instance method and add wrapper for backward compatibility.
+**Approach**: Convert to instance method and keep static version for backward compatibility.
 
 **Current signature**:
 ```python
@@ -254,18 +263,20 @@ def write_nonbonded_tabpot(nonbonded_tabpot={}, prefix="MOL", to_dir="",
 
 **New implementation**:
 ```python
-def write_nonbonded_tabpot(self, nonbonded_tabpot={}, prefix=None, to_dir=None,
+def write_nonbonded_tabpot(self, nonbonded_tabpot={}, tabpot_prefix=None, tabpot_dir=None,
                           name_translation=None, write_blank=None):
     """Instance method that uses config defaults."""
-    # Use provided values, or fall back to config, or use original defaults
-    prefix = prefix if prefix is not None else self.config.get('tabpot_prefix', 'MOL')
-    to_dir = to_dir if to_dir is not None else self.config.get('tabpot_dir', '')
-    name_translation = name_translation if name_translation is not None else self.config.get('name_translation', {})
-    write_blank = write_blank if write_blank is not None else self.config.get('write_blank', True)
+    from types import SimpleNamespace
+
+    # Resolve parameters: explicit value → config → default (one line!)
+    p = SimpleNamespace(**{
+        k: v if v is not None else self.config[k]
+        for k, v in locals().items() if k in self.config
+    })
 
     # Call the static method with resolved parameters
-    return ReadOFF._write_nonbonded_tabpot_static(nonbonded_tabpot, prefix, to_dir,
-                                                   name_translation, write_blank)
+    return ReadOFF._write_nonbonded_tabpot_static(nonbonded_tabpot, p.tabpot_prefix,
+                                                   p.tabpot_dir, p.name_translation, p.write_blank)
 
 @staticmethod
 def _write_nonbonded_tabpot_static(nonbonded_tabpot={}, prefix="MOL", to_dir="",
@@ -274,7 +285,7 @@ def _write_nonbonded_tabpot_static(nonbonded_tabpot={}, prefix="MOL", to_dir="",
     # ... move existing implementation here ...
 ```
 
-**Update docstring**.
+**Update docstring** to mention parameter name changes (`prefix` → `tabpot_prefix`, `to_dir` → `tabpot_dir`).
 
 ---
 
@@ -289,11 +300,17 @@ def write_bonded_tabpot(bonded_tabpot={}, prefix="MOL", to_dir=""):
 
 **New implementation** (same pattern as Task 6):
 ```python
-def write_bonded_tabpot(self, bonded_tabpot={}, prefix=None, to_dir=None):
+def write_bonded_tabpot(self, bonded_tabpot={}, tabpot_prefix=None, tabpot_dir=None):
     """Instance method that uses config defaults."""
-    prefix = prefix if prefix is not None else self.config.get('tabpot_prefix', 'MOL')
-    to_dir = to_dir if to_dir is not None else self.config.get('tabpot_dir', '')
-    return ReadOFF._write_bonded_tabpot_static(bonded_tabpot, prefix, to_dir)
+    from types import SimpleNamespace
+
+    # Resolve parameters: explicit value → config → default (one line!)
+    p = SimpleNamespace(**{
+        k: v if v is not None else self.config[k]
+        for k, v in locals().items() if k in self.config
+    })
+
+    return ReadOFF._write_bonded_tabpot_static(bonded_tabpot, p.tabpot_prefix, p.tabpot_dir)
 
 @staticmethod
 def _write_bonded_tabpot_static(bonded_tabpot={}, prefix="MOL", to_dir=""):
@@ -301,7 +318,7 @@ def _write_bonded_tabpot_static(bonded_tabpot={}, prefix="MOL", to_dir=""):
     # ... move existing implementation here ...
 ```
 
-**Update docstring**.
+**Update docstring** to mention parameter name changes (`prefix` → `tabpot_prefix`, `to_dir` → `tabpot_dir`).
 
 ---
 
@@ -469,17 +486,18 @@ def test_config_override():
     off.set_config({'spacing_nonbonded': 0.001})
 
     # Call with explicit spacing should override config
-    tabpot = off.gen_nonbonded_tabpot(spacing=0.002)
-    # Verify spacing=0.002 was used (check x-values in output)
+    tabpot = off.gen_nonbonded_tabpot(spacing_nonbonded=0.002)
+    # Verify spacing_nonbonded=0.002 was used (check x-values in output)
 
-def test_backward_compatibility():
-    """Test old code still works without config"""
+def test_new_parameter_names():
+    """Test new parameter names work correctly"""
     off = afm.ReadOFF(off_loc="test/sample_off_files/methane_intra.off")
 
-    # Old-style calls should work exactly as before
+    # New parameter names should work
     tabpot = off.gen_nonbonded_tabpot(
         excl_pairs=[['C1', 'H1']],
-        spacing=0.001
+        spacing_nonbonded=0.001,
+        length_nonbonded=3
     )
     # Verify it works
 
@@ -493,24 +511,42 @@ def test_method_chaining():
 
 ---
 
-## Backward Compatibility Checklist
+## Backward Compatibility Notes
 
-- [ ] All existing code continues to work without modifications
-- [ ] Default behavior unchanged when config not used
-- [ ] Static method compatibility maintained (via _static wrappers)
-- [ ] No breaking changes to method signatures (only default values changed)
+**BREAKING CHANGES** (parameter name changes):
+- `gen_nonbonded_tabpot`: `spacing` → `spacing_nonbonded`, `length` → `length_nonbonded`
+- `gen_bonded_tabpot`: `spacing` → `spacing_bonded`, `length` → `length_bonded`
+- `write_nonbonded_tabpot`: `prefix` → `tabpot_prefix`, `to_dir` → `tabpot_dir`
+- `write_bonded_tabpot`: `prefix` → `tabpot_prefix`, `to_dir` → `tabpot_dir`
+
+**Compatibility maintained**:
+- [ ] Default behavior unchanged when parameters not provided (uses config defaults)
+- [ ] Static method compatibility maintained (via `_static` wrappers)
 - [ ] Empty/mutable default arguments handled correctly (None vs [] vs {})
+- [ ] All tests must be updated to use new parameter names
 
 ---
 
 ## Migration Examples
 
-### Before (Current API):
+### Before (Old Parameter Names - NO LONGER WORKS):
 ```python
 off = afm.ReadOFF(off_loc="intra.off")
 excl_pairs = [['OW', 'OW'], ['HW', 'EW']]
-nonbonded_tabpot = off.gen_nonbonded_tabpot(excl_pairs=excl_pairs, sc_sigma=0.265)
+nonbonded_tabpot = off.gen_nonbonded_tabpot(excl_pairs=excl_pairs, sc_sigma=0.265, spacing=0.0005)
 off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, prefix='table')
+off.gen_nonbonded_topology(template_file='template.top', write_to='temp.top',
+                           excl_pairs=excl_pairs, sc_sigma=0.265)
+off.gen_bonded_topology(template_file='temp.top', write_to='topol.top',
+                       incl_mol=['UNK'])
+```
+
+### After (New Parameter Names - Without Config):
+```python
+off = afm.ReadOFF(off_loc="intra.off")
+excl_pairs = [['OW', 'OW'], ['HW', 'EW']]
+nonbonded_tabpot = off.gen_nonbonded_tabpot(excl_pairs=excl_pairs, sc_sigma=0.265, spacing_nonbonded=0.0005)
+off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
 off.gen_nonbonded_topology(template_file='template.top', write_to='temp.top',
                            excl_pairs=excl_pairs, sc_sigma=0.265)
 off.gen_bonded_topology(template_file='temp.top', write_to='topol.top',
@@ -536,36 +572,57 @@ off.gen_bonded_topology(template_file='temp.top', write_to='topol.top')
 
 ## Implementation Notes
 
+### Parameter Resolution Pattern
+
+**Key Design Decision**: Parameter names match config keys exactly to enable automatic resolution.
+
+**Implementation** (used in all methods):
+```python
+from types import SimpleNamespace
+
+def method(self, spacing_nonbonded=None, incl_mol=None, ...):
+    # One-line resolution: explicit value → config → default
+    p = SimpleNamespace(**{
+        k: v if v is not None else self.config[k]
+        for k, v in locals().items() if k in self.config
+    })
+
+    # Use p.spacing_nonbonded, p.incl_mol, etc. throughout method
+```
+
+**Why this works**:
+- `locals()` captures all function parameters and their values
+- Filter by `k in self.config` to only process parameters that have config entries
+- `SimpleNamespace` provides clean dot-notation access (`p.spacing_nonbonded`)
+- No manual parameter listing needed - automatically picks up all config-aware parameters
+
 ### Handling Mutable Default Arguments
 
-**IMPORTANT**: Python's mutable default arguments (`[]`, `{}`) are shared across calls. Using `None` as default and replacing with actual defaults in the method body avoids this issue.
-
-**Bad**:
-```python
-def method(self, excl_pairs=[]):  # Same list reused!
-    excl_pairs.append(something)
-```
-
-**Good**:
-```python
-def method(self, excl_pairs=None):
-    excl_pairs = excl_pairs if excl_pairs is not None else self.config.get('excl_pairs', [])
-    excl_pairs = excl_pairs.copy()  # or list(excl_pairs) to avoid modifying config
-```
+**IMPORTANT**: Using `None` as default avoids Python's mutable default argument issue where `[]` and `{}` are shared across calls.
 
 ### Config Precedence
 
 Priority order (highest to lowest):
-1. Explicitly provided parameter to method call
+1. Explicitly provided parameter to method call (highest priority)
 2. Value from `self.config` dictionary
-3. Original hard-coded default value
+3. Original hard-coded default value in `self.config`
 
 ### Method Chaining
 
-`set_config` returns `self` to enable:
+`set_config` returns `self` to enable fluent API:
 ```python
 off = afm.ReadOFF("intra.off").set_config({...}).load_charges_from_file(...)
 ```
+
+### Parameter Naming Convention
+
+Parameters that map to config use the **exact config key name**:
+- `spacing_nonbonded` (not `spacing`)
+- `length_nonbonded` (not `length`)
+- `tabpot_prefix` (not `prefix`)
+- `tabpot_dir` (not `to_dir`)
+
+This enables automatic parameter resolution without manual mapping.
 
 ---
 
