@@ -48,7 +48,7 @@ class ReadOFF:
         except FileNotFoundError as e:
             print(f"{e}")
             print("Problem in _gen_sections_dict")
-            exit(1)
+            raise
 
         self.sections = functions._find_off_keywords(off_file_str=off)
 
