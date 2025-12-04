@@ -1,0 +1,30 @@
+[ defaults ]
+; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ
+1               1               no               0.0     0.0
+
+[ atomtypes ]
+; name      at.num  mass     charge ptype  C6      C12
+OQM             8       15.999  0.0     A       0.0     0.0
+HQM             1       1.0079  0.0     A       0.0     0.0
+EQM             0       0.0     0.0     A       0.0     0.0
+
+[ nonbond_params ]
+
+[ moleculetype ]
+H20QM     0
+
+[ atoms ]
+
+[ bonds ]
+
+[ angles ]
+
+[ dihedrals ]
+
+[ exclusions ]
+
+[ system ]
+Water QM Model
+
+[ molecules ]
+H20QM         1

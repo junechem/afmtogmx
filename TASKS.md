@@ -11,21 +11,22 @@
 - [x] Update .gitignore for Python projects
 - [x] Create main and in_progress branches
 
-### ✅ Regression Testing Infrastructure (2025-12-03)
+### ✅ Regression Testing Infrastructure (2025-12-04)
 - [x] Create test/baseline_outputs/ directory structure
-- [x] Create Test 1: Methane (basic) - template, generator script, and baseline outputs
 - [x] Install numpy dependency
+- [x] Create Test 1: Methane (basic) - tests basic workflow with no special options
+- [x] Create Test 2: Ethane (bonded) - tests bonded interactions (bonds, angles, dihedrals)
+- [x] Create Test 3: Water (manual charges) - tests manually assigned charges in topology
+- [x] Create Test 4: Butanediol (name_translation) - tests atom name mapping
+- [x] Create Test 5: Methane (sc_sigma) - tests soft-core scaling for free energy calculations
+- [x] Create Test 6: Ethane (excl_pairs) - tests excluding specific atom pair interactions
+- [x] Document testing approach in TESTING.md
+- **Note**: All template.top files need empty lines between [ atoms ], [ bonds ], [ angles ], etc. sections
+- **Note**: Remove all charge calculation functions (calc_charges, charge normalization, etc.) from the project. Only keep the ability to manually read/assign charges to the off.charges dictionary.
 
 ## In Progress
 
-### 🔄 Regression Testing Suite
-- [ ] Create Test 2: Ethane (slightly complex bonding)
-- [ ] Create Test 3: Water (with charges)
-- [ ] Create Test 4: Butanediol (with name_translation)
-- [ ] Create Test 5: Methane (with sc_sigma for FE calculations)
-- [ ] Create Test 6: Ethane (with excl_pairs)
-- [ ] Create regression test runner script (compare_outputs.py)
-- [ ] Document testing approach in TESTING.md
+(No active tasks)
 
 ## Future Work
 
