@@ -228,6 +228,39 @@ Use `sc_sigma` parameter in `gen_nonbonded_tabpot()` for free energy calculation
 - Package exports: `src/afmtogmx/__init__.py`
 - Test files: `test/sample_off_files/` (sample .off files), `test/compare/` (force field comparison)
 - Main entry: `src/main.py` (for testing/development)
+- Task tracking: `TASKS.md` (current work), `archive/` (completed work periods)
+
+### TASKS.md Archive System
+
+**Purpose**: Archive completed TASKS.md files to maintain a clean, focused current task list while preserving historical work records in git.
+
+**Archive location**: `archive/` directory (tracked in git)
+
+**Filename format**: `TASKS_YYYY-MM-DD_to_YYYY-MM-DD.md`
+- Example: `TASKS_2025-12-03_to_2025-12-05.md`
+
+**Required summary line**: Each archived file must include a greppable summary at the top:
+```markdown
+<!-- ARCHIVE_SUMMARY: Brief description of work (YYYY-MM-DD to YYYY-MM-DD) -->
+```
+
+**Quick search** for all archived work:
+```bash
+grep "ARCHIVE_SUMMARY:" archive/*.md
+```
+
+**When to archive**:
+- Current TASKS.md becomes too long or cluttered
+- Major milestone or work period completed
+- Starting a new phase of development
+
+**How to archive**:
+1. Copy TASKS.md to `archive/TASKS_START-DATE_to_END-DATE.md`
+2. Add `ARCHIVE_SUMMARY` line at the top with brief description
+3. Create fresh TASKS.md with empty sections
+4. Commit and push to git
+
+See `archive/README.md` for detailed archiving instructions and examples.
 
 ### Important Atom Types
 

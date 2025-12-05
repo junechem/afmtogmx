@@ -1,0 +1,7 @@
+# Test charge file for methane
+# Format: MOLNAME followed by atom charge pairs
+
+UNK
+C -0.4
+H 0.1
+

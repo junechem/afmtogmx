@@ -1,0 +1,6 @@
+# Charge file for ethane (UNK molecule)
+# Simple partial charges for demonstration
+
+UNK
+C -0.18
+H 0.06

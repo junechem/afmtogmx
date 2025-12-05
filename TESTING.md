@@ -121,6 +121,53 @@ Each test directory contains:
 
 ---
 
+### Test 7: Methane (Configuration System)
+**Location**: `test/baseline_outputs/test7_methane_config/`
+
+**Purpose**: Tests configuration system features (set_config, get_config, load_charges_from_file)
+
+**Covers**:
+- `set_config()` method with multiple parameters
+- `get_config()` method (all config and specific keys)
+- `load_charges_from_file()` method
+- Parameter resolution order (explicit → config → default)
+- Method chaining for set_config() and load_charges_from_file()
+- Explicit parameter override of config values
+
+**Features Tested**:
+- Configuration system correctly stores and retrieves values
+- Workflow methods use config values when no explicit parameters provided
+- Explicit parameters correctly override config values
+- Charge file format with MOLNAME sections, comments, and blank lines
+- Method chaining returns self for fluent API
+
+**Run**: `python generate_test7.py`
+
+---
+
+### Test 8: Ethane (Clean Configuration-Based Workflow)
+**Location**: `test/baseline_outputs/test8_ethane_clean_workflow/`
+
+**Purpose**: Demonstrates clean, production-ready workflow using configuration system
+
+**Covers**:
+- Complete workflow from .off file to topology with config-based approach
+- load_charges_from_file() in production context
+- Bonded and nonbonded potential generation with config defaults
+- Clean code pattern: set defaults once, use throughout
+
+**Demonstrates**:
+- How configuration system reduces code repetition
+- Cleaner, more maintainable code compared to traditional approach
+- Setting all defaults in one place
+- Method calls without repetitive parameter passing
+
+**Comparison**: Compare this test to Test 2 to see the difference between traditional parameter passing and config-based approach.
+
+**Run**: `python generate_test8.py`
+
+---
+
 ## How to Use Regression Tests
 
 ### When Making Code Changes
@@ -133,6 +180,8 @@ Each test directory contains:
    cd ../test4_butanediol_nametrans && python generate_test4.py
    cd ../test5_methane_scsigma && python generate_test5.py
    cd ../test6_ethane_exclpairs && python generate_test6.py
+   cd ../test7_methane_config && python generate_test7.py
+   cd ../test8_ethane_clean_workflow && python generate_test8.py
    ```
 
 2. **Make your code changes** (e.g., refactoring, adding features)
@@ -245,12 +294,18 @@ Original sample .off files are located in `test/sample_off_files/`:
 | Feature | Test Coverage |
 |---------|--------------|
 | Basic workflow | Test 1 |
-| Bonded interactions | Test 2 |
+| Bonded interactions | Test 2, Test 8 |
 | Manual charges | Test 3 |
 | Name translation | Test 4 |
 | Soft-core scaling | Test 5 |
 | Pair exclusion | Test 6 |
-| C6 scaling | Test 1-6 (default) |
+| Configuration system | Test 7 |
+| set_config() / get_config() | Test 7 |
+| load_charges_from_file() | Test 7, Test 8 |
+| Parameter resolution | Test 7 |
+| Method chaining | Test 7 |
+| Config-based workflow | Test 8 |
+| C6 scaling | Test 1-8 (default) |
 | Multiple molecules | Test 3 (H20QM only) |
 | incl_mol parameter | Test 3 |
 
