@@ -28,11 +28,11 @@ if 'H20QM' in off.charges:
 
 # Generate nonbonded tabulated potentials (only H20QM molecule)
 nonbonded_tabpot = off.gen_nonbonded_tabpot(incl_mol=['H20QM'])
-off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, prefix='table')
+off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
 
 # Generate bonded tabulated potentials (only H20QM molecule)
 bonded_tabpot = off.gen_bonded_tabpot(incl_mol=['H20QM'])
-off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, prefix='table')
+off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
 
 # Generate topology files
 off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top', incl_mol=['H20QM'])

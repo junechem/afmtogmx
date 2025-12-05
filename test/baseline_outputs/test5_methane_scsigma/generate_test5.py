@@ -23,7 +23,7 @@ sc_sigma_value = 0.3
 
 # Generate nonbonded tabulated potentials with sc_sigma
 nonbonded_tabpot = off.gen_nonbonded_tabpot(sc_sigma=sc_sigma_value)
-off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, prefix='table')
+off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
 
 # Generate topology files with sc_sigma
 off.gen_nonbonded_topology(template_file='template.top',

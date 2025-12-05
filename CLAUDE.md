@@ -25,6 +25,46 @@ After initialization, `ReadOFF` objects contain:
 - `off.charges`: Dictionary with atomic charges per molecule (default 0.0 for all atoms; must be manually set if needed)
 - `off.residues`: Dictionary with residue definitions and atom number mappings
 - `off.sections`: Internal dictionary splitting .off file into 5 sections (ff_input, intra_potential, inter_potential, molecular_definition, table_potential)
+- `off.config`: Dictionary storing default parameter values for all workflow methods
+
+### Configuration System
+
+The `ReadOFF` class includes a configuration system that allows setting default parameters once instead of passing them to each method call.
+
+**Setting configuration values**:
+```python
+off.set_config(spacing_nonbonded=0.001, scale_C6=False, tabpot_prefix='my_table')
+# Returns self for method chaining
+```
+
+**Getting configuration values**:
+```python
+all_config = off.get_config()  # Returns full config dictionary
+spacing = off.get_config('spacing_nonbonded')  # Returns specific value
+```
+
+**Configuration keys**:
+- `incl_mol`: List of molecules to include (default: empty list, which means all)
+- `excl_interactions`: List of interaction types to exclude (default: empty list)
+- `excl_pairs`: List of atom pairs to exclude (default: empty list)
+- `spacing_nonbonded`: Spacing for nonbonded tables (default: 0.0005 nm)
+- `length_nonbonded`: Length for nonbonded tables (default: 3 nm)
+- `scale_C6`: Enable C6 scaling for dispersion corrections (default: True)
+- `sc_sigma`: Soft-core sigma for free energy calculations (default: 0.0)
+- `spacing_bonded`: Spacing for bonded tables (default: 0.0001 nm)
+- `length_bonded`: Length for bonded tables (default: 0.3 nm)
+- `tabpot_prefix`: Prefix for tabulated potential files (default: 'table')
+- `tabpot_dir`: Directory for tabulated potential files (default: '')
+- `write_blank`: Write blank interactions (default: True)
+- `name_translation`: Atom name translation dictionary (default: {})
+- `special_pairs`: Custom attractive interactions per pair (default: empty dict)
+
+**Parameter resolution order**:
+1. Explicitly passed parameter (if not None)
+2. Configuration value
+3. Built-in default
+
+This means you can set defaults via `set_config()` and override them on individual method calls as needed.
 
 ### Module Responsibilities
 
@@ -63,6 +103,8 @@ After initialization, `ReadOFF` objects contain:
 
 The typical workflow follows this sequence:
 
+**Traditional approach** (passing parameters to each method):
+
 1. **Read .off file**: `off = afm.ReadOFF(off_loc="path/to/intra.off")`
 2. **Set charges manually** (if needed): `off.charges['MolName']['AtomName'] = charge_value`
 3. **Generate tabulated potentials**:
@@ -75,7 +117,28 @@ The typical workflow follows this sequence:
    - `off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')`
    - `off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')`
 
-See detailed workflow examples in `src/afmtogmx/__init__.py` (lines 58-68).
+**Configuration-based approach** (recommended for cleaner code):
+
+1. **Read .off file and configure**:
+   ```python
+   off = afm.ReadOFF(off_loc="path/to/intra.off")
+   off.set_config(tabpot_prefix='my_table', tabpot_dir='tables/', scale_C6=False)
+   ```
+2. **Load charges**: `off.load_charges_from_file('charges.txt')`
+3. **Generate and write tabulated potentials**:
+   ```python
+   nonbonded_tabpot = off.gen_nonbonded_tabpot()  # Uses config values
+   bonded_tabpot = off.gen_bonded_tabpot()
+   off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)  # Uses config prefix/dir
+   off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot)
+   ```
+4. **Generate topology files**:
+   ```python
+   off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
+   off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+   ```
+
+See detailed workflow examples in `src/afmtogmx/__init__.py`.
 
 ## Key Concepts
 
@@ -111,13 +174,47 @@ off.charges['H20QM']['HQM'] = 0.41
 off.charges['H20QM']['EQM'] = 0.0
 ```
 
+**Alternative: Load charges from file**
+
+Use the `load_charges_from_file()` method to read charges from a text file:
+
+```python
+off.load_charges_from_file('charges.txt')
+```
+
+File format:
+```
+MOLNAME1
+Atom1 Charge1
+Atom2 Charge2
+MOLNAME2
+Atom3 Charge3
+```
+
+- Blank lines and lines starting with `#` are ignored (comments)
+- Any atoms not specified in the file remain at their default charge of 0.0
+- WARNING: This method will overwrite any previously set charges for atoms specified in the file
+- Returns `self` for method chaining
+
 ### Soft-Core Scaling
 
 Use `sc_sigma` parameter in `gen_nonbonded_tabpot()` for free energy calculations. Tables are scaled to work correctly with the sc-sigma value in GROMACS .mdp files.
 
 ### Recent Changes
 
-Based on recent commits:
+**Configuration System (Latest)**:
+- Added configuration system with `set_config()` and `get_config()` methods
+- All workflow methods now support parameter resolution (explicit → config → default)
+- Added `load_charges_from_file()` convenience method for loading charges from text files
+- Converted `write_nonbonded_tabpot()` and `write_bonded_tabpot()` from static methods to instance methods
+
+**Breaking Changes**:
+- `gen_nonbonded_tabpot()`: Parameter `spacing` renamed to `spacing_nonbonded`, `length` renamed to `length_nonbonded`
+- `gen_bonded_tabpot()`: Parameter `spacing` renamed to `spacing_bonded`, `length` renamed to `length_bonded`
+- `write_nonbonded_tabpot()` and `write_bonded_tabpot()`: Parameters `prefix` renamed to `tabpot_prefix`, `to_dir` renamed to `tabpot_dir`
+- All workflow methods now use `None` as default for most parameters to enable config resolution
+
+**Previous Changes**:
 - Bug fix for `gen_nonbond_tabpam` function (commit 6289640)
 - Added C12 column scaling for HFE (Hydration Free Energy) calculations (commits 5c102af, 96f8e83)
 - Added `excl_pairs` functionality to exclude specific atom pairs from tabulated potentials

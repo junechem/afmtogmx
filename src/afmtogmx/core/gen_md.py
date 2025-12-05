@@ -1,4 +1,5 @@
 from afmtogmx.core import topology, tabulated_potentials, functions, residues
+from types import SimpleNamespace
 """ This module contains the main class, ReadOFF, which is used to generate input files for gmx
 """
 
@@ -29,6 +30,24 @@ class ReadOFF:
         self.nonbonded = {}
         self.sections = ""  # dictionary with 5 sections: ff_input, intra_potential, inter_potential,
         # molecular_definition, and table_potential
+
+        # Initialize configuration with defaults
+        self.config = {
+            'special_pairs': {},
+            'incl_mol': [],
+            'excl_interactions': [],
+            'excl_pairs': [],
+            'spacing_nonbonded': 0.0005,
+            'length_nonbonded': 3,
+            'scale_C6': True,
+            'sc_sigma': 0.0,
+            'spacing_bonded': 0.0001,
+            'length_bonded': 0.3,
+            'tabpot_prefix': 'table',
+            'tabpot_dir': '',
+            'write_blank': True,
+            'name_translation': {}
+        }
 
         self._gen_sections_dict()  # Calls funtion to generate sections dict
         self._gen_bonded()  # Creates self.bonded dictionary with all sections populated with fited parameters
@@ -91,8 +110,8 @@ class ReadOFF:
                     self.nonbonded[atom_pair][f'{inter_term}'].append(params)  # populate with parameters
 
 
-    def gen_nonbonded_tabpot(self, special_pairs={}, incl_mol=[], excl_interactions=[], excl_pairs = [], spacing=0.0005, length=3,
-                             scale_C6=True, sc_sigma = 0.0):
+    def gen_nonbonded_tabpot(self, special_pairs=None, incl_mol=None, excl_interactions=None, excl_pairs=None,
+                             spacing_nonbonded=None, length_nonbonded=None, scale_C6=None, sc_sigma=None):
         """Return dictionary holding nonbonded tabulated potentials for all pairs. By default, it is assumed that the
         only attractive interactions are 'POW_6', 'DPO_6', 'SRD_6', 'PEX_6', that is, POW interactions which are raised
         to the 6th power, DPO interactions which are raised to the 6th power, and so on.
@@ -144,59 +163,71 @@ class ReadOFF:
         Default behavior is to write tabulated potentials for all molnames
         :param excl_interactions:  Non-required. list containing interactions EXACTLY as they appear in the .off file
         which tabulated parameters should not be written for.
-        :param excl_pairs, list: Non-required, list of lists containing pairs which nonbonded tabpot files should not be produced
+        :param excl_pairs: list, Non-required, list of lists containing pairs which nonbonded tabpot files should not be produced
         for
-        :param spacing:  Default: 0.0005 nm. Float (in nm) for spacing between x-values in the generated tables.
-        :param length:   Default: 3 nm. Float (in nm) for the total length of the generated tables
-        :param scale_C6: Default: True. Boolean which controls whether columns 4 and 5 of generated tables are scaled
+        :param spacing_nonbonded: float, Default: 0.0005 nm. Float (in nm) for spacing between x-values in the generated tables.
+        :param length_nonbonded: int, Default: 3 nm. Float (in nm) for the total length of the generated tables
+        :param scale_C6: bool, Default: True. Boolean which controls whether columns 4 and 5 of generated tables are scaled
          to allow for dispersion corrections in gromacs simulations.
         :return: dictionary containing {pair : [x_values, COU_pot, COU_force, ATT_pot, ATT_force, REP_pot, REP_force]}
         for each pair; the elements in the list for each pair are numpy arrays.
         """
-        total_incl_atoms = tabulated_potentials._gen_included_atoms(incl_mol, self.bonded)  # list containing atoms which are in
-        # incl_mol
-        filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=excl_interactions,
-                                                                    incl_atoms=total_incl_atoms, excl_pairs = excl_pairs)
+        # Resolve parameters: explicit value → config → default
+        p = SimpleNamespace(**{
+            k: v if v is not None else self.config[k]
+            for k, v in locals().items() if k in self.config
+        })
 
-        tabpot = tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=special_pairs, spacing=spacing,
-                                                        length=length, scale_C6=scale_C6)
-        if sc_sigma != 0.0:
-            nonbonded_string = topology._gen_nonbonded_string(scale_C6=scale_C6, special_pairs=special_pairs, nonbonded = filtered_nonbonded,
-                                                              name_translation={})
-            tabpot = tabulated_potentials._scale_for_FE(sc_sigma=sc_sigma, nonbonded_string = nonbonded_string, tabpot = tabpot)
+        total_incl_atoms = tabulated_potentials._gen_included_atoms(p.incl_mol, self.bonded)  # list containing atoms which are in
+        # incl_mol
+        filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=p.excl_interactions,
+                                                                    incl_atoms=total_incl_atoms, excl_pairs=p.excl_pairs)
+
+        tabpot = tabulated_potentials._gen_nonbond_tabpam(nonbonded=filtered_nonbonded, spec_pairs=p.special_pairs,
+                                                        spacing=p.spacing_nonbonded, length=p.length_nonbonded,
+                                                        scale_C6=p.scale_C6)
+        if p.sc_sigma != 0.0:
+            nonbonded_string = topology._gen_nonbonded_string(scale_C6=p.scale_C6, special_pairs=p.special_pairs,
+                                                              nonbonded=filtered_nonbonded, name_translation={})
+            tabpot = tabulated_potentials._scale_for_FE(sc_sigma=p.sc_sigma, nonbonded_string=nonbonded_string, tabpot=tabpot)
         else:
             pass
 
+        return tabpot
 
-        return  tabpot
 
-
-    def gen_bonded_tabpot(self, incl_mol=[], spacing=0.0001, length=0.3):
+    def gen_bonded_tabpot(self, incl_mol=None, spacing_bonded=None, length_bonded=None):
         """Generates bonded tabulated potentials for each molecule containing bond type 'QUA' in the .off file.
 
         Returned Dictionary Format: {'Molname' : {(parameters) : [table_number, x_values, U(x) values, F(x) values], ...}
 
         :param incl_mol: list, Non-required; list containing molnames to exclusively generate bonded tabualted parameters for
-        :param spacing: float, Default = 0.0001 nm; Spacing between x-values in final table
-        :param length: float/int, Default = 0.3 nm; Total length of tables to generate
+        :param spacing_bonded: float, Default = 0.0001 nm; Spacing between x-values in final table
+        :param length_bonded: float/int, Default = 0.3 nm; Total length of tables to generate
         :return: dictionary
         """
+        # Resolve parameters: explicit value → config → default
+        p = SimpleNamespace(**{
+            k: v if v is not None else self.config[k]
+            for k, v in locals().items() if k in self.config
+        })
+
         bonded_tabpams = dict()  # Holds final tabpam dictionary
         num_tables = 0  # Keep track of number of tables that will be written
-        if not incl_mol:  # If incl_mol not specified, try to generate tables for all molecules
-            incl_mol = self.bonded.keys()
+        if not p.incl_mol:  # If incl_mol not specified, try to generate tables for all molecules
+            p.incl_mol = self.bonded.keys()
 
         for molname in self.bonded:
-            if molname in incl_mol:
+            if molname in p.incl_mol:
                 # generate tabulated parameters
                 bonded_tabpams[molname], num_tables = tabulated_potentials.gen_bonded_tabpam(bond_dict=self.bonded[molname],
-                                                                                             spacing=spacing, length=length,
+                                                                                             spacing=p.spacing_bonded, length=p.length_bonded,
                                                                                              num_tables=num_tables)
 
         return bonded_tabpams  # return completed tabpam dictionary
 
-    def gen_nonbonded_topology(self, name_translation={}, template_file="", incl_mol=[], excl_interactions=[], excl_pairs = [],
-                               scale_C6=True, special_pairs={}, write_to="", sc_sigma = 0.0):
+    def gen_nonbonded_topology(self, name_translation=None, template_file=None, incl_mol=None, excl_interactions=None, excl_pairs=None,
+                               scale_C6=None, special_pairs=None, write_to=None, sc_sigma=None):
         """Generates [ nonbond_params ] section of topology file and writes topology file (default name nonbond_topol.top).
 
         :param sc_sigma: float, non-required. If given, the nonbonded_params C12 will be scaled by the proper amount to
@@ -211,6 +242,12 @@ class ReadOFF:
         :param special_pairs: Dictionary, optional; see discussion in gen_nonbonded_tabpot
         :param write_to: Path/to/output.top, optional; Default behavior is to write to nonbond_topol.top in current directory
         """
+        # Resolve parameters: explicit value → config → default
+        p = SimpleNamespace(**{
+            k: v if v is not None else self.config[k]
+            for k, v in locals().items() if k in self.config
+        })
+
         if not template_file:  # if no template file provided, exit out of function
             print("Template required for generating nonbonded section of topology file. Please supply a template file")
             return
@@ -227,18 +264,18 @@ class ReadOFF:
             CWD = re.sub(r"\\", "/", dirname(abspath(template_file)))
             write_to = f'{CWD}/nonbond_topol.top'
 
-        incl_atoms = tabulated_potentials._gen_included_atoms(incl_mol, self.bonded)  # generate atoms to include
-        filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=excl_interactions,
-                                                                    incl_atoms=incl_atoms, excl_pairs = excl_pairs)  # filter based on excl, incl
+        incl_atoms = tabulated_potentials._gen_included_atoms(p.incl_mol, self.bonded)  # generate atoms to include
+        filtered_nonbonded = tabulated_potentials._filter_nonbonded(nonbonded=self.nonbonded, excluded_int=p.excl_interactions,
+                                                                    incl_atoms=incl_atoms, excl_pairs=p.excl_pairs)  # filter based on excl, incl
         template_nonbonded_location = topology._find_keyword_location(template_file=f, keyword="nonbond_params",
                                                                       begin=0)  # find location of [nonbonded_params ]
         #  in template, taking acount of comments, etc.
-        nonbonded_string = topology._gen_nonbonded_string(scale_C6=scale_C6, special_pairs=special_pairs,
-                                                          name_translation=name_translation,
+        nonbonded_string = topology._gen_nonbonded_string(scale_C6=p.scale_C6, special_pairs=p.special_pairs,
+                                                          name_translation=p.name_translation,
                                                           nonbonded=filtered_nonbonded)  # generate string containing
         #  all nonbonded pairs with proper C6, C12
 
-        if sc_sigma != 0.0:
+        if p.sc_sigma != 0.0:
             new_nonbonded_string = ""
             for line in nonbonded_string.split('\n'):
                 entries = line.split()
@@ -247,7 +284,7 @@ class ReadOFF:
                 C6, C12 = float(entries[-2]), float(entries[-1])
                 if C6 != 0 and C12 != 0:
                     atom_pair = tuple(entries[:2])
-                    new_c12 = C6*(sc_sigma**6)
+                    new_c12 = C6*(p.sc_sigma**6)
                     new_nonbonded_string += topology.single_nonbonded_pair_string(pair = tuple(atom_pair), name_translation={}, C6=C6, C12=new_c12)
                 else:
                     new_nonbonded_string += line + "\n"
@@ -258,7 +295,7 @@ class ReadOFF:
             w.write(nonbonded_string)
             w.write(f[template_nonbonded_location[1]:])
 
-    def gen_bonded_topology(self, name_translation={}, incl_mol=[], template_file="", write_to="", bonded_tabpot={}):
+    def gen_bonded_topology(self, name_translation=None, incl_mol=None, template_file="", write_to="", bonded_tabpot={}):
         """Writes bonded portion of topology file.
 
         * name_translation dictionary allows atom names to be converted from the .off name to the desired name in a .top file. Format is {'.offAtom1' : '.topAtom1', ...}
@@ -278,7 +315,11 @@ class ReadOFF:
         :param bonded_tabpot: dictionary, non-required (Except in cases where quartic bonds or QBB interactions exist)
         :return: Writes topology file with completed bonded sections
         """
-
+        # Resolve parameters: explicit value → config → default
+        p = SimpleNamespace(**{
+            k: v if v is not None else self.config[k]
+            for k, v in locals().items() if k in self.config
+        })
 
         if not template_file:  # if no template file provided, exit out of function
             print("Template required for generating nonbonded section of topology file. Please supply a template file")
@@ -294,14 +335,14 @@ class ReadOFF:
             from os.path import dirname, abspath
             CWD = re.sub(r"\\", "/", dirname(abspath(template_file)))
             write_to = f'{CWD}/bonded_topol.top'
-        if not incl_mol:  # if no incl_mol list provided, use all molnames
-            incl_mol = self.bonded.keys()
+        if not p.incl_mol:  # if no incl_mol list provided, use all molnames
+            p.incl_mol = self.bonded.keys()
         filtered_bonded = dict()
-        for molname in incl_mol:  # remove empty functions from self.bonded
+        for molname in p.incl_mol:  # remove empty functions from self.bonded
             filtered_bonded[molname] = functions._filter_bonded(self.bonded[molname])
         output_topology_strings = dict()  # prepare dictionary to hold strings for each section of topology file
         for molname in filtered_bonded:  # generate completed section strings for each [ keyword ] for each [moleculetype] in the .off file
-            output_topology_strings[molname] = topology._gen_bonded_section_strings(name_translation,
+            output_topology_strings[molname] = topology._gen_bonded_section_strings(p.name_translation,
                                                                                     filtered_bonded[molname],
                                                                                     self.charges, molname,
                                                                                     bonded_tabpot)
@@ -312,40 +353,46 @@ class ReadOFF:
 
         topology._write_topology(final_topology=new_topology, write_to=write_to)
 
-    @staticmethod
-    def write_nonbonded_tabpot(nonbonded_tabpot = {}, prefix = "MOL", to_dir = "", name_translation = {}, write_blank = True):
+    def write_nonbonded_tabpot(self, nonbonded_tabpot={}, tabpot_prefix=None, tabpot_dir=None, name_translation=None, write_blank=None):
         """Write nonbonded tabulated potentials based on dictionary nonbonded_tabpot.
 
         * nonbonded_tabpot dictionary is generated by gen_nonbonded_tabpot(). Self-made dictionaries also work, but they need to match the format of the dictionary generated by gen_nonbonded_tabpot()
 
-        * prefix string is the prefix to the At1_At2.xvg that you would like your files to be named. Default is MOL_At1_At2.xvg
+        * tabpot_prefix string is the prefix to the At1_At2.xvg that you would like your files to be named. Default is table_At1_At2.xvg
 
-        * to_dir string is the directory which you would like to write tabulated potentials to. Default behavior is to create a directory "tabpot" and populate that with the tabulated potentials.
+        * tabpot_dir string is the directory which you would like to write tabulated potentials to. Default behavior is to create a directory "tabpot" and populate that with the tabulated potentials.
 
         * name_translation dictionary is a dictionary with the format {'.offAtom1': '.topAtom1', ...} to translate atom names
 
-        * write_blank boolean is True by default. This writes a blank nonbonded tabulated potential file with the name prefix.xvg, as is required for gromacs simulations to work
+        * write_blank boolean is True by default. This writes a blank nonbonded tabulated potential file with the name tabpot_prefix.xvg, as is required for gromacs simulations to work
 
         :param nonbonded_tabpot: dictionary, required
-        :param prefix: string, optional
-        :param to_dir: string, optional
+        :param tabpot_prefix: string, optional
+        :param tabpot_dir: string, optional
         :param name_translation: dictionary, optional
+        :param write_blank: boolean, optional
         :return: None
         """
+        # Resolve parameters: explicit value → config → default
+        p = SimpleNamespace(**{
+            k: v if v is not None else self.config[k]
+            for k, v in locals().items() if k in self.config
+        })
+
         if not nonbonded_tabpot:
             print("Must include nonbonded_tabpot dictionary, as generated by gen_nonbonded_tabpot(). "
                   "Self-Made dictionary may be used, but it must match the format of the dictionary produced by "
                   "gen_nonbonded_tabpot")
             return
 
-        write_to = tabulated_potentials._to_dir(write_to_dir=to_dir)
+        write_to = tabulated_potentials._to_dir(write_to_dir=p.tabpot_dir)
 
         pair_interactions = []
         unique_atoms_notranslation = []
 
         for atom_pair, tabpot in nonbonded_tabpot.items():  # Write nonbonded tabulated potentials
-            tabulated_potentials._write_nonbonded_pair_tabpot(atom_pair=atom_pair, tabpot = tabpot, name_translation = name_translation, write_to = write_to, prefix = prefix)
-            pair_interactions.append(tabulated_potentials._translate_pairs(atom_pair=atom_pair, name_translation=name_translation))
+            tabulated_potentials._write_nonbonded_pair_tabpot(atom_pair=atom_pair, tabpot=tabpot, name_translation=p.name_translation, write_to=write_to, prefix=p.tabpot_prefix)
+            pair_interactions.append(tabulated_potentials._translate_pairs(atom_pair=atom_pair, name_translation=p.name_translation))
             if atom_pair[0] not in unique_atoms_notranslation:
                 unique_atoms_notranslation.append(atom_pair[0])
             if atom_pair[1] not in unique_atoms_notranslation:
@@ -353,8 +400,8 @@ class ReadOFF:
 
         unique_atoms_translated = []
         for atom in unique_atoms_notranslation:  # translate atoms for writing energygrps
-            if atom in name_translation:
-                unique_atoms_translated.append(name_translation[atom])
+            if atom in p.name_translation:
+                unique_atoms_translated.append(p.name_translation[atom])
             else:
                 unique_atoms_translated.append(atom)
 
@@ -365,29 +412,34 @@ class ReadOFF:
         individual_pairs = [' '.join(i) for i in pair_interactions]
         print('  '.join(individual_pairs))
 
-        if write_blank:  # write blank file if requested
-            tabulated_potentials._write_blank_nonbonded(prefix=prefix, write_to = write_to)
+        if p.write_blank:  # write blank file if requested
+            tabulated_potentials._write_blank_nonbonded(prefix=p.tabpot_prefix, write_to=write_to)
 
-    @staticmethod
-    def write_bonded_tabpot(bonded_tabpot = {}, prefix ="MOL", to_dir =""):
+    def write_bonded_tabpot(self, bonded_tabpot={}, tabpot_prefix=None, tabpot_dir=None):
         """Generate bonded tabulated potentials for either QUA bonds or QBB terms in the .off file.
 
-        :param bonded_tabpot: dictionary, output by gen_nonbonded_tabpot()
-        :param prefix: string, Default "MOL", prefix to add to name of .xvg files
-        :param to_dir: string, Default "tabpot" subdirectory of current directory
+        :param bonded_tabpot: dictionary, output by gen_bonded_tabpot()
+        :param tabpot_prefix: string, Default "table", prefix to add to name of .xvg files
+        :param tabpot_dir: string, Default "tabpot" subdirectory of current directory
         :return: None
         """
+        # Resolve parameters: explicit value → config → default
+        p = SimpleNamespace(**{
+            k: v if v is not None else self.config[k]
+            for k, v in locals().items() if k in self.config
+        })
+
         if not bonded_tabpot:
-            print("Must include nonbonded_tabpot dictionary, as generated by gen_nonbonded_tabpot(). "
+            print("Must include bonded_tabpot dictionary, as generated by gen_bonded_tabpot(). "
                   "Self-Made dictionary may be used, but it must match the format of the dictionary produced by "
-                  "gen_nonbonded_tabpot")
+                  "gen_bonded_tabpot")
             return
 
-        write_to = tabulated_potentials._to_dir(write_to_dir=to_dir)
+        write_to = tabulated_potentials._to_dir(write_to_dir=p.tabpot_dir)
 
         for molname, molname_dict in bonded_tabpot.items():
             for params, table_list in molname_dict.items():
-                tabulated_potentials._write_bonded_tabpot(tabpot=table_list, prefix=prefix, write_to=write_to)
+                tabulated_potentials._write_bonded_tabpot(tabpot=table_list, prefix=p.tabpot_prefix, write_to=write_to)
 
 
     def gen_residues(self, residue_definition = {}, residue_atnums = {}):
@@ -446,6 +498,103 @@ class ReadOFF:
 
         print("Done generating residues")
 
+    def set_config(self, **kwargs):
+        """Set configuration options that will be used as defaults for method calls.
+
+        Returns self to allow method chaining.
+
+        Available configuration keys:
+            special_pairs: dict, default {}
+            incl_mol: list, default []
+            excl_interactions: list, default []
+            excl_pairs: list, default []
+            spacing_nonbonded: float, default 0.0005
+            length_nonbonded: int, default 3
+            scale_C6: bool, default True
+            sc_sigma: float, default 0.0
+            spacing_bonded: float, default 0.0001
+            length_bonded: float, default 0.3
+            tabpot_prefix: str, default 'table'
+            tabpot_dir: str, default ''
+            write_blank: bool, default True
+            name_translation: dict, default {}
+
+        Example:
+            off.set_config(spacing_nonbonded=0.001, scale_C6=False).gen_nonbonded_tabpot()
+
+        :param kwargs: Configuration key-value pairs to update
+        :return: self (for method chaining)
+        """
+        self.config.update(kwargs)
+        return self
+
+    def get_config(self, key=None):
+        """Get configuration value(s).
+
+        :param key: Optional key to get specific value. If None, returns full config dict.
+        :return: Config value or full dict
+        """
+        if key is None:
+            return self.config.copy()
+        return self.config.get(key)
+
+    def load_charges_from_file(self, file_path):
+        """Load atomic charges from a file into self.charges.
+
+        File format:
+        MOLNAME1
+        Atom1 Charge1
+        Atom2 Charge2
+        MOLNAME2
+        Atom3 Charge3
+        ...
+
+        Any atoms not specified in the file will remain at their default charge of 0.0.
+        WARNING: This method will overwrite any previously set charges for atoms specified in the file.
+
+        :param file_path: str, Path to charge file
+        :return: self (for method chaining)
+        """
+        try:
+            with open(file_path, 'r') as f:
+                current_mol = None
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):  # Skip empty lines and comments
+                        continue
+
+                    # Check if this is a molname header (single word) or atom-charge pair (two words)
+                    parts = line.split()
+                    if len(parts) == 1:
+                        # This is a molname header
+                        current_mol = parts[0]
+                        if current_mol not in self.charges:
+                            print(f"Warning: Molecule '{current_mol}' from charge file not found in force field. Skipping.")
+                            current_mol = None
+                    elif len(parts) == 2:
+                        # This is an atom-charge pair
+                        if current_mol is None:
+                            print(f"Warning: Atom-charge pair '{line}' found before any molecule name. Skipping.")
+                            continue
+
+                        atomname, charge = parts[0], float(parts[1])
+
+                        if atomname not in self.charges[current_mol]:
+                            print(f"Warning: Atom '{atomname}' not found in molecule '{current_mol}'. Skipping.")
+                            continue
+
+                        self.charges[current_mol][atomname] = charge
+                    else:
+                        print(f"Warning: Unrecognized line format: '{line}'. Skipping.")
+
+        except FileNotFoundError:
+            print(f"Error: Charge file '{file_path}' not found.")
+            raise
+        except ValueError as e:
+            print(f"Error parsing charge file: {e}")
+            raise
+
+        return self
 
 
 

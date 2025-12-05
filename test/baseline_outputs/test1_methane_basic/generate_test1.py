@@ -28,7 +28,7 @@ nonbonded_tabpot = off.gen_nonbonded_tabpot()
 
 # Write nonbonded tabulated potentials
 print("Writing nonbonded tabulated potentials...")
-off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, prefix='table')
+off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
 
 # Generate nonbonded topology
 print("Generating nonbonded topology...")

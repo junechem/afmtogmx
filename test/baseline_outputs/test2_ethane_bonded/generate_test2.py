@@ -20,11 +20,11 @@ off = afm.ReadOFF(off_loc="../../sample_off_files/ethane_intra.off")
 
 # Generate nonbonded tabulated potentials
 nonbonded_tabpot = off.gen_nonbonded_tabpot()
-off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, prefix='table')
+off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
 
 # Generate bonded tabulated potentials
 bonded_tabpot = off.gen_bonded_tabpot()
-off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, prefix='table')
+off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
 
 # Generate topology files
 off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
