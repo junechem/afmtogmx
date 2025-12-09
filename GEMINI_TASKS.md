@@ -18,30 +18,40 @@ This file tracks the plan for improving the documentation of the `afmtogmx` code
     -   [x] Rewrite `ReadOFF.gen_residues` docstring.
 
 2.  **`src/afmtogmx/core/functions.py` - Low-Level Parsing**
-    -   [ ] Document `exp` function.
-    -   [ ] Document `srd` function.
-    -   [ ] Document `shtr` function.
-    -   [ ] Document `powe` function.
-    -   [ ] Document `quarbond` function.
-    -   [ ] Document `gen_empty_bonded` function.
-    -   [ ] Document `gen_empty_nonbonded` function.
-    -   [ ] Document `_find_off_keywords` function.
-    -   [ ] Document `_recognize_keywords` function.
-    -   [ ] Document `_filter_interactions` function.
-    -   [ ] Document `_find_end_bonded` function.
-    -   [ ] Document `_find_molnames` function.
-    -   [ ] Document `_split_into_molecules` function.
-    -   [ ] Document `_gather_fitted_bonded` function.
-    -   [ ] Document `_parse_bonded` function.
-    -   [ ] Document `_parse_bonded_section` function.
-    -   [ ] Document `_clean_inter_potential` function.
-    -   [ ] Document `_filter_bonded` function.
-    -   [ ] Document `_remove_empty_and_cou_interactions_nonbonded` function.
-    -   [ ] Document `_remove_netf_torq_atname` function.
-    -   [ ] Document `_remove_netf_torq_atnum` function.
+    -   [x] Document `exp` function.
+    -   [x] Document `srd` function.
+    -   [x] Document `shtr` function.
+    -   [x] Document `powe` function.
+    -   [x] Document `quarbond` function.
+    -   [x] Document `gen_empty_bonded` function.
+    -   [x] Document `gen_empty_nonbonded` function.
+    -   [x] Document `_find_off_keywords` function.
+    -   [x] Document `_recognize_keywords` function.
+    -   [x] Document `_filter_interactions` function.
+    -   [x] Document `_find_end_bonded` function.
+    -   [x] Document `_find_molnames` function.
+    -   [x] Document `_split_into_molecules` function.
+    -   [x] Document `_gather_fitted_bonded` function.
+    -   [x] Document `_parse_bonded` function.
+    -   [x] Document `_parse_bonded_section` function.
+    -   [x] Document `_clean_inter_potential` function.
+    -   [x] Document `_filter_bonded` function.
+    -   [x] Document `_remove_empty_and_cou_interactions_nonbonded` function.
+    -   [x] Document `_remove_netf_torq_atname` function.
+    -   [x] Document `_remove_netf_torq_atnum` function.
 
 3.  **`src/afmtogmx/core/tabulated_potentials.py` - Potential Calculations**
-    -   [ ] Document key public/complex private functions.
+    -   [ ] Document `_gen_included_atoms` function.
+    -   [ ] Document `_filter_nonbonded` function.
+    -   [ ] Document `_gen_nonbond_tabpam` function.
+    -   [ ] Document `gen_nonbond_table` function.
+    -   [ ] Document `_scale_for_FE` function.
+    -   [ ] Document `gen_bonded_tabpam` function.
+    -   [ ] Document `_to_dir` function.
+    -   [ ] Document `_write_nonbonded_pair_tabpot` function.
+    -   [ ] Document `_write_blank_nonbonded` function.
+    -   [ ] Document `_write_bonded_tabpot` function.
+    -   [ ] Document `_translate_pairs` function.
 
 4.  **`src/afmtogmx/core/topology.py` - Topology File Generation**
     -   [ ] Document key public/complex private functions.

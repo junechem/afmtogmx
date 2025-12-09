@@ -10,13 +10,28 @@ from afmtogmx.core.functions import _remove_empty_and_cou_interactions_nonbonded
 
 
 def _gen_included_atoms(incl_mol, bonded):
-    """Generates list of atoms to include when writing tabulated potentials based on molnames found in list incl_mol.
+    """Generate a list of atom names to include for tabulated potential generation.
 
-    :param incl_mol: list of molnames which tabulated potentials should be written for
-    :param bonded: self.bonded
-    :return: list of all atoms for which pairs selected from the list should be used to produce tabulated potentials.
-    Any atoms not included in the list will not have tabulated potentials written for them, even if they have
-    interactions with atoms on the list.
+    This function determines which atom names should be considered for generating
+    tabulated potentials. If a list of molecule names (`incl_mol`) is provided,
+    only atoms belonging to those molecules (and not 'NETF'/'TORQ' types)
+    will be included. Otherwise, all non-'NETF'/'TORQ' atom names from the
+    `bonded` data will be included.
+
+    Parameters
+    ----------
+    incl_mol : list of str or None
+        A list of molecule names. If provided, only atoms from these molecules
+        will be included. If `None` or empty, all relevant atoms are considered.
+    bonded : dict
+        The `self.bonded` dictionary from the `ReadOFF` class, containing
+        parsed bonded interaction information, specifically the 'ATO' section.
+
+    Returns
+    -------
+    list of str
+        A list of unique atom names (strings) that are designated for
+        tabulated potential generation.
     """
 
     all_atoms = list(set([atom[0] for key, value in bonded.items() for atnum, atom in

@@ -41,9 +41,32 @@ def exp(param_list, r):
 
 
 def srd(param_list, r):
-    """This function takes in a parameter list [P1, P2, P3, 0] and returns a potential and a force. \
-     There is no modifying of parameters, so it is up to the user to ensure proper units are being used \
-     each time the funtion is called."""
+    """Calculate the potential and force of a Short-Range Damped (SRD) interaction.
+
+    The SRD potential is defined as :math:`U(r) = P_1 / (r^{P_2} + P_3^{P_2})`.
+
+    Parameters
+    ----------
+    param_list : list or tuple
+        A list of parameters for the SRD function, expected to be
+        in the format `[P1, P2, P3, 0]`. Note that P2 is taken as its absolute value.
+    r : float or numpy.ndarray
+        The distance(s) at which to calculate the potential and force.
+
+    Returns
+    -------
+    tuple of (float or numpy.ndarray, float or numpy.ndarray)
+        A tuple containing the calculated potential and force.
+
+    Notes
+    -----
+    - The force is calculated as the negative derivative of the potential.
+    - No unit conversions are performed within this function. The user is
+      responsible for ensuring that the input parameters and distances
+      have consistent units.
+    - Handles potential division by zero for force calculation by
+      returning zero where `force_denom` is zero.
+    """
     P1, P2, P3 = param_list[0], abs(param_list[1]), param_list[2]
     potential = P1 / (np.power(r, P2) + P3 ** P2)
     force_numerator = (P1 * P2 * np.power(r, P2))
@@ -53,9 +76,30 @@ def srd(param_list, r):
 
 
 def shtr(param_list, r):
-    """This function takes in a parameter list [P1, P2, P3, 0] and returns a potential and a force. \
-     There is no modifying of parameters, so it is up to the user to ensure proper units are being used \
-     each time the funtion is called."""
+    """Calculate the potential and force of a Shifted Truncated (SHTR) interaction.
+
+    Parameters
+    ----------
+    param_list : list or tuple
+        A list of parameters for the SHTR function, expected to be
+        in the format `[P1, P2, P3, 0]`.
+    r : float or numpy.ndarray
+        The distance(s) at which to calculate the potential and force.
+
+    Returns
+    -------
+    tuple of (float or numpy.ndarray, float or numpy.ndarray)
+        A tuple containing the calculated potential and force.
+
+    Notes
+    -----
+    - The potential is defined for `r <= P3` and truncated/shifted such
+      that `U(P3) = 0` and `U'(P3) = 0`.
+    - The calculation uses `temp_r = np.where(r <= P3, r, P3)`.
+    - No unit conversions are performed within this function. The user is
+      responsible for ensuring that the input parameters and distances
+      have consistent units.
+    """
     P1, P2, P3 = param_list[0], param_list[1], param_list[2]
     temp_r = np.where(r <= P3, r, P3)
     potential = P1 * (np.power(temp_r, -P2) - 1 / (P3 ** P2) + P2 * (temp_r - P3) / (P3 ** (P2 + 1)))
@@ -66,18 +110,61 @@ def shtr(param_list, r):
 
 
 def powe(param_list, r):
-    """This function takes in a parameter list [P1, P2, 0, 0] and returns a potential and a force. \
-     There is no modifying of parameters, so it is up to the user to ensure proper units are being used \
-     each time the function is called."""
+    """Calculate the potential and force of a power-law interaction.
+
+    The power-law potential is defined as :math:`U(r) = P_1 * r^{P_2}`.
+
+    Parameters
+    ----------
+    param_list : list or tuple
+        A list of parameters for the power-law function, expected to be
+        in the format `[P1, P2, 0, 0]`.
+    r : float or numpy.ndarray
+        The distance(s) at which to calculate the potential and force.
+
+    Returns
+    -------
+    tuple of (float or numpy.ndarray, float or numpy.ndarray)
+        A tuple containing the calculated potential and force.
+
+    Notes
+    -----
+    - The force is calculated as the negative derivative of the potential.
+    - No unit conversions are performed within this function. The user is
+      responsible for ensuring that the input parameters and distances
+      have consistent units.
+    """
     P1, P2, = param_list[0], param_list[1]
     potential = P1 * np.power(r, P2)
     force = -P1 * P2 * np.power(r, (P2 - 1))
     return potential, force
 
 def quarbond(param_list, r):
-    """This function takes in a parameter list [P1, P2, P3, P4] and returns a potential and a force. \
-    There is no modifying of parameters, so it is up to the user to ensure proper units are being used \
-    each time the function is called. The potential and force returned are numpy arrays."""
+    """Calculate the potential and force for a quartic bond interaction.
+
+    The quartic bond potential is defined as:
+    :math:`U(r) = (P_2/2)(r - P_1)^2 + (P_3/3)(r - P_1)^3 + (P_4/4)(r - P_1)^4`
+
+    Parameters
+    ----------
+    param_list : list or tuple
+        A list of parameters for the quartic bond function, expected to be
+        in the format `[P1, P2, P3, P4]`.
+    r : float or numpy.ndarray
+        The distance(s) at which to calculate the potential and force.
+
+    Returns
+    -------
+    tuple of (numpy.ndarray, numpy.ndarray)
+        A tuple containing the calculated potential and force, both as NumPy arrays.
+
+    Notes
+    -----
+    - The force is calculated as the negative derivative of the potential.
+    - No unit conversions are performed within this function. The user is
+      responsible for ensuring that the input parameters and distances
+      have consistent units.
+    """
     P1, P2, P3, P4 = param_list[0], param_list[1], param_list[2], param_list[3]
     potential = (P2/2) * np.power(r - P1, 2) + (P3/3) * np.power(r - P1, 3) + (P4/4) * np.power(r - P1, 4)
     force = -(P2 * (r - P1) + P3 * np.power(r - P1, 2) + P4 * np.power(r - P1, 3))
@@ -86,8 +173,27 @@ def quarbond(param_list, r):
 
 
 def gen_empty_bonded():
-    """This function will generate an empty verion of the bonded dict necessary for the production of input files. This\
-     empty bonded dict is populated later on in the workflow"""
+    """Generate an empty dictionary structure for bonded interactions.
+
+    This function creates a nested dictionary that serves as a template
+    for storing all bonded interaction parameters parsed from an .off file.
+    This empty structure is designed to be populated later in the workflow.
+
+    Returns
+    -------
+    dict
+        An empty dictionary with the following structure, representing a
+        single molecule's bonded interactions:
+        {
+            "ATO": {"All": {}, "Virtual": {}},
+            "BON": {"HAR": {}, "QUA": {}},
+            "ANG": {"HAR": {}, "QUA": {}},
+            "BD3": {"QBB": {}, "MUB": {}},
+            "DIH": {"HAR": {}, "NCO": {}, "COS": {}},
+            "CDI": {"CNCO": {}, "CCOS": {}},
+            "EXC": []
+        }
+    """
     molname = dict()
 
     ### Start with bonded
@@ -129,8 +235,20 @@ def gen_empty_bonded():
 
 
 def gen_empty_nonbonded():
-    """This function will generate an empty verion of the nonbonded dict necessary for the production of input files.
-    This empty nonbonded dict is populated later on in the workflow"""
+    """Generate an empty dictionary structure for nonbonded interactions.
+
+    This function creates a dictionary that serves as a template for
+    storing nonbonded interaction parameters for a given atom pair.
+    The empty structure is designed to be populated later in the workflow.
+
+    Returns
+    -------
+    dict
+        An empty dictionary with keys representing various nonbonded
+        interaction types (e.g., 'COU', 'THC', 'GLJ', 'BUC', etc.),
+        each mapped to an empty list.
+        Example: `{'COU': [], 'THC': [], 'GLJ': [], ...}`
+    """
 
     atom_pair = dict()
 
@@ -145,15 +263,24 @@ def gen_empty_nonbonded():
 
 
 def _find_off_keywords(off_file_str=str):
-    """Takes in an off file as a string and outputs a dictionary with each section.
+    """Parse an .off file string into its constituent sections.
 
-    This script considers each off file to be made up of 5 sections: ff_input, intra_potential, inter_potential,
-    molecular_definition, and table_potential. These 5 sections will be found and stored in a dictionary with the format
-    {'section_name': 'section'}. This sections dictionary will be returned to the user after successful execution of this
-    script.
+    This function takes the content of an .off file as a string and
+    identifies five predefined sections: `ff_input`, `intra_potential`,
+    `inter_potential`, `molecular_definition`, and `table_potential`.
+    Each section's content is extracted and stored in a dictionary.
 
-    :param off_file_str: str
-    :return: dictionary containing section names, and sections for each of the 5 sections in an .off file
+    Parameters
+    ----------
+    off_file_str : str
+        The entire content of an .off file as a single string.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are the section names (e.g., 'ff_input')
+        and values are the string content of each corresponding section.
+        Example: `{'ff_input': 'Atom Types:\\n...', 'intra_potential': 'Intra-Potential:\\n...', ...}`
     """
     ff_input = off_file_str.find("Atom Types:")
     intra_potential = off_file_str.find("Intra-Potential:\n")
@@ -174,10 +301,31 @@ def _find_off_keywords(off_file_str=str):
 
 
 def _recognize_keywords(section=str):
-    """Takes in a section str and outputs a list containing [['key', beginning, ending]...]
+    """Identify and locate keywords within a given section string.
 
-    :param section: string of off file section
-    :return: list of lists
+    This function scans a section of an .off file (provided as a string)
+    to find predefined keywords and their starting and ending character
+    locations.
+
+    Parameters
+    ----------
+    section : str
+        A string representing a section of an .off file.
+
+    Returns
+    -------
+    list of list
+        A list where each inner list contains `[keyword, start_index, end_index]`.
+        `keyword` is a string matching one of the predefined keywords.
+        `start_index` and `end_index` are integers indicating the keyword's
+        span within the `section` string.
+
+    Notes
+    -----
+    The function searches for keywords including:
+    ('OPT', 'KEY', 'MOL', 'ATO', 'BON', 'ANG', 'BD3', 'DIH', 'CDIH', 'EXC',
+    'FUD', 'COU', 'THC', 'GLJ', 'BUC', 'DBU', 'STR', 'EXP', 'POW', 'PEX',
+    'DPO', 'SRD', 'EQV', 'CHA')
     """
     import re
     total_keywords = ('OPT', 'KEY', 'MOL', 'ATO', 'BON', 'ANG', 'BD3', 'DIH', 'CDIH', 'EXC', 'FUD', 'COU', 'THC', 'GLJ',
@@ -201,10 +349,32 @@ def _recognize_keywords(section=str):
 
 
 def _filter_interactions(interactions=list):
-    """Filters list containing keywords and locations in sections[ff_input]. Ignores all other keywords
+    """Filter a list of interactions into bonded and nonbonded categories.
 
-    :param interactions: list of keywords and locations
-    :return: bonded_list, nonbonded_list
+    This function takes a list of identified keywords and their locations
+    from the `ff_input` section of an .off file and separates them into
+    two distinct lists: one for bonded interactions and one for nonbonded
+    interactions, based on predefined keyword sets.
+
+    Parameters
+    ----------
+    interactions : list of list
+        A list where each inner list contains `[keyword, start_index, end_index]`
+        as identified by `_recognize_keywords`.
+
+    Returns
+    -------
+    tuple of (list, list)
+        A tuple containing two lists:
+        - `bonded_list`: A list of interactions identified as bonded.
+        - `nonbonded_list`: A list of interactions identified as nonbonded.
+
+    Notes
+    -----
+    - **Bonded Keywords**: ('MOL', 'ATO', 'BON', 'ANG', 'BD3', 'DIH', 'CDIH', 'EXC')
+    - **Nonbonded Keywords**: ('FUD', 'COU', 'THC', 'GLJ', 'BUC', 'DBU', 'STR',
+                              'EXP', 'POW', 'PEX', 'DPO', 'SRD', 'EQV', 'CHA')
+    Any other keywords found in the input `interactions` list will be ignored.
     """
     bonded_keywords = ('MOL', 'ATO', 'BON', 'ANG', 'BD3', 'DIH', 'CDIH', 'EXC')
     nonbonded_keywords = ('FUD', 'COU', 'THC', 'GLJ', 'BUC', 'DBU', 'STR', 'EXP', 'POW', 'PEX', 'DPO', 'SRD', 'EQV',
@@ -221,11 +391,26 @@ def _filter_interactions(interactions=list):
 
 
 def _find_end_bonded(final_bonded=list, ff_input=str):
-    """Finds appropriate location to end reading the bonded section of ff_input
+    """Determine the end location for reading the bonded section of the force field input.
 
-    :param final_bonded: last bonded term in list containing keywords and locations of bonded interactions
-    :param ff_input: top of off file, original input file to cryoff
-    :return: list containing ['END', end_location, end_location]
+    This function helps to correctly delimit the bonded section within the
+    force field input string by finding the position of the next keyword
+    after the last identified bonded interaction.
+
+    Parameters
+    ----------
+    final_bonded : list
+        A list containing the last bonded interaction term, typically
+        in the format `[keyword, start_index, end_index]`.
+    ff_input : str
+        The string content of the `ff_input` section of the .off file.
+
+    Returns
+    -------
+    list
+        A list in the format `['END', end_location, end_location]`, where
+        `end_location` is the character index marking the end of the
+        bonded section.
     """
     temp_str = ff_input[final_bonded[-1]:]
     end_location = re.search('\[.*]', temp_str)
@@ -234,11 +419,24 @@ def _find_end_bonded(final_bonded=list, ff_input=str):
 
 
 def _find_molnames(bonded=list, ff_input=str):
-    """Finds molnames based on keywords and locations of bonded interactions, and ff_input
+    """Extract molecule names from the `ff_input` section of an .off file.
 
-    :param bonded: list of keywords and locations of all bonded interactions
-    :param ff_input: top of off file
-    :return: list of molnames
+    This function identifies molecule definitions (`MOL` keywords) within
+    the bonded interactions list and extracts the corresponding molecule
+    names from the `ff_input` string.
+
+    Parameters
+    ----------
+    bonded : list of list
+        A list containing keyword-location information for all bonded
+        interactions, as generated by `_filter_interactions`.
+    ff_input : str
+        The string content of the `ff_input` section of the .off file.
+
+    Returns
+    -------
+    list of str
+        A list of extracted molecule names.
     """
     molnames = []
     for item in bonded:
@@ -255,10 +453,25 @@ def _find_molnames(bonded=list, ff_input=str):
 
 
 def _split_into_molecules(bonded=list):
-    """Takes in a list of all bonded interactions and splits into list of lists where each individual sublist has 1 MOL.
+    """Split a list of all bonded interactions into molecule-specific sublists.
 
-    :param bonded: list containing all the bonded terms in sections['ff_input']
-    :return: list of lists; each sublist corresponds to 1 molecule
+    This function processes a comprehensive list of all bonded interactions,
+    identified by `MOL` keywords, and organizes them into a list of lists.
+    Each inner list represents the bonded interactions pertinent to a
+    single molecule. An 'END' marker is inserted to delimit each molecule's
+    interactions.
+
+    Parameters
+    ----------
+    bonded : list of list
+        A list containing all bonded terms from the `ff_input` section,
+        including `MOL` keywords.
+
+    Returns
+    -------
+    list of list
+        A list where each sublist corresponds to a single molecule and
+        contains its specific bonded interaction terms.
     """
     result = []
     sublist = []
@@ -278,18 +491,53 @@ def _split_into_molecules(bonded=list):
     return result
 
 
-def _gather_fitted_bonded(ff_input=str):  # splits sections['intra_potential'] into list of strings based on each
-    # different [ TERM ] section
-    return re.split(r'\n[ ]+\[.+]', ff_input)[1:]
+def _gather_fitted_bonded(ff_input=str):
+    """Split the `intra_potential` section into individual bonded interaction strings.
+
+    This function takes the string content of the `intra_potential` section
+    from an .off file and divides it into a list of strings, where each
+    string corresponds to a different bonded interaction defined within that section.
+
+    Parameters
+    ----------
+    ff_input : str
+        The string content of the `intra_potential` section of the .off file.
+
+    Returns
+    -------
+    list of str
+        A list of strings, where each string represents a fitted bonded
+        interaction block (e.g., a `[ TERM ]` section) from the
+        `intra_potential`.
+    """    return re.split(r'\n[ ]+\[.+]', ff_input)[1:]
 
 
 def _parse_bonded(unsorted_bonded, molecule=list, ff_input=str):
-    """Begins work of actually splitting the molecules and sorting through which parameters go where
+    """Parse bonded interactions for a single molecule.
 
-    :param unsorted_bonded: list of sections['intra_potential'] split up by each [ INTERACTION ]
-    :param molecule: list containing all sections related to 1 MOL, with [['INTERACTION', beginning, ending]...,['END'..
-    :param ff_input: sections['ff_input'], a.k.a. top of .off file corresponding to .ff file
-    :return: dictionary with all elements related to bonded portion of each specified molecule
+    This function takes a list of a molecule's bonded interactions and
+    the overall `intra_potential` section to extract and organize the
+    fitted parameters for that specific molecule into a structured dictionary.
+    It uses `gen_empty_bonded` to initialize the dictionary and
+    `_parse_bonded_section` for detailed parsing.
+
+    Parameters
+    ----------
+    unsorted_bonded : list of str
+        A list of strings, where each string represents a fitted bonded
+        interaction block from the `intra_potential` section, as output
+        by `_gather_fitted_bonded`.
+    molecule : list of list
+        A list containing keyword-location information for all sections
+        related to a single molecule, including an 'END' marker.
+    ff_input : str
+        The string content of the `ff_input` section of the .off file.
+
+    Returns
+    -------
+    dict
+        A dictionary containing all elements related to the bonded portion
+        of the specified molecule, structured according to `gen_empty_bonded`.
     """
     populated_molecule = gen_empty_bonded()  # initialize empty dictionary with proper structure
     for num in range(0, len(molecule)):  # iterate over molecule
@@ -309,14 +557,37 @@ def _parse_bonded(unsorted_bonded, molecule=list, ff_input=str):
 
 
 def _parse_bonded_section(uns_bonded, section=str, beginning=int, ending=int, ff_input=str):
-    """Does the heavy lifting for sorting through and properly formatting dictionaries for bonded terms.
+    """Parse a specific bonded interaction section and format its dictionary.
 
-    :param uns_bonded: output of _gather_fitted_bonded
-    :param section: which term to parse
-    :param beginning: beginning of section
-    :param ending: end of section
-    :param ff_input: sections['ff_input'], a.k.a .ff portion at top of .off file
-    :return: portion of dictionary for each 'key', properly formatted with fitted parameters
+    This function performs the detailed parsing of a single bonded interaction
+    section (e.g., 'ATO', 'BON', 'ANG') from the `ff_input` based on its
+    start and end locations. It extracts parameters and atom definitions,
+    then populates and returns a structured dictionary for that specific
+    interaction type.
+
+    Parameters
+    ----------
+    uns_bonded : list of str
+        A list of strings, where each string represents a fitted bonded
+        interaction block from the `intra_potential` section, as output
+        by `_gather_fitted_bonded`. This is used to retrieve parameter values.
+    section : str
+        The keyword string identifying the specific bonded interaction
+        section to parse (e.g., 'ATO', 'BON', 'ANG').
+    beginning : int
+        The starting character index of the section within `ff_input`.
+    ending : int
+        The ending character index of the section within `ff_input`.
+    ff_input : str
+        The string content of the `ff_input` section of the .off file.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the parsed and formatted parameters
+        and atom lists for the specified `section`. The structure varies
+        by section type (e.g., 'ATO' has 'All' and 'Virtual' keys,
+        'BON' has 'HAR' and 'QUA' keys).
     """
     section_str = ff_input[beginning:ending]
     global total_bonded_added
@@ -506,10 +777,34 @@ def _parse_bonded_section(uns_bonded, section=str, beginning=int, ending=int, ff
 
 
 def _clean_inter_potential(inter_potential=str):
-    """Splits up inter potential into list of lists with format: [[('At1', 'At2'), 'Interaction', P1, P2,...]...]
+    """Parse and clean the `inter_potential` section into a structured list.
 
-    :param inter_potential:
-    :return: list of lists containing pair, interaction, and parameters for each item in inter_potential section
+    This function takes the raw string content of the `inter_potential`
+    section from an .off file, performs several cleaning and parsing steps,
+    and returns a list of lists. Each inner list represents a nonbonded
+    interaction with its atom pair, interaction type, and parameters.
+
+    Parameters
+    ----------
+    inter_potential : str
+        The string content of the `inter_potential` section of the .off file.
+
+    Returns
+    -------
+    list of list
+        A list where each inner list has the format:
+        `[(At1, At2), 'InteractionType', P1, P2, ...]`.
+        - `(At1, At2)`: A tuple of sorted atom names (strings) for the pair.
+        - `InteractionType`: A string identifying the interaction.
+        - `P1, P2, ...`: Floats representing the parameters for the interaction.
+
+    Notes
+    -----
+    The processing steps include:
+    - Removing colons (`:`) from the string.
+    - Splitting the string into lines and then into components.
+    - Sorting atom pairs alphabetically (e.g., `C~H` becomes `('C', 'H')`).
+    - Converting interaction parameters to float types.
     """
     inter_potential = re.sub('\:', '', inter_potential)  # remove colon from inter_potential
     inter_potential = inter_potential.split("\n")[1:-2]  # split inter potential by lines
@@ -527,6 +822,25 @@ def _clean_inter_potential(inter_potential=str):
 
 
 def _filter_bonded(bonded):
+    """Remove empty interaction definitions from a bonded interactions dictionary.
+
+    This function processes a dictionary of bonded interactions for a molecule,
+    removing any interaction types or terms that are empty. It also handles
+    the special case of 'EXC' (exclusions) and removes 'Virtual' atoms if
+    no virtual atoms are defined.
+
+    Parameters
+    ----------
+    bonded : dict
+        A dictionary of bonded interactions for a single molecule,
+        typically generated by `_parse_bonded`.
+
+    Returns
+    -------
+    dict
+        A filtered dictionary where empty interaction types and terms
+        have been removed.
+    """
     to_filter = ('BON', 'ANG', 'BD3', 'DIH', 'CDI', 'EXC')
     filtered = dict()
 
@@ -545,12 +859,22 @@ def _filter_bonded(bonded):
 
 
 def _remove_empty_and_cou_interactions_nonbonded(nonbonded):
-    """Takes in self.nonbonded and returns an identical dictionary with COU and empty interactions removed
+    """Remove empty and 'COU' (Coulomb) interactions from a nonbonded dictionary.
 
-    :param nonbonded: self.nonbonded
-    :return: self.nonbonded with empty interactions remove
-    """
-    cleaned_dict = {}
+    This function processes a nonbonded interactions dictionary, filtering
+    out any entries that are empty or represent Coulomb ('COU') interactions.
+
+    Parameters
+    ----------
+    nonbonded : dict
+        A dictionary of nonbonded interactions, typically `self.nonbonded`.
+
+    Returns
+    -------
+    dict
+        A new dictionary identical to the input `nonbonded` dictionary
+        but with empty interaction types and all 'COU' interactions removed.
+    """    cleaned_dict = {}
     for pair, int_dict in nonbonded.items():
         pair_dict = {k: v for k, v, in int_dict.items() if v}
         if 'COU' in pair_dict:
@@ -560,11 +884,45 @@ def _remove_empty_and_cou_interactions_nonbonded(nonbonded):
     return cleaned_dict
 
 def _remove_netf_torq_atname(all_atoms):
+    """Remove 'NETF' and 'TORQ' atom names from a list of all atoms.
+
+    This function filters a dictionary of atom definitions, returning
+    only the atom names that are not identified as 'NETF' (Net Force)
+    or 'TORQ' (Torque) atoms.
+
+    Parameters
+    ----------
+    all_atoms : dict
+        A dictionary where keys are atom numbers and values are tuples
+        `('AtomType', 'AtomName')`, typically sourced from `ATO['All']`.
+
+    Returns
+    -------
+    list of str
+        A list containing the atom names after filtering out 'NETF' and 'TORQ'.
+    """
     all_atoms_list = []
     all_atoms_list = [v[1] for k, v in all_atoms.items() if v[1] != "NETF" and v[1] != "TORQ"]
     return all_atoms_list
 
 def _remove_netf_torq_atnum(all_atoms):
+    """Remove 'NETF' and 'TORQ' atom numbers from a list of all atoms.
+
+    This function filters a dictionary of atom definitions, returning
+    only the atom numbers that are not identified as 'NETF' (Net Force)
+    or 'TORQ' (Torque) atoms.
+
+    Parameters
+    ----------
+    all_atoms : dict
+        A dictionary where keys are atom numbers and values are tuples
+        `('AtomType', 'AtomName')`, typically sourced from `ATO['All']`.
+
+    Returns
+    -------
+    list of int
+        A list containing the atom numbers after filtering out 'NETF' and 'TORQ'.
+    """
     removed_netf_torq = [int(k) for k, v in all_atoms.items() if v[1] != 'NETF' and v[1] !='TORQ']
 
     return removed_netf_torq
