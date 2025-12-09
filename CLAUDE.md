@@ -26,6 +26,8 @@ After initialization, `ReadOFF` objects contain:
 - `off.residues`: Dictionary with residue definitions and atom number mappings
 - `off.sections`: Internal dictionary splitting .off file into 5 sections (ff_input, intra_potential, inter_potential, molecular_definition, table_potential)
 - `off.config`: Dictionary storing default parameter values for all workflow methods
+- `off.nonbonded_tabpot`: Automatically populated by `gen_nonbonded_tabpot()` (None until generated)
+- `off.bonded_tabpot`: Automatically populated by `gen_bonded_tabpot()` (None until generated)
 
 ### Configuration System
 
@@ -127,16 +129,25 @@ The typical workflow follows this sequence:
 2. **Load charges**: `off.load_charges_from_file('charges.txt')`
 3. **Generate and write tabulated potentials**:
    ```python
-   nonbonded_tabpot = off.gen_nonbonded_tabpot()  # Uses config values
-   bonded_tabpot = off.gen_bonded_tabpot()
-   off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)  # Uses config prefix/dir
-   off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot)
+   # Generate methods store results automatically in off.nonbonded_tabpot and off.bonded_tabpot
+   off.gen_nonbonded_tabpot()  # Uses config values, stores in off.nonbonded_tabpot
+   off.gen_bonded_tabpot()     # Uses config values, stores in off.bonded_tabpot
+
+   # Write methods use stored results automatically - no variables needed!
+   off.write_nonbonded_tabpot()  # Uses off.nonbonded_tabpot and config prefix/dir
+   off.write_bonded_tabpot()     # Uses off.bonded_tabpot and config prefix/dir
    ```
 4. **Generate topology files**:
    ```python
    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
    ```
+
+**Note**: You can still pass custom dictionaries to write methods for advanced use cases:
+```python
+custom_tabpot = off.gen_nonbonded_tabpot()  # Can still capture if needed
+off.write_nonbonded_tabpot(nonbonded_tabpot=custom_tabpot)  # Can still pass explicitly
+```
 
 See detailed workflow examples in `src/afmtogmx/__init__.py`.
 
