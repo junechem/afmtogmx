@@ -57,17 +57,17 @@ GENERATING TABULATED POTENTIALS
 
 To generate nonbonded tabulated potentials, the recommended workflow is as follows:
 
-    >>> nonbonded_tabpot = off.gen_nonbonded_tabpot()
+    >>> off.gen_nonbonded_tabpot()  # Stores result in off.nonbonded_tabpot
 
 Several options are available for gen_nonbonded_tabpot(), but by default, tabulated potentials are generated for all
-nonbonded interactions (besides coulombic) between atoms. A dictionary containing tables is returned to allow
-flexibility with scaling columns by certain factors, for example for HFE calculations.
+nonbonded interactions (besides coulombic) between atoms. The result is automatically stored in off.nonbonded_tabpot
+for convenient access. You can still capture the return value if needed for advanced use cases.
 See the helpdocs for more in depth discussion
 
 
 To generate bonded tabulated potentials, the recommended workflow is as follows:
 
-    >>> bonded_tabpot = off.gen_bonded_tabpot()
+    >>> off.gen_bonded_tabpot()  # Stores result in off.bonded_tabpot
 
 Several more options are available; see the helpdocs for more in depth discussion
 
@@ -88,9 +88,12 @@ Several more options are available; see the helpdocs for more in depth discussio
 
 
 Finally, to write out tabulated potentials, use the functions write_nonbonded_tabpot() and write_bonded_tabpot().
+These methods automatically use the stored potentials from the gen methods:
 
-    >>> off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)
-    >>> off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot)
+    >>> off.write_nonbonded_tabpot()  # Uses off.nonbonded_tabpot
+    >>> off.write_bonded_tabpot()     # Uses off.bonded_tabpot
+
+You can still pass custom dictionaries explicitly if needed for advanced use cases.
 
 So, a good final workflow going from intra.off file to functional force field is:
 
@@ -100,26 +103,26 @@ So, a good final workflow going from intra.off file to functional force field is
     >>> # off.charges['MolName']['AtomName'] = charge_value
     >>> # Or load from file:
     >>> # off.load_charges_from_file('charges.txt')
-    >>> nonbonded_tabpot = off.gen_nonbonded_tabpot()
-    >>> bonded_tabpot = off.gen_bonded_tabpot()  # optional depending on if bonded tabulated interactions in .off file
-    >>> off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)
-    >>> off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot)
+    >>> off.gen_nonbonded_tabpot()  # Stores in off.nonbonded_tabpot
+    >>> off.gen_bonded_tabpot()     # Stores in off.bonded_tabpot (optional)
+    >>> off.write_nonbonded_tabpot()  # Uses off.nonbonded_tabpot
+    >>> off.write_bonded_tabpot()     # Uses off.bonded_tabpot
     >>> off.gen_nonbonded_topology(template_file = 'template.top', write_to = 'temp_nonbonded.top')
-    >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top', bonded_tabpot = bonded_tabpot)  # bonded_tabpot is optional depending on if there are bonded tabulated interactions defined in the .off file
+    >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top')
 
 
-Alternatively, using the configuration system for cleaner code:
+Recommended: Using the configuration system for cleaner code:
 
     >>> import afmtogmx as afm
     >>> off = afm.ReadOFF(off_loc = "path/to/intra.off")
     >>> off.set_config(tabpot_prefix='my_table', tabpot_dir='tables/')
     >>> off.load_charges_from_file('charges.txt')
-    >>> nonbonded_tabpot = off.gen_nonbonded_tabpot()
-    >>> bonded_tabpot = off.gen_bonded_tabpot()
-    >>> off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)
-    >>> off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot)
+    >>> off.gen_nonbonded_tabpot()  # Stores automatically, uses config values
+    >>> off.gen_bonded_tabpot()     # Stores automatically, uses config values
+    >>> off.write_nonbonded_tabpot()  # Uses stored result and config prefix/dir
+    >>> off.write_bonded_tabpot()     # Uses stored result and config prefix/dir
     >>> off.gen_nonbonded_topology(template_file = 'template.top', write_to = 'temp_nonbonded.top')
-    >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top', bonded_tabpot = bonded_tabpot)
+    >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top')
 
 """
 from afmtogmx.core import topology, tabulated_potentials, gen_md, functions, compare
