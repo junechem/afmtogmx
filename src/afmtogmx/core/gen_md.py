@@ -5,24 +5,56 @@ from types import SimpleNamespace
 
 
 class ReadOFF:
-    """This class reads an .off file
+    """Orchestrates the conversion of a CRYOFF .off file to GROMACS inputs.
+
+    This class serves as the main entry point for the `afmtogmx` library. It
+    reads and parses a `.off` file, storing the molecular topology, force
+    field parameters, and interaction data. It then provides methods to
+    generate GROMACS topology (`.top`) and tabulated potential (`.xvg`) files.
+
+    Parameters
+    ----------
+    off_loc : str
+        The file path to the `.off` file to be processed.
+
+    Attributes
+    ----------
+    off_loc : str
+        Stores the provided location of the `.off` file.
+    bonded : dict
+        A nested dictionary containing all parsed bonded interactions,
+        organized by molecule name, interaction type (e.g., 'BON', 'ANG'),
+        and specific parameters.
+    nonbonded : dict
+        A nested dictionary containing all parsed nonbonded interactions,
+        organized by atom type pairs (e.g., ('C', 'H')) and interaction
+        type (e.g., 'POW_6').
+    charges : dict
+        A nested dictionary holding the atomic charges for each atom in each
+        molecule. Initialized to zero by default and can be populated from
+        an external file.
+    config : dict
+        A dictionary holding configuration options for file generation, such
+        as table spacing, potential scaling, and naming conventions.
+    residues : dict
+        A dictionary to store residue definitions and assignments.
+    nonbonded_tabpot : dict or None
+        Stores the generated nonbonded tabulated potential data after a call
+        to `gen_nonbonded_tabpot`.
+    bonded_tabpot : dict or None
+        Stores the generated bonded tabulated potential data after a call
+        to `gen_bonded_tabpot`.
+
+    Examples
+    --------
+    >>> from afmtogmx.core.gen_md import ReadOFF
+    >>> off = ReadOFF('path/to/your/forcefield.off')
+    >>> print(off.bonded.keys())
+    dict_keys(['MOL1'])
+
     """
 
     def __init__(self, off_loc):
-        """Initialize the ReadOFF class by reading an intra.off file at location off_loc
-
-        Assuming you create an object using
-            off = ReadOFF(off_loc = 'intra.off')
-
-        You can access the completed bonded and nonbonded parameters with the dictionaries stored at
-            off.bonded
-            off.nonbonded
-
-        The charges (which are all zero by default) can be accessed with
-            off.charges
-
-        :param off_loc: string, location of intra.off file to read.
-        """
         self.off_loc = off_loc
         self._ff_bonded = {}  # Need to read bonding information at top of .off file to understand how to parse fitted
         # bonded parameters
@@ -116,65 +148,86 @@ class ReadOFF:
 
     def gen_nonbonded_tabpot(self, special_pairs=None, incl_mol=None, excl_interactions=None, excl_pairs=None,
                              spacing_nonbonded=None, length_nonbonded=None, scale_C6=None, sc_sigma=None):
-        """Return dictionary holding nonbonded tabulated potentials for all pairs. By default, it is assumed that the
-        only attractive interactions are 'POW_6', 'DPO_6', 'SRD_6', 'PEX_6', that is, POW interactions which are raised
-        to the 6th power, DPO interactions which are raised to the 6th power, and so on.
+        """Generate nonbonded tabulated potentials for all relevant atom pairs.
 
-        gen_nonbonded_tabpot can be used with several options including special_pairs, incl_mol, excl_interactions, and
-        scale_C6.
+        This method calculates and stores tabulated potential energy and force
+        curves for nonbonded interactions. The results are stored in the
+        `self.nonbonded_tabpot` attribute. By default, interactions assumed to
+        be attractive are 'POW_6', 'DPO_6', 'SRD_6', and 'PEX_6'. Parameters
+        not explicitly provided to this method will be resolved from the
+        `self.config` dictionary.
 
-            * special_pairs is a non-required argument; if used, it should be a dictionary holding information following
-             the format: {pair : list}. The list should contain interactions which will be put in columns 4 and 5 in the
-             tabulated potential for that pair. All other interactions found in the .off file for that pair will be
-             placed in the 6th and 7th (repulsive) columns. For example, if it is desired that a POW_6 and POW_8
-             interaction be placed in the 4 and 5 columns of a tabulated potential (as opposed to the default behavior
-             of putting POW_8 in the 6 and 7 columns) for pair ('At1', 'At2'), the user can call:
+        Parameters
+        ----------
+        special_pairs : dict, optional
+            A dictionary defining custom attractive interactions. Format:
+            `{('At1', 'At2') : ['INTERACTION_TYPE1', 'INTERACTION_TYPE2']}`.
+            The specified interaction types will be placed in columns 4 and 5
+            of the tabulated potential for that pair. All other interactions
+            for that pair will be placed in the 6th and 7th (repulsive) columns.
+            Defaults to `{}` (from `self.config`).
+        incl_mol : list of str, optional
+            A list of molecule names (as found in the .off file) for which
+            tabulated potentials should be generated. If `None`, potentials
+            are generated for all molecules. Defaults to `[]` (from `self.config`).
+        excl_interactions : list of str, optional
+            A list of interaction names (exactly as written in the .off file)
+            to be excluded from the tabulated potentials. Useful for excluding
+            specific intra-molecular or solvent interactions.
+            Defaults to `[]` (from `self.config`).
+        excl_pairs : list of list of str, optional
+            A list of atom pairs (e.g., `[['C', 'H']]`) for which nonbonded
+            tabulated potentials should *not* be produced.
+            Defaults to `[]` (from `self.config`).
+        spacing_nonbonded : float, optional
+            The spacing (in nm) between x-values in the generated tables.
+            Defaults to `0.0005` nm (from `self.config`).
+        length_nonbonded : float, optional
+            The total length (in nm) of the generated tables.
+            Defaults to `3.0` nm (from `self.config`).
+        scale_C6 : bool, optional
+            If `True`, columns 4 and 5 for each pair that has an attractive
+            potential are scaled by C6. This is essential for enabling
+            dispersion corrections in GROMACS.
+            Defaults to `True` (from `self.config`).
+        sc_sigma : float, optional
+            If non-zero, the tabulated potentials will be scaled by the
+            appropriate amount to enable free energy calculations using the
+            sc-sigma value in the `grompp.mdp` file. Defaults to `0.0`
+            (from `self.config`).
 
-            gen_nonbonded_tabpot(special_pairs = {('At1', 'At2') : ['POW_6', 'POW_8']}, scale_C6 = False)
+        Returns
+        -------
+        dict
+            A dictionary containing the generated nonbonded tabulated
+            potentials. The keys are atom pairs (e.g., `('C', 'H')`), and
+            the values are lists of NumPy arrays:
+            `[x_values, COU_pot, COU_force, ATT_pot, ATT_force, REP_pot, REP_force]`.
+            This dictionary is also stored in `self.nonbonded_tabpot`.
 
-            Note 'scale_C6 = False'; when using custom attractive interactions, scaling the C6 coefficient to enable
-            the use of dispersion corrections is not supported.
+        Notes
+        -----
+        - **Parameter Resolution**: Parameters are resolved in the following order
+          of precedence: explicit argument > `self.config` setting > hardcoded default.
+        - **`special_pairs`**: When using `special_pairs`, `scale_C6` should generally be set to `False`
+          unless you explicitly manage the scaling within your custom attractive interactions.
+        - **`excl_interactions`**: Ensure interaction names match exactly as they appear
+          in the `.off` file (e.g., 'BUCWATER' instead of 'BUC' if that is how it's named).
 
-            * incl_mol is a non-required argument; if used, it should be a list of molnames for which tabulated
-            potentials should be generated for. For example, if an .off file contains 6 molnames, MOL1, MOL2,...,MOL6,
-            and tabulated potentials with only MOL1 and MOL2 are desired, this can be achieved with:
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> # Generate nonbonded potentials using default config values
+        >>> off.gen_nonbonded_tabpot()
+        >>> # Access the generated tables
+        >>> print(off.nonbonded_tabpot.keys())
 
-            gen_nonbonded_tabpot(incl_mol = ['MOL1', 'MOL2'])
-
-
-            * excl_interactions is a non-required argument; if used, it should be a list of interactions to not write
-             tabulated potentials for. For example, if there is a solvent buckingham interaction BUC (as is the case for
-             WAIL, rWAIL, BLYPSP-4F) that one does not want to write tabulated potentials for, this interaction can be
-             excluded with:
-
-            gen_nonbonded_tabpot(excl_interactions = ['BUC']
-
-            Note that the interaction must be written exactly as it is written in the .off file, i.e., if the buckingham
-             water interaction is specified as BUCWATER, then to exclude this, we should specify
-
-             excl_interactions = ['BUCWATER']
-
-
-            *  scale_C6 is a required boolean argument; by default it is set to True. This scales columns 4 and 5
-             for each pair that has an attractive potential by C6; for all default attractive interactions, this is
-             parameter 2 as listed in the CRYOFF manual. scale_C6 is disabled for custom attractive interactions.
-
-        :param sc_sigma: float, non-required. If given, the tabulated potentials will be scaled by the proper amount
-        so that a free energy calculation using the sc-sigma value in the grompp.mdp file will be correct.
-        :param special_pairs: Non-Required. dictionary following format {pair : list} where 'list' is a list of
-        interactions that should be considered attractive and placed in columns 4 and 5 for that pair
-        :param incl_mol: Non-Required. list containing molnames which tabulated potentials should be generated for.
-        Default behavior is to write tabulated potentials for all molnames
-        :param excl_interactions:  Non-required. list containing interactions EXACTLY as they appear in the .off file
-        which tabulated parameters should not be written for.
-        :param excl_pairs: list, Non-required, list of lists containing pairs which nonbonded tabpot files should not be produced
-        for
-        :param spacing_nonbonded: float, Default: 0.0005 nm. Float (in nm) for spacing between x-values in the generated tables.
-        :param length_nonbonded: int, Default: 3 nm. Float (in nm) for the total length of the generated tables
-        :param scale_C6: bool, Default: True. Boolean which controls whether columns 4 and 5 of generated tables are scaled
-         to allow for dispersion corrections in gromacs simulations.
-        :return: dictionary containing {pair : [x_values, COU_pot, COU_force, ATT_pot, ATT_force, REP_pot, REP_force]}
-        for each pair; the elements in the list for each pair are numpy arrays.
+        >>> # Generate with custom settings for a specific pair and no C6 scaling
+        >>> off.set_config(scale_C6=False)
+        >>> off.gen_nonbonded_tabpot(
+        ...     special_pairs={('At1', 'At2'): ['POW_6', 'POW_8']},
+        ...     spacing_nonbonded=0.001
+        ... )
         """
         # Resolve parameters: explicit value → config → default
         p = SimpleNamespace(**{
@@ -203,14 +256,51 @@ class ReadOFF:
 
 
     def gen_bonded_tabpot(self, incl_mol=None, spacing_bonded=None, length_bonded=None):
-        """Generates bonded tabulated potentials for each molecule containing bond type 'QUA' in the .off file.
+        """Generate bonded tabulated potentials for specific molecules.
 
-        Returned Dictionary Format: {'Molname' : {(parameters) : [table_number, x_values, U(x) values, F(x) values], ...}
+        This method calculates and stores tabulated potential energy and force
+        curves for bonded interactions, specifically for 'QUA' bonds and 'QBB'
+        terms found in the .off file. The results are stored in the
+        `self.bonded_tabpot` attribute. Parameters not explicitly provided
+        to this method will be resolved from the `self.config` dictionary.
 
-        :param incl_mol: list, Non-required; list containing molnames to exclusively generate bonded tabualted parameters for
-        :param spacing_bonded: float, Default = 0.0001 nm; Spacing between x-values in final table
-        :param length_bonded: float/int, Default = 0.3 nm; Total length of tables to generate
-        :return: dictionary
+        Parameters
+        ----------
+        incl_mol : list of str, optional
+            A list of molecule names (as found in the .off file) for which
+            bonded tabulated potentials should be generated. If `None`,
+            potentials are generated for all molecules.
+            Defaults to all molecules in `self.bonded` (from `self.config`).
+        spacing_bonded : float, optional
+            The spacing (in nm) between x-values in the generated tables.
+            Defaults to `0.0001` nm (from `self.config`).
+        length_bonded : float or int, optional
+            The total length (in nm) of the generated tables.
+            Defaults to `0.3` nm (from `self.config`).
+
+        Returns
+        -------
+        dict
+            A dictionary containing the generated bonded tabulated potentials.
+            The format is `{'Molname' : {(parameters) : [table_number, x_values, U(x) values, F(x) values], ...}}`.
+            This dictionary is also stored in `self.bonded_tabpot`.
+
+        Notes
+        -----
+        - **Parameter Resolution**: Parameters are resolved in the following order
+          of precedence: explicit argument > `self.config` setting > hardcoded default.
+        - **Supported Interactions**: Currently supports 'QUA' bonds and 'QBB' terms.
+
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> # Generate bonded potentials using default config values
+        >>> off.gen_bonded_tabpot()
+        >>> # Access the generated tables
+        >>> print(off.bonded_tabpot.keys())
+
+        >>> # Generate for a specific molecule with custom spacing
+        >>> off.gen_bonded_tabpot(incl_mol=['ETHANE'], spacing_bonded=0.0005)
         """
         # Resolve parameters: explicit value → config → default
         p = SimpleNamespace(**{
@@ -236,19 +326,83 @@ class ReadOFF:
 
     def gen_nonbonded_topology(self, name_translation=None, template_file=None, incl_mol=None, excl_interactions=None, excl_pairs=None,
                                scale_C6=None, special_pairs=None, write_to=None, sc_sigma=None):
-        """Generates [ nonbond_params ] section of topology file and writes topology file (default name nonbond_topol.top).
+        """Generates the `[ nonbond_params ]` section and writes the nonbonded topology file.
 
-        :param sc_sigma: float, non-required. If given, the nonbonded_params C12 will be scaled by the proper amount to
-        enable the use of sc_sigma in the grompp.mdp file for free energy calculations
-        so that a free energy calculation using the sc-sigma value in the grompp.mdp file will be correct.
-        :param name_translation: Dictionary, optional; format {'AtIn.off' : 'AtIn.top',...}; If atom not in name_translation, atom name from .off will be used
-        :param template_file: Path/To/Template.top, required; should contain at least 1 section [ nonbond_params ] with a blank line following it.
-        :param incl_mol: List of strings, optional; molnames to write nonbond_params for.
-        :param excl_interactions: List of strings, optional; interactions as written in the .off file which should not be included in the nonbond_params section. Use case: Specific BLYPSP-4F interactions, interactions that should be written to [ pairs ], etc.
-        :param excl_pairs: list of lists containing pairs which should not be written in the nonbonded section of a topology file
-        :param scale_C6: Boolean, optional, default = True; adjust C6 parameters to allow for correct dispersion corrections in the gromacs simulation
-        :param special_pairs: Dictionary, optional; see discussion in gen_nonbonded_tabpot
-        :param write_to: Path/to/output.top, optional; Default behavior is to write to nonbond_topol.top in current directory
+        This method constructs the `[ nonbond_params ]` section of a GROMACS
+        topology file based on the parsed `.off` file data. It then writes
+        this section into a provided template file and saves the result to
+        a new topology file. Parameters not explicitly provided will be
+        resolved from the `self.config` dictionary.
+
+        Parameters
+        ----------
+        name_translation : dict, optional
+            A dictionary for translating atom names from the `.off` file to
+            the desired names in the `.top` file. Format:
+            `{'.offAtom1' : '.topAtom1', ...}`. If an atom is not in
+            `name_translation`, its name from the `.off` file will be used.
+            Defaults to `{}` (from `self.config`).
+        template_file : str, required
+            Path to a GROMACS topology template file. This file must contain
+            at least one `[ nonbond_params ]` section header with a blank line
+            following it. The generated nonbond parameters will be inserted
+            at this location.
+        incl_mol : list of str, optional
+            A list of molecule names (as found in the .off file) for which
+            nonbonded parameters should be included.
+            Defaults to `[]` (from `self.config`).
+        excl_interactions : list of str, optional
+            A list of interaction names (exactly as written in the .off file)
+            to be excluded from the `[ nonbond_params ]` section. Useful for
+            specific interactions that might be handled in other sections (e.g.,
+            `[ pairs ]`). Defaults to `[]` (from `self.config`).
+        excl_pairs : list of list of str, optional
+            A list of atom pairs (e.g., `[['C', 'H']]`) for which nonbonded
+            parameters should *not* be written in the topology file.
+            Defaults to `[]` (from `self.config`).
+        scale_C6 : bool, optional
+            If `True`, C6 parameters will be adjusted to allow for correct
+            dispersion corrections in GROMACS simulations.
+            Defaults to `True` (from `self.config`).
+        special_pairs : dict, optional
+            See discussion in `gen_nonbonded_tabpot`. Defaults to `{}`
+            (from `self.config`).
+        write_to : str, optional
+            The path to the output topology file. If `None`, the default is
+            `nonbond_topol.top` in the same directory as the `template_file`.
+        sc_sigma : float, optional
+            If non-zero, the `C12` parameters in the `[ nonbond_params ]`
+            section will be scaled by the appropriate amount to enable free
+            energy calculations using the sc-sigma value in the `grompp.mdp`
+            file. Defaults to `0.0` (from `self.config`).
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - **Parameter Resolution**: Parameters are resolved in the following order
+          of precedence: explicit argument > `self.config` setting > hardcoded default.
+        - **`template_file`**: The template file is crucial for defining the
+          overall structure of the GROMACS topology. Ensure it has the correct
+          `[ nonbond_params ]` header.
+        - **Output Location**: If `write_to` is not specified, the output file
+          `nonbond_topol.top` will be created in the same directory as `template_file`.
+
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> # Generate a nonbonded topology file using default settings
+        >>> off.gen_nonbonded_topology(template_file='template.top')
+
+        >>> # Generate with custom name translation and a specific output file
+        >>> name_trans = {'C_off': 'C_top', 'H_off': 'H_top'}
+        >>> off.set_config(name_translation=name_trans, scale_C6=False)
+        >>> off.gen_nonbonded_topology(
+        ...     template_file='template.top',
+        ...     write_to='my_nonbonded.top'
+        ... )
         """
         # Resolve parameters: explicit value → config → default
         p = SimpleNamespace(**{
@@ -304,24 +458,73 @@ class ReadOFF:
             w.write(f[template_nonbonded_location[1]:])
 
     def gen_bonded_topology(self, name_translation=None, incl_mol=None, template_file="", write_to="", bonded_tabpot={}):
-        """Writes bonded portion of topology file.
+        """Generates bonded sections and writes the bonded topology file.
 
-        * name_translation dictionary allows atom names to be converted from the .off name to the desired name in a .top file. Format is {'.offAtom1' : '.topAtom1', ...}
+        This method constructs the bonded sections of a GROMACS topology file
+        (e.g., `[ atoms ]`, `[ bonds ]`, `[ angles ]`, `[ dihedrals ]`)
+        based on the parsed `.off` file data. It then inserts these sections
+        into a provided template file and saves the result to a new topology file.
+        Parameters not explicitly provided will be resolved from the
+        `self.config` dictionary.
 
-        * incl_mol list will write bonded section only for certain molnames included in the list. Must match molname in .off and .top file
+        Parameters
+        ----------
+        name_translation : dict, optional
+            A dictionary for translating atom names from the `.off` file to
+            the desired names in the `.top` file. Format:
+            `{'.offAtom1' : '.topAtom1', ...}`.
+            Defaults to `{}` (from `self.config`).
+        incl_mol : list of str, optional
+            A list of molecule names (as found in the .off file) for which
+            bonded sections should be included. If `None`, sections are
+            generated for all molecules.
+            Defaults to all molecules in `self.bonded` (from `self.config`).
+        template_file : str, required
+            Path to a GROMACS topology template file. This file must include
+            `[ moleculetype ]` sections with molecule names matching those in
+            the `.off` file, and each `[ keyword ]` section (e.g., `[ atoms ]`)
+            that should be populated with information from the `.off` file.
+        write_to : str, optional
+            The path to the output topology file. If `None`, the default is
+            `bonded_topol.top` in the same directory as the `template_file`.
+        bonded_tabpot : dict, optional
+            A dictionary of bonded tabulated potentials, typically generated
+            by `gen_bonded_tabpot()`. This is **required** if the `.off` file
+            contains `QUA` bonds or `QBB` interactions, as these require
+            references to external tabulated potential files.
+            Defaults to `{}` (from `self.config`).
 
-        * template_file string is a path to the template file to be used. File must include [ moleculetype ] with molecule names matching those in the .off file, and each  [ keyword ] section that should be populated with information from the .off file
+        Returns
+        -------
+        None
 
-        * write_to string is a path to the file that should be written with completed bonded sections. Default is current directory, file named 'bonded_topol.top'
+        Notes
+        -----
+        - **Parameter Resolution**: Parameters are resolved in the following order
+          of precedence: explicit argument > `self.config` setting > hardcoded default.
+        - **`template_file`**: The template file is crucial for defining the
+          overall structure of the GROMACS topology. Ensure it has the correct
+          `[ moleculetype ]` and `[ keyword ]` headers.
+        - **`bonded_tabpot` Requirement**: If `QUA` bonds or `QBB` interactions are
+          present, `bonded_tabpot` must be provided, usually as the output
+          of `gen_bonded_tabpot()`.
 
-        * bonded_tabpot dictionary is required when: 1) Quartic bonds exist in the .off file 2) QBB exists in the .off file. This dictionary is output by gen_bonded_tabpot()
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> # First generate necessary bonded tabulated potentials
+        >>> off.gen_bonded_tabpot()
+        >>> # Then generate the bonded topology
+        >>> off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
 
-        :param name_translation: dictionary, non-required
-        :param incl_mol: list, non-required
-        :param template_file: string, required
-        :param write_to: string, non-required
-        :param bonded_tabpot: dictionary, non-required (Except in cases where quartic bonds or QBB interactions exist)
-        :return: Writes topology file with completed bonded sections
+        >>> # With name translation and specific molecules
+        >>> off.set_config(name_translation={'C_off': 'C_top'})
+        >>> off.gen_bonded_topology(
+        ...     incl_mol=['ETHANE'],
+        ...     template_file='template.top',
+        ...     write_to='ethane_bonded.top',
+        ...     bonded_tabpot=off.bonded_tabpot
+        ... )
         """
         # Resolve parameters: explicit value → config → default
         p = SimpleNamespace(**{
@@ -362,24 +565,62 @@ class ReadOFF:
         topology._write_topology(final_topology=new_topology, write_to=write_to)
 
     def write_nonbonded_tabpot(self, nonbonded_tabpot=None, tabpot_prefix=None, tabpot_dir=None, name_translation=None, write_blank=None):
-        """Write nonbonded tabulated potentials based on dictionary nonbonded_tabpot.
+        """Write nonbonded tabulated potentials to `.xvg` files.
 
-        * nonbonded_tabpot dictionary is generated by gen_nonbonded_tabpot(). Self-made dictionaries also work, but they need to match the format of the dictionary generated by gen_nonbonded_tabpot()
+        This method takes the generated nonbonded tabulated potentials (either
+        from `self.nonbonded_tabpot` or an explicitly provided dictionary) and
+        writes them to `.xvg` files in a specified directory. Each atom pair
+        will have its own `.xvg` file.
 
-        * tabpot_prefix string is the prefix to the At1_At2.xvg that you would like your files to be named. Default is table_At1_At2.xvg
+        Parameters
+        ----------
+        nonbonded_tabpot : dict, optional
+            A dictionary of nonbonded tabulated potentials, typically generated
+            by `gen_nonbonded_tabpot()`. If `None`, the method attempts to use
+            the potentials stored in `self.nonbonded_tabpot`.
+        tabpot_prefix : str, optional
+            A prefix for the generated `.xvg` filenames (e.g., `'table'` will
+            result in files like `table_At1_At2.xvg`). Defaults to `'table'`
+            (from `self.config`).
+        tabpot_dir : str, optional
+            The path to the directory where the `.xvg` files should be written.
+            If the directory does not exist, it will be created. If `None` or
+            empty, defaults to a `tabpot` subdirectory in the current working
+            directory (from `self.config`).
+        name_translation : dict, optional
+            A dictionary for translating atom names from the `.off` file to
+            the desired names in the `.xvg` filenames. Format:
+            `{'.offAtom1': '.topAtom1', ...}`. Defaults to `{}` (from `self.config`).
+        write_blank : bool, optional
+            If `True`, a blank nonbonded tabulated potential file named
+            `<tabpot_prefix>.xvg` will also be written. This is often required
+            for GROMACS simulations. Defaults to `True` (from `self.config`).
 
-        * tabpot_dir string is the directory which you would like to write tabulated potentials to. Default behavior is to create a directory "tabpot" and populate that with the tabulated potentials.
+        Returns
+        -------
+        None
 
-        * name_translation dictionary is a dictionary with the format {'.offAtom1': '.topAtom1', ...} to translate atom names
+        Notes
+        -----
+        - **`nonbonded_tabpot` format**: If an external `nonbonded_tabpot` dictionary
+          is provided, it must match the format generated by `gen_nonbonded_tabpot()`:
+          `{pair : [x_values, COU_pot, COU_force, ATT_pot, ATT_force, REP_pot, REP_force]}`.
+        - **Atom names for `energygrps`**: The method prints a list of unique
+          translated atom names and pair interactions to the console, which can
+          be useful for defining `energygrps` or `energygrp_table` in GROMACS
+          `mdp` files.
 
-        * write_blank boolean is True by default. This writes a blank nonbonded tabulated potential file with the name tabpot_prefix.xvg, as is required for gromacs simulations to work
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> off.gen_nonbonded_tabpot() # Generate potentials, store in self.nonbonded_tabpot
+        >>> off.write_nonbonded_tabpot(tabpot_dir='./my_tabpots')
+        # Writes files like './my_tabpots/table_C_H.xvg'
 
-        :param nonbonded_tabpot: dictionary, required
-        :param tabpot_prefix: string, optional
-        :param tabpot_dir: string, optional
-        :param name_translation: dictionary, optional
-        :param write_blank: boolean, optional
-        :return: None
+        >>> # Using an external dictionary and a custom prefix
+        >>> custom_potentials = off.gen_nonbonded_tabpot(scale_C6=False)
+        >>> off.write_nonbonded_tabpot(nonbonded_tabpot=custom_potentials, tabpot_prefix='custom_table')
+        # Writes files like './tabpot/custom_table_C_H.xvg' (if tabpot_dir is default)
         """
         # Use stored attribute if no parameter provided
         if nonbonded_tabpot is None:
@@ -427,12 +668,49 @@ class ReadOFF:
             tabulated_potentials._write_blank_nonbonded(prefix=p.tabpot_prefix, write_to=write_to)
 
     def write_bonded_tabpot(self, bonded_tabpot=None, tabpot_prefix=None, tabpot_dir=None):
-        """Generate bonded tabulated potentials for either QUA bonds or QBB terms in the .off file.
+        """Write bonded tabulated potentials to `.xvg` files.
 
-        :param bonded_tabpot: dictionary, output by gen_bonded_tabpot()
-        :param tabpot_prefix: string, Default "table", prefix to add to name of .xvg files
-        :param tabpot_dir: string, Default "tabpot" subdirectory of current directory
-        :return: None
+        This method takes the generated bonded tabulated potentials (either
+        from `self.bonded_tabpot` or an explicitly provided dictionary) and
+        writes them to `.xvg` files in a specified directory. Each unique
+        bonded potential type will have its own `.xvg` file.
+
+        Parameters
+        ----------
+        bonded_tabpot : dict, optional
+            A dictionary of bonded tabulated potentials, typically generated
+            by `gen_bonded_tabpot()`. If `None`, the method attempts to use
+            the potentials stored in `self.bonded_tabpot`.
+        tabpot_prefix : str, optional
+            A prefix for the generated `.xvg` filenames (e.g., `'table'` will
+            result in files like `table_b0.xvg`). Defaults to `'table'`
+            (from `self.config`).
+        tabpot_dir : str, optional
+            The path to the directory where the `.xvg` files should be written.
+            If the directory does not exist, it will be created. If `None` or
+            empty, defaults to a `tabpot` subdirectory in the current working
+            directory (from `self.config`).
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - **`bonded_tabpot` format**: If an external `bonded_tabpot` dictionary
+          is provided, it must match the format generated by `gen_bonded_tabpot()`.
+
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> # Generate potentials, store in self.bonded_tabpot
+        >>> off.gen_bonded_tabpot()
+        >>> off.write_bonded_tabpot(tabpot_dir='./my_bonded_tabpots')
+        # Writes files like './my_bonded_tabpots/table_b0.xvg'
+
+        >>> # Using an external dictionary and a custom prefix
+        >>> custom_bonded_potentials = off.gen_bonded_tabpot(incl_mol=['MOL2'])
+        >>> off.write_bonded_tabpot(bonded_tabpot=custom_bonded_potentials, tabpot_prefix='custom_bonded')
         """
         # Use stored attribute if no parameter provided
         if bonded_tabpot is None:
@@ -456,49 +734,62 @@ class ReadOFF:
                 tabulated_potentials._write_bonded_tabpot(tabpot=table_list, prefix=p.tabpot_prefix, write_to=write_to)
 
 
-    def gen_residues(self, residue_definition = {}, residue_atnums = {}):
-        """Populate off.residues with proper information
+    def gen_residues(self, residue_definition={}, residue_atnums={}):
+        """Populate `self.residues` with custom residue information.
 
-        *   residue_definition dictionary must have the following format:
+        This method allows users to define custom residue groupings based on
+        atom types and atom numbers within each molecule. It performs checks
+        to ensure that the provided residue definitions and atom numbers
+        correspond to atoms present in the `.off` file.
 
-            { molname : { Residue1Name : [AtType1, AtType2, ...], Residue2Name : ...}}
+        Parameters
+        ----------
+        residue_definition : dict, optional
+            A dictionary defining residues based on atom types. Default is `{}`.
+        residue_atnums : dict, optional
+            A dictionary defining residues based on atom numbers. Default is `{}`.
 
-            Where molname is a molecule name in the .off file, ResidueNName is the desired residue name, and
-            [AtType1, AtType2...] is a list containing strings which match the atom types found in the residue. You must
-            specify multiple copies of each atom type if they are found in your residue. For example, if CH3 is a
-            residue in a molecule named Ethane:
+        Returns
+        -------
+        None
 
-            residue_defition = { 'Ethane' : {'CH3' : [C, H, H, H]}}
+        Notes
+        -----
+        - **`residue_definition` format**:
+          `{molname : {Residue1Name : [AtType1, AtType2, ...], Residue2Name : ...}}`
+          `molname` is a molecule name from the .off file. `ResidueNName` is the
+          desired residue name. The list `[AtType1, AtType2...]` contains strings
+          matching atom types found in the residue. You must specify multiple
+          copies of each atom type if they are found in your residue.
 
-        * residue_atnums dictionary must have the following format:
+          Example for Ethane where 'CH3' is a residue:
+          `{'Ethane' : {'CH3' : ['C', 'H', 'H', 'H']}}`
 
-            { molname : {Residue1Name : [[Atnum1, Atnum2, ...], [Atnum1, Atnum2, ...]]}}
+        - **`residue_atnums` format**:
+          `{molname : {Residue1Name : [[Atnum1, Atnum2, ...], [AtnumA, AtnumB, ...]]}}`
+          `molname` is a molecule name from the .off file. `ResidueNName` is the
+          desired residue name. The inner list contains information regarding
+          atom numbers that are part of the desired residue.
 
-            Where molname is a molecule name in the .off file, ResidueNName is the desired residue name, and the list
-            contains information regarding each atom number that is part of the desired residue. For example, if CH3 is
-            a residue in a molecule named Ethane, and the atom numbers in the .off file for the whole molecule is:
+          Example for Ethane 'CH3' residue, given specific atom numbers:
+          If the .off file defines atoms as:
+          1   C, 2   H, 3   H, 4   H, 5   C, 6   H, 7   H, 8   H, 9   NETF, 10  TORQ
+          Then `residue_atnums` could be:
+          `{'Ethane' : {'CH3' : [[1, 2, 3, 4], [5, 6, 7, 8]]}}`
 
-            1   C
-            2   H
-            3   H
-            4   H
-            5   C
-            6   H
-            7   H
-            8   H
-            9   NETF
-            10  TORQ
+        - The method prints messages indicating the start and completion of
+          residue generation. Warnings or errors will be printed if molecule
+          names, atom types, or atom numbers are not found in the `.off` file.
 
-            the residue_atnums dictionary should look like:
-
-            residue_atnums = { 'Ethane' : { 'CH3' : [[1, 2, 3, 4], [5, 6, 7, 8]]}}
-
-        :param residue_definition: Dictionary, format:
-
-        [molname][ResidueName1 : [AtType1, AtType2, ...], ResidueName2 : [AtType1, AtType2, ...]]
-
-        :param residue_atnums: Dictionary, format:
-
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> # Define a simple residue for a molecule named 'METHANE'
+        >>> res_def = {'METHANE': {'C1': ['C', 'H', 'H', 'H', 'H']}}
+        >>> res_atn = {'METHANE': {'C1': [[1, 2, 3, 4, 5]]}}
+        >>> off.gen_residues(residue_definition=res_def, residue_atnums=res_atn)
+        Generating Residues
+        Done generating residues
         """
 
         print("Generating Residues")
@@ -513,61 +804,142 @@ class ReadOFF:
         print("Done generating residues")
 
     def set_config(self, **kwargs):
-        """Set configuration options that will be used as defaults for method calls.
+        """Update the internal configuration with new default values.
 
-        Returns self to allow method chaining.
+        This method provides a convenient way to set or override default
+        parameters that will be used in subsequent method calls, such as
+        `gen_nonbonded_tabpot`. It modifies the `self.config` dictionary
+        in-place.
 
-        Available configuration keys:
-            special_pairs: dict, default {}
-            incl_mol: list, default []
-            excl_interactions: list, default []
-            excl_pairs: list, default []
-            spacing_nonbonded: float, default 0.0005
-            length_nonbonded: int, default 3
-            scale_C6: bool, default True
-            sc_sigma: float, default 0.0
-            spacing_bonded: float, default 0.0001
-            length_bonded: float, default 0.3
-            tabpot_prefix: str, default 'table'
-            tabpot_dir: str, default ''
-            write_blank: bool, default True
-            name_translation: dict, default {}
+        The method returns the instance of the class (`self`) to allow for
+        method chaining.
 
-        Example:
-            off.set_config(spacing_nonbonded=0.001, scale_C6=False).gen_nonbonded_tabpot()
+        Parameters
+        ----------
+        **kwargs
+            Arbitrary keyword arguments corresponding to the configuration
+            keys to be updated.
 
-        :param kwargs: Configuration key-value pairs to update
-        :return: self (for method chaining)
+        Returns
+        -------
+        ReadOFF
+            The instance of the class, allowing for method chaining.
+
+        Notes
+        -----
+        Available configuration keys and their default values:
+        - `special_pairs` (dict): `{}`
+        - `incl_mol` (list): `[]`
+        - `excl_interactions` (list): `[]`
+        - `excl_pairs` (list): `[]`
+        - `spacing_nonbonded` (float): `0.0005`
+        - `length_nonbonded` (int): `3`
+        - `scale_C6` (bool): `True`
+        - `sc_sigma` (float): `0.0`
+        - `spacing_bonded` (float): `0.0001`
+        - `length_bonded` (float): `0.3`
+        - `tabpot_prefix` (str): `'table'`
+        - `tabpot_dir` (str): `''`
+        - `write_blank` (bool): `True`
+        - `name_translation` (dict): `{}`
+
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> off.set_config(spacing_nonbonded=0.001, scale_C6=False)
+        >>> # The configuration changes are applied to subsequent method calls.
+        >>> off.gen_nonbonded_tabpot()
+        >>> # To access the generated tables: off.nonbonded_tabpot
+
         """
         self.config.update(kwargs)
         return self
 
     def get_config(self, key=None):
-        """Get configuration value(s).
+        """Retrieve configuration value(s).
 
-        :param key: Optional key to get specific value. If None, returns full config dict.
-        :return: Config value or full dict
+        This method allows access to the current configuration settings.
+        If a specific key is provided, it returns the value associated with
+        that key. If no key is provided, a copy of the entire configuration
+        dictionary is returned.
+
+        Parameters
+        ----------
+        key : str, optional
+            The name of the configuration setting to retrieve.
+            If `None`, the entire configuration dictionary is returned.
+
+        Returns
+        -------
+        value or dict
+            The value of the specified configuration setting, or a copy of
+            the full configuration dictionary if no key is provided.
+
+        Examples
+        --------
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> off.get_config('spacing_nonbonded')
+        0.0005
+        >>> all_config = off.get_config()
+        >>> 'scale_C6' in all_config
+        True
         """
         if key is None:
             return self.config.copy()
         return self.config.get(key)
 
     def load_charges_from_file(self, file_path):
-        """Load atomic charges from a file into self.charges.
+        """Load atomic charges from a file into `self.charges`.
 
-        File format:
+        This method reads charges from a specified file and populates the
+        `self.charges` dictionary. Charges are assigned based on molecule name
+        and atom name. Any atoms not listed in the file will retain their
+        default charge of 0.0.
+
+        Parameters
+        ----------
+        file_path : str
+            The path to the file containing the atomic charges.
+
+        Returns
+        -------
+        ReadOFF
+            The instance of the class, allowing for method chaining.
+
+        Warnings
+        --------
+        This method will overwrite any previously set charges for atoms
+        specified in the input file.
+
+        Notes
+        -----
+        The charge file should follow this format:
+
         MOLNAME1
         Atom1 Charge1
         Atom2 Charge2
+        ...
         MOLNAME2
         Atom3 Charge3
         ...
 
-        Any atoms not specified in the file will remain at their default charge of 0.0.
-        WARNING: This method will overwrite any previously set charges for atoms specified in the file.
+        Lines starting with '#' or empty lines are ignored.
+        If a molecule name from the file is not found in the force field,
+        it will be skipped with a warning.
+        If an atom name within a molecule is not found, it will be skipped
+        with a warning.
 
-        :param file_path: str, Path to charge file
-        :return: self (for method chaining)
+        Examples
+        --------
+        Assuming 'charges.txt' contains:
+        UNK
+        C 0.1
+        H 0.05
+
+        >>> off = ReadOFF('path/to/forcefield.off')
+        >>> off.load_charges_from_file('charges.txt')
+        >>> print(off.charges['UNK']['C'])
+        0.1
         """
         try:
             with open(file_path, 'r') as f:

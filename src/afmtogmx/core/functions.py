@@ -10,9 +10,29 @@ total_bonded_added = 0  # counts total number of bonded interactions added
 
 ### Below begins the section defining pairwise interactions ###
 def exp(param_list, r):
-    """This function takes in a parameter list [P1 (A), P2 (alpha), 0, 0] and returns a potential and a force. \
-     There is no modifying of parameters to change units, so it is up to the user to ensure proper units are being used\
-      each time the funtion is called."""
+    """Calculate the potential and force of an exponential interaction.
+
+    Parameters
+    ----------
+    param_list : list or tuple
+        A list of parameters for the exponential function, expected to be
+        in the format `[A, alpha, 0, 0]`.
+    r : float or numpy.ndarray
+        The distance(s) at which to calculate the potential and force.
+
+    Returns
+    -------
+    tuple of (float or numpy.ndarray, float or numpy.ndarray)
+        A tuple containing the calculated potential and force.
+
+    Notes
+    -----
+    - The function calculates the potential as `U(r) = A * exp(-alpha * r)`.
+    - The force is calculated as the negative derivative of the potential.
+    - No unit conversions are performed within this function. The user is
+      responsible for ensuring that the input parameters and distances
+      have consistent units.
+    """
     a, alpha = param_list[0], param_list[1]
     exponent = -alpha * r
     potential = a * np.exp(exponent)
