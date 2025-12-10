@@ -58,7 +58,18 @@ def _gen_nonbonded_string(scale_C6, special_pairs, name_translation, nonbonded):
         if pair not in special_pairs:
             C6, C12 = 0.0, 0.0
             for interaction in int_dict:
-                if interaction not in default_attractive and interaction != 'THC':
+                if interaction == 'BUC':  # Special case for Buckingham potential: U(r) = A*exp(-B*r) - C/r^6
+                    for param_set in int_dict[interaction]:
+                        num_attr += 1
+                        if num_attr > 1 and scale_C6:
+                            print(
+                                "Cannot have greater than 1 attractive interactions and properly scale C6 for dispersion "
+                                "corrections. Set 'scale_C6' to false and restart to continue generating nonbonded")
+                            exit(1)
+                        # BUCK third parameter is the C6 coefficient (attractive r^-6 term)
+                        C6 = abs(param_set[1] * 4.184 * 1E-6)
+                        C12 = 1  # Also has repulsive exponential component
+                elif interaction not in default_attractive and interaction != 'THC':
                     C12 = 1
                 elif interaction == 'THC':
                     print("UNABLE TO HANDLE THC FUNCTIONS AT THIS TIME: EDIT CODE YOURSELF OR ASK RAY TO DO IT")

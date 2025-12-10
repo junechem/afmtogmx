@@ -509,7 +509,8 @@ def _gather_fitted_bonded(ff_input=str):
         A list of strings, where each string represents a fitted bonded
         interaction block (e.g., a `[ TERM ]` section) from the
         `intra_potential`.
-    """    return re.split(r'\n[ ]+\[.+]', ff_input)[1:]
+    """    
+    return re.split(r'\n[ ]+\[.+]', ff_input)[1:]
 
 
 def _parse_bonded(unsorted_bonded, molecule=list, ff_input=str):
@@ -874,7 +875,8 @@ def _remove_empty_and_cou_interactions_nonbonded(nonbonded):
     dict
         A new dictionary identical to the input `nonbonded` dictionary
         but with empty interaction types and all 'COU' interactions removed.
-    """    cleaned_dict = {}
+    """    
+    cleaned_dict = {}
     for pair, int_dict in nonbonded.items():
         pair_dict = {k: v for k, v, in int_dict.items() if v}
         if 'COU' in pair_dict:

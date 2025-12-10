@@ -457,7 +457,7 @@ class ReadOFF:
             w.write(nonbonded_string)
             w.write(f[template_nonbonded_location[1]:])
 
-    def gen_bonded_topology(self, name_translation=None, incl_mol=None, template_file="", write_to="", bonded_tabpot={}):
+    def gen_bonded_topology(self, name_translation=None, incl_mol=None, template_file="", write_to="", bonded_tabpot=None):
         """Generates bonded sections and writes the bonded topology file.
 
         This method constructs the bonded sections of a GROMACS topology file
@@ -489,10 +489,11 @@ class ReadOFF:
             `bonded_topol.top` in the same directory as the `template_file`.
         bonded_tabpot : dict, optional
             A dictionary of bonded tabulated potentials, typically generated
-            by `gen_bonded_tabpot()`. This is **required** if the `.off` file
-            contains `QUA` bonds or `QBB` interactions, as these require
-            references to external tabulated potential files.
-            Defaults to `{}` (from `self.config`).
+            by `gen_bonded_tabpot()`. If `None`, the method attempts to use
+            the potentials stored in `self.bonded_tabpot`. This is **required**
+            if the `.off` file contains `QUA` bonds or `QBB` interactions, as
+            these require references to external tabulated potential files.
+            Defaults to `self.bonded_tabpot` if available, otherwise `{}`.
 
         Returns
         -------
@@ -513,19 +514,24 @@ class ReadOFF:
         --------
         >>> off = ReadOFF('path/to/forcefield.off')
         >>> # First generate necessary bonded tabulated potentials
-        >>> off.gen_bonded_tabpot()
+        >>> off.gen_bonded_tabpot()  # Stores in self.bonded_tabpot
         >>> # Then generate the bonded topology
         >>> off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+        # Uses stored self.bonded_tabpot automatically
 
         >>> # With name translation and specific molecules
         >>> off.set_config(name_translation={'C_off': 'C_top'})
         >>> off.gen_bonded_topology(
         ...     incl_mol=['ETHANE'],
         ...     template_file='template.top',
-        ...     write_to='ethane_bonded.top',
-        ...     bonded_tabpot=off.bonded_tabpot
+        ...     write_to='ethane_bonded.top'
         ... )
+        # Still uses self.bonded_tabpot
         """
+        # Use stored attribute if no parameter provided
+        if bonded_tabpot is None:
+            bonded_tabpot = self.bonded_tabpot if self.bonded_tabpot is not None else {}
+
         # Resolve parameters: explicit value → config → default
         p = SimpleNamespace(**{
             k: v if v is not None else self.config[k]
