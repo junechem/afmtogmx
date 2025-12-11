@@ -41,20 +41,35 @@ This file tracks the plan for improving the documentation of the `afmtogmx` code
     -   [x] Document `_remove_netf_torq_atnum` function.
 
 3.  **`src/afmtogmx/core/tabulated_potentials.py` - Potential Calculations**
-    -   [ ] Document `_gen_included_atoms` function.
-    -   [ ] Document `_filter_nonbonded` function.
-    -   [ ] Document `_gen_nonbond_tabpam` function.
-    -   [ ] Document `gen_nonbond_table` function.
-    -   [ ] Document `_scale_for_FE` function.
-    -   [ ] Document `gen_bonded_tabpam` function.
-    -   [ ] Document `_to_dir` function.
-    -   [ ] Document `_write_nonbonded_pair_tabpot` function.
-    -   [ ] Document `_write_blank_nonbonded` function.
-    -   [ ] Document `_write_bonded_tabpot` function.
-    -   [ ] Document `_translate_pairs` function.
+    -   [x] Document `_gen_included_atoms` function.
+    -   [x] Document `_filter_nonbonded` function.
+    -   [x] Document `_gen_nonbond_tabpam` function.
+    -   [x] Document `gen_nonbond_table` function.
+    -   [x] Document `_scale_for_FE` function.
+    -   [x] Document `gen_bonded_tabpam` function.
+    -   [x] Document `_to_dir` function.
+    -   [x] Document `_write_nonbonded_pair_tabpot` function.
+    -   [x] Document `_write_blank_nonbonded` function.
+    -   [x] Document `_write_bonded_tabpot` function.
+    -   [x] Document `_translate_pairs` function.
 
 4.  **`src/afmtogmx/core/topology.py` - Topology File Generation**
-    -   [ ] Document key public/complex private functions.
+    -   [x] Document `_find_keyword_location` function.
+    -   [x] Document `_gen_nonbonded_string` function.
+    -   [x] Document `single_nonbonded_pair_string` function.
+    -   [x] Document `_gen_bonded_section_strings` function.
+    -   [x] Document `_gen_bonded_skeleton` function.
+    -   [x] Document `_gen_bonded_atoms` function.
+    -   [x] Document `_gen_bonded_bonds` function.
+    -   [ ] Document `_gen_bonded_angles` function.
+    -   [ ] Document `_gen_bonded_bd3` function.
+    -   [ ] Document `_gen_dihedrals` function.
+    -   [ ] Document `_gen_cmap` function.
+    -   [ ] Document `_gen_exclusions` function.
+    -   [ ] Document `_find_moleculetypes` function.
+    -   [ ] Document `_gen_bonded_string` function.
+    -   [ ] Document `_gen_molname_bonded` function.
+    -   [ ] Document `_write_topology` function.
 
 5.  **`src/afmtogmx/core/residues.py` - Residue Logic**
     -   [ ] Document key functions.

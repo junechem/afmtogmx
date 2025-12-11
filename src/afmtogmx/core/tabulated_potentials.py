@@ -50,18 +50,34 @@ def _gen_included_atoms(incl_mol, bonded):
 
 
 def _filter_nonbonded(nonbonded, excluded_int, incl_atoms, excl_pairs):
-    """Takes in nonbonded, and removes excluded interactions, excluded molnames, and reformats to match
-    format of INTERACTION_POWER for interactions including POW, PEX, DPO, SRD. All other interaction names are truncated
-    at 3 characters.
+    """Filter and reformat nonbonded interactions for potential generation.
 
-    :param nonbonded: self.nonbonded
-    :param excluded_int: list containing excluded interactions; designed with INTRA/INTER interactions in mind. For
-    example, if there are C1-C1 intermolecular and C1-C1 intramolecular EXP interactions, only the inter C1-C1 should
-    have a tabulated potential (as the C1-C1 intra will rely on a tablep file). If the intra EXP is named as
-    'EXPINTRA', then excluded_int = ['EXPINTRA'] will not write tabulated potentials for C1-C1 'EXPINTRA'
-    :param incl_atoms: list containing all atoms which pair interactions may be written for
-    :param excl_pairs: list of lists containing pairs of atoms which should be filtered
-    :return: dictionary with all pairs and interactions that should have tabulated potentials written for them
+    This function processes a nonbonded dictionary by removing interactions
+    and pairs specified for exclusion, filtering based on a list of
+    included atoms, and renaming certain interaction types to a consistent
+    format (e.g., 'POW' becomes 'POW_6' if the power is 6).
+
+    Parameters
+    ----------
+    nonbonded : dict
+        A dictionary of nonbonded interactions, typically `self.nonbonded`
+        from the `ReadOFF` class.
+    excluded_int : list of str
+        A list of interaction names (as they appear in the .off file)
+        to be excluded from the returned dictionary.
+    incl_atoms : list of str
+        A list of atom names that are designated for inclusion. Any
+        interaction pair containing an atom not in this list will be
+        excluded.
+    excl_pairs : list of list
+        A list of atom pairs (e.g., `[['C', 'H']]`) to be excluded from
+        the returned dictionary.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the filtered and reformatted nonbonded
+        interactions that are ready for tabulated potential generation.
     """
     variable_power_interactions = ['POW', 'PEX', 'DPO', 'SRD']  # list for which name of interaction should be modified
     #  to include the ^power term
@@ -106,6 +122,36 @@ def _filter_nonbonded(nonbonded, excluded_int, incl_atoms, excl_pairs):
 
 
 def _gen_nonbond_tabpam(nonbonded, spec_pairs, spacing, length, scale_C6, charges={}):
+    """Generate nonbonded tabulated potential parameters.
+
+    This function calculates the potential and force for each nonbonded
+    interaction pair over a specified range and spacing. It categorizes
+    interactions into attractive and repulsive components and returns them
+    in a structured dictionary.
+
+    Parameters
+    ----------
+    nonbonded : dict
+        A filtered dictionary of nonbonded interactions.
+    spec_pairs : dict
+        A dictionary defining custom attractive interactions for specific pairs.
+    spacing : float
+        The spacing (in nm) between x-values in the generated tables.
+    length : float
+        The total length (in nm) of the generated tables.
+    scale_C6 : bool
+        If `True`, attractive interactions are scaled by C6 for dispersion
+        corrections.
+    charges : dict, optional
+        A dictionary of charges. Currently unused but preserved for future
+        functionality.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are atom pairs and values are lists of NumPy
+        arrays: `[x_values, COU_pot, COU_force, ATT_pot, ATT_force, REP_pot, REP_force]`.
+    """
     default_attractive = ['POW_6', 'DPO_6', 'SRD_6']
     true_x_values = np.arange(0, length + spacing, spacing)
     calc_x_values = deepcopy(true_x_values)  # prohibits calc_x_values from pointer-like behavior
@@ -192,6 +238,33 @@ def _gen_nonbond_tabpam(nonbonded, spec_pairs, spacing, length, scale_C6, charge
 
 
 def gen_nonbond_table(x, interaction, params, ATT, scale_C6):
+    """Calculate potential and force for a single nonbonded interaction type.
+
+    This function serves as a dispatcher, converting units and calling the
+    appropriate potential function (e.g., `exp`, `srd`, `powe`) based on
+    the interaction type.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        An array of distance values at which to calculate the potential/force.
+    interaction : str
+        The type of interaction (e.g., 'EXP', 'POW_6'). The first three
+        letters are used to select the potential function.
+    params : list or tuple
+        A list of parameters for the potential function.
+    ATT : bool
+        If `True`, indicates the interaction is attractive.
+    scale_C6 : bool
+        If `True` and `ATT` is `True`, the C6 parameter is scaled for
+        dispersion corrections.
+
+    Returns
+    -------
+    tuple of (numpy.ndarray, numpy.ndarray)
+        A tuple containing the calculated potential and force arrays.
+        Returns (1, 2) for unhandled interaction types.
+    """
     interact = interaction[:3]
     params = copy.deepcopy(params)
 
@@ -222,10 +295,30 @@ def gen_nonbond_table(x, interaction, params, ATT, scale_C6):
 
 
 def _scale_for_FE(sc_sigma, nonbonded_string, tabpot):
-    """Scale nonbonded tabulated parameters for use with free energy calculations
+    """Scale nonbonded tabulated potentials for free energy (FE) calculations.
 
-    :param sc_sigma: float, sc_sigma value as it will be set in the grompp.mp file
-    :param nonbonded_string: output from topology._gen_nonbonded_string()
+    This function adjusts the repulsive component of tabulated potentials
+    to be compatible with free energy calculations that use the `sc-sigma`
+    value in a GROMACS `grompp.mdp` file. It scales the C12 parameter based
+    on the provided `sc_sigma` value.
+
+    Parameters
+    ----------
+    sc_sigma : float
+        The `sc-sigma` value that will be used in the `grompp.mdp` file.
+    nonbonded_string : str
+        The string content of the `[ nonbond_params ]` section, used to
+        extract C6 and C12 values for each pair.
+    tabpot : dict
+        The dictionary of nonbonded tabulated potentials, as generated by
+        `_gen_nonbond_tabpam`.
+
+    Returns
+    -------
+    dict
+        The `tabpot` dictionary with its repulsive potential and force
+        components (`tabpot[pair][5]` and `tabpot[pair][6]`) scaled for
+        the free energy calculation.
     """
 
     for line in nonbonded_string.split('\n'):
@@ -247,13 +340,31 @@ def _scale_for_FE(sc_sigma, nonbonded_string, tabpot):
 
 
 def gen_bonded_tabpam(bond_dict, spacing, length, num_tables):
-    """Generate bonded tabulated parameters in format {(parameters) : [table_number, x, U(x), F(x)], ... }
+    """Generate bonded tabulated potential parameters for 'QUA' and 'QBB' interactions.
 
-    :param bond_dict: Dictionary, self.bonded[molname]
-    :param spacing: float, spacing between x-values in table
-    :param length: float, total length of table
-    :param num_tables: int, total number of tables generated already
-    :return: dictionary with completed tabulated potentials for each 'QUA' bonded potential in bond_dict
+    This function calculates the potential and force for quartic 'QUA' bonds
+    and 'QBB' bond-angle interactions over a specified range and spacing.
+    It returns a dictionary containing the tabulated data.
+
+    Parameters
+    ----------
+    bond_dict : dict
+        A dictionary of bonded interactions for a single molecule, typically
+        `self.bonded[molname]`.
+    spacing : float
+        The spacing (in nm) between x-values in the generated tables.
+    length : float
+        The total length (in nm) of the generated tables.
+    num_tables : int
+        The starting number to use for table indexing. This allows for
+        unique table numbers across multiple molecules.
+
+    Returns
+    -------
+    tuple of (dict, int)
+        - `bonded_tabpam_dict`: A dictionary where keys are parameter tuples and
+          values are lists `[table_number, x_values, U(x), F(x)]`.
+        - `num_tables`: The updated total number of tables generated.
     """
     if not bond_dict['BON']['QUA'] and not bond_dict['BD3']['QBB']:  # If 'QUA' in bond_dict['BON'] not populated, skip
         return {}, num_tables
@@ -279,10 +390,22 @@ def gen_bonded_tabpam(bond_dict, spacing, length, num_tables):
 
 
 def _to_dir(write_to_dir=""):
-    """Creates directory to write to.
+    """Ensure the existence of and return the path to an output directory.
 
-    :param write_to_dir: string, either path of directory to write to, or emtpy string
-    :return: string containing location of directory to write to
+    If a directory path is provided, this function checks if it exists,
+    creating it if necessary. If no path is provided, it creates a
+    default `tabpot` subdirectory in the current working directory.
+
+    Parameters
+    ----------
+    write_to_dir : str, optional
+        The path to the target directory. If empty, a default directory
+        named `tabpot` will be created in the current working directory.
+
+    Returns
+    -------
+    str
+        The validated path to the output directory.
     """
     from re import sub
     from os.path import exists
@@ -301,6 +424,22 @@ def _to_dir(write_to_dir=""):
         return write_to
 
 def _write_nonbonded_pair_tabpot(atom_pair, tabpot, name_translation, write_to, prefix):
+    """Write the tabulated potential for a single nonbonded atom pair to an .xvg file.
+
+    Parameters
+    ----------
+    atom_pair : tuple of str
+        The pair of atom names, e.g., `('C', 'H')`.
+    tabpot : list of numpy.ndarray
+        A list of tabulated potential data arrays for the pair.
+    name_translation : dict
+        A dictionary for translating atom names for use in the filename.
+    write_to : str
+        The path to the output directory.
+    prefix : str
+        The prefix to use for the output filename. The final filename will be
+        `<write_to>/<prefix>_<At1>_<At2>.xvg`.
+    """
     col1, col2, col3, col4, col5, col6, col7 = tabpot #[np.reshape(tabpot[i], (x_vals, 1)) for i in range(0, 7)]
     final_tabpot = np.array([col1, col2, col3, col4, col5, col6, col7]).T
 
@@ -315,7 +454,19 @@ def _write_nonbonded_pair_tabpot(atom_pair, tabpot, name_translation, write_to, 
     np.savetxt(f"{to_dir_prefix}_{At1}_{At2}.xvg", X = final_tabpot, fmt = '% 20.8E', newline = '\n')
 
 def _write_blank_nonbonded(prefix, write_to):
-    """Writes an empty nonbonded tabulated potential file, 5 nm, spacing = 0.0005 nm"""
+    """Write an empty nonbonded tabulated potential file required by GROMACS.
+
+    GROMACS requires a default, blank table file. This function generates
+    a file of all zeros out to 5.0 nm with a spacing of 0.0005 nm.
+
+    Parameters
+    ----------
+    prefix : str
+        The prefix to use for the output filename. The final filename will be
+        `<write_to>/<prefix>.xvg`.
+    write_to : str
+        The path to the output directory.
+    """
     x_values = np.arange(0, 5.0005, 0.0005)
     zeros = np.zeros(len(x_values))
     final_zeros_tabpot = np.array([x_values, zeros, zeros, zeros, zeros, zeros, zeros]).T
@@ -324,13 +475,42 @@ def _write_blank_nonbonded(prefix, write_to):
 
 
 def _write_bonded_tabpot(tabpot, prefix, write_to):
+    """Write the tabulated potential for a single bonded interaction to an .xvg file.
+
+    Parameters
+    ----------
+    tabpot : list
+        A list of tabulated potential data arrays for the bonded interaction,
+        in the format `[table_number, x_values, U(x), F(x)]`.
+    prefix : str
+        The prefix to use for the output filename.
+    write_to : str
+        The path to the output directory. The final filename will be
+        `<write_to>/<prefix>_b<table_number>.xvg`.
+    """
     col1, col2, col3 = tabpot[1], tabpot[2], tabpot[3]
     final_tabpot = np.array([col1, col2, col3]).T
     to_dir_prefix = write_to + "/" + prefix
     np.savetxt(f"{to_dir_prefix}_b{int(tabpot[0])}.xvg", X = final_tabpot, fmt = '% 20.8E', newline = '\n')
 
 def _translate_pairs(atom_pair, name_translation):
-    """This will return translated pairs of atoms as a tuple"""
+    """Translate atom names within a pair using a name translation dictionary.
+
+    Parameters
+    ----------
+    atom_pair : tuple of str
+        The pair of atom names to be translated, e.g., `('C_off', 'H_off')`.
+    name_translation : dict
+        A dictionary mapping original atom names to their desired new names,
+        e.g., `{'C_off': 'C_top'}`.
+
+    Returns
+    -------
+    tuple of str
+        A new tuple containing the translated atom names. If an atom name
+        is not found in the `name_translation` dictionary, the original
+        name is used.
+    """
     at1, at2 = atom_pair[:]
     if at1 in name_translation:
         at1 = name_translation[at1]

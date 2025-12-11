@@ -5,44 +5,69 @@ import re
 
 
 def _find_keyword_location(template_file, keyword="", begin=0):
-    """Returns beginning (location of initial \[) and ending (location of next blank line)"""
+    """Find the beginning and end character locations of a keyword section in a template file.
 
-    # This script could be improved upon/combined with scripts for matching keywords further down
-    found = False
-    expression = rf'\[[\t ]*{keyword}[\t ]*][\s\S]*?^\s*?$'  # painful regex to match up to next blank line
-    matches = re.finditer(expression, template_file, re.MULTILINE)  # find all matches
-    for match in matches:  # check to get first match that has location that is greater than begin
-        if match.span()[0] >= begin:
-            poss_beg = match.span()[0]
-            prev_newline = template_file[:poss_beg].rfind('\n')
-            if prev_newline == poss_beg:  # easy check if '[' is at beginning of line
-                found = True
-                break
-            else:
-                if ";" in template_file[prev_newline:poss_beg]:  # check for comments
-                    pass
-                else:
-                    found = True  # if no comments, we found the match
-                    break
-        else:
-            pass  # skip characters with location < begin
+    This function searches for a specific keyword section (e.g., `[ nonbond_params ]`)
+    within a GROMACS topology template file string. It returns the character indices
+    of the keyword's start and the subsequent blank line, while accounting for comments.
 
-    if not found:  # If a match could not be found at all
-        print(
-            f"Could not find valid KEYWORD '{keyword}' between character at LOCATION '{begin}' and the end of the file."
-            "Please check your inputs")
-        exit(1)
-    else:  # If a match was found, return beginning and ending of match
-        return match.span()[0], match.span()[1]
+    Parameters
+    ----------
+    template_file : str
+        The full content of the topology template file as a string.
+    keyword : str, optional
+        The keyword to search for (e.g., "nonbond_params"). Defaults to an empty string.
+    begin : int, optional
+        The starting character index in `template_file` to begin the search. Defaults to 0.
 
+    Returns
+    -------
+    tuple of (int, int)
+        A tuple containing the starting and ending character indices of the found
+        keyword section.
+
+    Raises
+    ------
+    SystemExit
+        If the specified `keyword` cannot be found in the `template_file` after
+        the `begin` index, the program exits with an error message.
+    """
 
 def _gen_nonbonded_string(scale_C6, special_pairs, name_translation, nonbonded):
-    """Returns completed [ nonbonded_params ] section as a string. Atoms in special_pairs will have C6, C12 set to 1.
+    """Generate the `[ nonbond_params ]` section as a string.
 
-    :param scale_C6: Boolean, checking whether C6 scaling for dispersion corrections is on. Incompatible with special_pairs
-    :param special_pairs: Dictionary, same as gen_nonbonded_tabpot
-    :param name_translation: Dictionary, containing {'AtInOff' : 'AtIn.top', ...}. If atom not found in name_translation, name from .off is used
-    :param nonbonded: filtered self.nonbonded
+    This function iterates through the filtered nonbonded interactions to
+    determine the appropriate C6 and C12 parameters for each atom pair.
+    It then formats these parameters into a string suitable for inclusion
+    in the `[ nonbond_params ]` section of a GROMACS topology file.
+
+    Parameters
+    ----------
+    scale_C6 : bool
+        If `True`, C6 parameters will be adjusted to allow for correct
+        dispersion corrections in GROMACS simulations.
+    special_pairs : dict
+        A dictionary defining custom attractive interactions for specific
+        pairs.
+    name_translation : dict
+        A dictionary for translating atom names.
+    nonbonded : dict
+        A filtered dictionary of nonbonded interactions, typically from
+        `_filter_nonbonded`.
+
+    Returns
+    -------
+    str
+        A formatted string representing the `[ nonbond_params ]` section.
+
+    Raises
+    ------
+    SystemExit
+        If `special_pairs` is used in conjunction with `scale_C6 = True`,
+        as this combination is not supported due to potential conflicts
+        in parameter scaling.
+        If more than one attractive interaction is found for a pair and
+        `scale_C6 = True`, as this also leads to conflicts.
     """
 
     if special_pairs and scale_C6:
@@ -92,13 +117,30 @@ def _gen_nonbonded_string(scale_C6, special_pairs, name_translation, nonbonded):
 
 
 def single_nonbonded_pair_string(pair, name_translation, C6, C12):
-    """Returns string for given pair, C6, C12, and name_translation, that will be written under [ nonbonded_params ] section
+    """Generate a formatted string for a single nonbonded atom pair.
 
-    :param pair: tuple of atom pair
-    :param name_translation: dictionary with {'.offAtom1': '.topAtom1',...}
-    :param C6: float, C6 parameter
-    :param C12: float, C12 parameter
-    :return: string with proper formatting for nonbonded_params section
+    This function creates a line of text formatted according to GROMACS
+    `[ nonbond_params ]` section requirements for a given atom pair,
+    including their C6 and C12 parameters. Atom names can be translated.
+
+    Parameters
+    ----------
+    pair : tuple of str
+        A tuple containing the atom names for the nonbonded pair, e.g., `('C', 'H')`.
+    name_translation : dict
+        A dictionary for translating atom names. Format:
+        `{'.offAtom1': '.topAtom1', ...}`. If an atom is not found in
+        `name_translation`, its original name is used.
+    C6 : float
+        The C6 parameter for the Lennard-Jones potential.
+    C12 : float
+        The C12 parameter for the Lennard-Jones potential.
+
+    Returns
+    -------
+    str
+        A string formatted for the `[ nonbond_params ]` section,
+        e.g., `'At1    At2    1      C6_value           C12_value\\n'`.
     """
     if pair[0] in name_translation:
         At1 = name_translation[pair[0]]
@@ -113,14 +155,35 @@ def single_nonbonded_pair_string(pair, name_translation, C6, C12):
 
 
 def _gen_bonded_section_strings(name_translation, filtered_bonded, charges, molname, bonded_tabpot):
-    """Generates dictionary containing topology keywords Key1, Key2,..., with values Key1Section, Key2Section,..., as key : value pairs in a dictionary
+    """Generate a dictionary of formatted strings for all bonded sections of a molecule.
 
-    :param name_translation: dictionary, {'.offAtom1' : '.topAtom1',...}
-    :param filtered_bonded: self.bonded with empty interactions removed
-    :param charges: self.charges dictionary
-    :param molname: molname string
-    :param bonded_tabpot: dictionary, bonded_tabulated parameters. Generally empty
-    :return: dictionary, containing necessary keywords and strings that should be written in those sections for a molname in a topology file
+    This function processes the filtered bonded interaction data for a given
+    molecule and generates formatted string content for each relevant GROMACS
+    topology keyword section (e.g., `[ atoms ]`, `[ bonds ]`, `[ angles ]`).
+    It populates a skeleton dictionary with these strings.
+
+    Parameters
+    ----------
+    name_translation : dict
+        A dictionary for translating atom names, e.g., `{'.offAtom1' : '.topAtom1', ...}`.
+    filtered_bonded : dict
+        A filtered dictionary of bonded interactions for a molecule, with
+        empty interactions removed, typically from `functions._filter_bonded`.
+    charges : dict
+        The `self.charges` dictionary from the `ReadOFF` class, containing
+        atomic charges.
+    molname : str
+        The name of the molecule being processed.
+    bonded_tabpot : dict
+        A dictionary of bonded tabulated potentials, required for `QUA` and
+        `QBB` interactions.
+
+    Returns
+    -------
+    dict
+        A dictionary where keys are GROMACS topology keywords (e.g., 'atoms',
+        'bonds', 'angles') and values are the formatted string content for
+        those sections for the specified molecule.
     """
     bonded_skeleton = _gen_bonded_skeleton(filtered_bonded)
 
@@ -163,10 +226,25 @@ def _gen_bonded_section_strings(name_translation, filtered_bonded, charges, moln
 
 
 def _gen_bonded_skeleton(filtered_bonded):
-    """Takes in filtered_bonded (bonded dict with empty items removed) and outputs skeleton with proper format, excluding virtual sites
+    """Generate an empty skeleton dictionary for bonded topology sections.
 
-    :param filtered_bonded: dictionary, output of functions._filter_bonded
-    :return: dictionary with format {'keyword' : ''}
+    This function initializes a dictionary with appropriate GROMACS topology
+    keyword keys (e.g., 'atoms', 'bonds', 'angles') based on the types of
+    bonded interactions present in `filtered_bonded`. Each key is mapped
+    to an empty string, which will later be populated with formatted data.
+
+    Parameters
+    ----------
+    filtered_bonded : dict
+        A dictionary of bonded interactions for a single molecule, with
+        empty interactions removed, typically from `functions._filter_bonded`.
+
+    Returns
+    -------
+    dict
+        An initialized dictionary where keys are GROMACS topology keywords
+        and values are empty strings.
+        Example: `{'atoms': '', 'bonds': '', 'angles': '', ...}`
     """
     bonded_skeleton = dict()
     translated_names = {'ATO': ['atoms'], 'BON': ['bonds'], 'ANG': ['angles'], 'BD3': ['bonds', 'angles'],
@@ -178,13 +256,29 @@ def _gen_bonded_skeleton(filtered_bonded):
 
 
 def _gen_bonded_atoms(name_translation, charges, int_dict, molname):
-    """Generate 'atoms' section string for moleculetype 'molname'
+    """Generate the formatted string for the `[ atoms ]` section of a GROMACS topology.
 
-    :param name_translation: dictionary
-    :param charges: self.charges
-    :param int_dict: dictionary, for interaction 'ATO'
-    :param molname: molname
-    :return: string for 'atoms' section in topology file of moleculetype 'molname'
+    This function takes atom definitions, charges, and name translation data
+    to produce a formatted string representing the `[ atoms ]` section for
+    a specific molecule in a GROMACS topology file.
+
+    Parameters
+    ----------
+    name_translation : dict
+        A dictionary for translating atom names.
+    charges : dict
+        The `self.charges` dictionary containing atomic charges for each molecule.
+    int_dict : dict
+        The interaction dictionary for the 'ATO' (atom) section of a molecule.
+    molname : str
+        The name of the molecule.
+
+    Returns
+    -------
+    str
+        A formatted string content for the `[ atoms ]` section, including
+        atom number, atom name, residue number, residue name, atom type,
+        charge group, and charge.
     """
     resnum = 1  # To Do: allow for dictionary to delineate which atoms go to which residue, have more than just 1 residue
     resname = molname
@@ -203,12 +297,33 @@ def _gen_bonded_atoms(name_translation, charges, int_dict, molname):
 
 
 def _gen_bonded_bonds(int_dict, molname, bonded_tabpot):
-    """Generate 'bonds' section string for moleculetype 'molname'
+    """Generate the formatted string for the `[ bonds ]` section of a GROMACS topology.
 
-    :param int_dict: dictionary, 'BON' interaction dictionary
-    :param molname: str, molname
-    :param bonded_tabpot: dictionary, bonded tabulated potentials (if necessary)
-    :return: string for 'bonds' section in topology file of moleculetype 'molname'
+    This function processes bond interaction data for a given molecule and
+    generates a formatted string suitable for the `[ bonds ]` section. It
+    handles both harmonic (`HAR`) and quartic tabulated (`QUA`) bond types,
+    referencing `bonded_tabpot` for `QUA` bonds.
+
+    Parameters
+    ----------
+    int_dict : dict
+        The interaction dictionary for the 'BON' (bonds) section of a molecule.
+    molname : str
+        The name of the molecule.
+    bonded_tabpot : dict
+        A dictionary of bonded tabulated potentials, required for `QUA` bonds.
+
+    Returns
+    -------
+    str
+        A formatted string content for the `[ bonds ]` section.
+
+    Raises
+    ------
+    SystemExit
+        If a `QUA` bond is defined but its corresponding `molname` or parameters
+        are not found in `bonded_tabpot`, indicating a potential mismatch
+        between `gen_bonded_tabpot()` and `gen_bonded_topology()`.
     """
     bonded_bonds_string = ""
 
@@ -234,10 +349,21 @@ def _gen_bonded_bonds(int_dict, molname, bonded_tabpot):
 
 
 def _gen_bonded_angles(int_dict):
-    """Generate 'angles' section string for moleculetype 'molname'
+    """Generate the formatted string for the `[ angles ]` section of a GROMACS topology.
 
-    :param int_dict: dictionary,'ANG' interaction dictionary for molname
-    :return: string for 'angles' section in topology file of moleculetype 'molname'
+    This function processes angle interaction data for a given molecule and
+    generates a formatted string suitable for the `[ angles ]` section. It
+    handles both harmonic (`HAR`) and quartic (`QUA`) angle types.
+
+    Parameters
+    ----------
+    int_dict : dict
+        The interaction dictionary for the 'ANG' (angles) section of a molecule.
+
+    Returns
+    -------
+    str
+        A formatted string content for the `[ angles ]` section.
     """
     bonded_angles_string = ""
 
