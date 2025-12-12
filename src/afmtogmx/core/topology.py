@@ -383,13 +383,33 @@ def _gen_bonded_angles(int_dict):
 
 
 def _gen_bonded_bd3(int_dict, molname="", bonded_tabpot={}, bonds=False):
-    """Generate necessary strings for defining a BD3 type interaction in a topology
+    """Generate formatted strings for BD3 (bond-dipole 3-center) interactions.
 
-    :param int_dict: dictionary, 'BD3'  interaction dictionary for molname
-    :param molname: molname
-    :param bonded_tabpot: dictionary, bonded tabulated potentials.
-    :param bonds: boolean, for QBB type, used to determine whether return 'bonds' string or 'angles' string
-    :return: string, either bonds or angles
+    This function processes BD3 interaction data for a given molecule and
+    generates a formatted string suitable for either the `[ bonds ]` or
+    `[ angles ]` section, depending on the `bonds` parameter. It handles
+    'QBB' (quartic bond-bond) and 'MUB' (Morse Urey-Bradley) interaction types.
+
+    Parameters
+    ----------
+    int_dict : dict
+        The interaction dictionary for the 'BD3' section of a molecule.
+    molname : str, optional
+        The name of the molecule. Required for 'QBB' interactions when looking
+        up `bonded_tabpot`. Defaults to an empty string.
+    bonded_tabpot : dict, optional
+        A dictionary of bonded tabulated potentials, used for 'QBB' interactions.
+        Defaults to an empty dictionary.
+    bonds : bool, optional
+        If `True`, the function generates a string for the `[ bonds ]` section
+        (specifically for 'QBB' interactions). If `False`, it generates a
+        string for the `[ angles ]` section. Defaults to `False`.
+
+    Returns
+    -------
+    str
+        A formatted string content for either the `[ bonds ]` or `[ angles ]`
+        section, representing the BD3 interactions.
     """
     bonded_bd3_string = ""
     for bd3_type, bd3_type_dict in int_dict.items():
@@ -417,10 +437,22 @@ def _gen_bonded_bd3(int_dict, molname="", bonded_tabpot={}, bonds=False):
 
 
 def _gen_dihedrals(int_dict):
-    """Generate 'dihedrals' section string for moleculetype 'molname'
+    """Generate the formatted string for the `[ dihedrals ]` section of a GROMACS topology.
 
-    :param int_dict: dictionary, 'DIH' interaction dictionary
-    :return: string for 'dihedrals' section in topology file of moleculetype 'molname'
+    This function processes dihedral interaction data for a given molecule and
+    generates a formatted string suitable for the `[ dihedrals ]` section. It
+    handles harmonic (`HAR`), Ryckaert-Bellemans (`NCO`), and cosine-series (`COS`)
+    dihedral types.
+
+    Parameters
+    ----------
+    int_dict : dict
+        The interaction dictionary for the 'DIH' (dihedrals) section of a molecule.
+
+    Returns
+    -------
+    str
+        A formatted string content for the `[ dihedrals ]` section.
     """
     bonded_dihedrals_string = ""
     for dihedral_type, dihedral_type_dict in int_dict.items():
@@ -444,10 +476,22 @@ def _gen_dihedrals(int_dict):
 
 
 def _gen_cmap(int_dict):
-    """Generate 'cmap' section string for moleculetype 'molname'
+    """Generate the formatted string for the `[ cmap ]` section of a GROMACS topology.
 
-    :param int_dict: dictionary, 'CDI' interaction dictionary for molname
-    :return: string for 'cmap' section in topology file of moleculetype 'molname'
+    This function processes cmap (cross-molecular angle potential) interaction
+    data for a given molecule and generates a formatted string suitable for
+    the `[ cmap ]` section.
+
+    Parameters
+    ----------
+    int_dict : dict
+        The interaction dictionary for the 'CDI' (cmap dihedrals) section
+        of a molecule.
+
+    Returns
+    -------
+    str
+        A formatted string content for the `[ cmap ]` section.
     """
     cmap_string = ""
     for cmap_type, cmap_type_dict in int_dict.items():
@@ -458,10 +502,20 @@ def _gen_cmap(int_dict):
 
 
 def _gen_exclusions(int_dict):
-    """Generate 'exclusions' section string for moleculetype 'molname'
+    """Generate the formatted string for the `[ exclusions ]` section of a GROMACS topology.
 
-    :param int_dict: dictionary, 'EXC' interaction dictionary for molname
-    :return: string for 'exclusions' section in topology file of moleculetype 'molname'
+    This function processes exclusion interaction data for a given molecule and
+    generates a formatted string suitable for the `[ exclusions ]` section.
+
+    Parameters
+    ----------
+    int_dict : dict
+        The interaction dictionary for the 'EXC' (exclusions) section of a molecule.
+
+    Returns
+    -------
+    str
+        A formatted string content for the `[ exclusions ]` section.
     """
     exclusions_string = ""
     for atom_list in int_dict:
@@ -473,10 +527,24 @@ def _gen_exclusions(int_dict):
 
 
 def _find_moleculetypes(topology):
-    """Finds all [ moleculetype ] sections, taking into account commented sections.
+    """Find all `[ moleculetype ]` sections within a topology string, accounting for comments.
 
-    :param topology: string, topology template file
-    :return: list of [moleculetype] sections, in format [((begin_match, end_match), matching_string), ...]
+    This function searches for `[ moleculetype ]` declarations in a GROMACS
+    topology file's content, identifying their start and end character locations.
+    It intelligently ignores sections that are commented out.
+
+    Parameters
+    ----------
+    topology : str
+        The full content of the topology template file as a string.
+
+    Returns
+    -------
+    list of tuples
+        A list of tuples, where each tuple contains:
+        - `(begin_match, end_match)`: A tuple representing the start and end
+          character indices of the `[ moleculetype ]` section in the `topology` string.
+        - `matching_string`: The uncommented content of the matched section.
     """
     uncommented_locations = []
     matches = re.finditer(r'\[[\t ]*moleculetype[\t ]*][\s\S]*?^\s*?$', topology, re.MULTILINE)
@@ -494,12 +562,28 @@ def _find_moleculetypes(topology):
 
 
 def _gen_bonded_string(topology, locations, topology_strings_dict):
-    """Generates entire correctly formatted topology file
+    """Generate the complete, formatted GROMACS topology file as a string.
 
-    :param topology: string, topology template file
-    :param locations: list, locations of [moleculetype] interactions, i.e. output of _find_moleculetypes()
-    :param topology_strings_dict: dictionary, contains {molname: {'.top_keyword' : section_string},...}, i.e. output of _gen_bonded_section_strings()
-    :return: string, properly formatted topology file to be written out
+    This function reconstructs the entire topology file by combining the
+    header from the template, the processed `[ moleculetype ]` sections,
+    and any other sections that need to be preserved.
+
+    Parameters
+    ----------
+    topology : str
+        The original content of the topology template file as a string.
+    locations : list
+        A list of `[ moleculetype ]` section locations, typically the output
+        of `_find_moleculetypes()`.
+    topology_strings_dict : dict
+        A dictionary containing the generated strings for each molecule's
+        bonded sections, typically the output of `_gen_bonded_section_strings()`.
+        Format: `{molname: {'.top_keyword' : section_string}, ...}`.
+
+    Returns
+    -------
+    str
+        The complete and properly formatted GROMACS topology file content as a string.
     """
     header_string = topology[:locations[0][0][0]]
     body_string = ""
@@ -535,12 +619,26 @@ def _gen_bonded_string(topology, locations, topology_strings_dict):
 
 
 def _gen_molname_bonded(topology, bonded):
-    """Generates properly formatted [ moleculetype ] section for each moleculetype
+    """Generate the properly formatted `[ moleculetype ]` section for a single molecule.
 
-    :param topology: string, template topology file
-    :param bonded: dictionary, contains {'.top_keyword' : section_string},...}
-    :param molname: molname
-    :return: string, completed topology section for moleculetype 'molname'
+    This function takes the template topology content and the pre-generated
+    bonded section strings for a specific molecule, then inserts these strings
+    into the correct locations within the `[ moleculetype ]` section.
+
+    Parameters
+    ----------
+    topology : str
+        A segment of the template topology file string, starting from the
+        `[ moleculetype ]` keyword.
+    bonded : dict
+        A dictionary containing the generated strings for a molecule's bonded
+        sections. Format: `{'.top_keyword' : section_string}, ...`.
+
+    Returns
+    -------
+    str
+        The complete and properly formatted `[ moleculetype ]` section
+        content for the specified molecule as a string.
     """
     body_str = ""
     matches = [item for item in re.finditer(r'\[[\t ]*(\w*)[\t ]*][\s\S]*?^\s*?$', topology, re.MULTILINE)]
@@ -581,5 +679,14 @@ def _gen_molname_bonded(topology, bonded):
 
 
 def _write_topology(final_topology, write_to):
+    """Write the final GROMACS topology string to a specified file.
+
+    Parameters
+    ----------
+    final_topology : str
+        The complete, formatted GROMACS topology file content as a string.
+    write_to : str
+        The path to the output `.top` file, including the filename.
+    """
     with open(f'{write_to}', 'w') as f:
         f.write(final_topology)

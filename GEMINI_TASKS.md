@@ -61,21 +61,19 @@ This file tracks the plan for improving the documentation of the `afmtogmx` code
     -   [x] Document `_gen_bonded_skeleton` function.
     -   [x] Document `_gen_bonded_atoms` function.
     -   [x] Document `_gen_bonded_bonds` function.
-    -   [ ] Document `_gen_bonded_angles` function.
-    -   [ ] Document `_gen_bonded_bd3` function.
-    -   [ ] Document `_gen_dihedrals` function.
-    -   [ ] Document `_gen_cmap` function.
-    -   [ ] Document `_gen_exclusions` function.
-    -   [ ] Document `_find_moleculetypes` function.
-    -   [ ] Document `_gen_bonded_string` function.
-    -   [ ] Document `_gen_molname_bonded` function.
-    -   [ ] Document `_write_topology` function.
+    -   [x] Document `_gen_bonded_angles` function.
+    -   [x] Document `_gen_bonded_bd3` function.
+    -   [x] Document `_gen_dihedrals` function.
+    -   [x] Document `_gen_cmap` function.
+    -   [x] Document `_gen_exclusions` function.
+    -   [x] Document `_find_moleculetypes` function.
+    -   [x] Document `_gen_bonded_string` function.
+    -   [x] Document `_gen_molname_bonded` function.
+    -   [x] Document `_write_topology` function.
 
-5.  **`src/afmtogmx/core/residues.py` - Residue Logic**
-    -   [ ] Document key functions.
+5.  **`src/afmtogmx/core/residues.py` - Residue Logic (Skipped)**
 
-6.  **`src/afmtogmx/core/compare.py` - Comparison Logic**
-    -   [ ] Document key functions.
+6.  **`src/afmtogmx/core/compare.py` - Comparison Logic (Skipped)**
 
 7.  **Final Review**
-    -   [ ] Review all new docstrings for consistency and clarity.
+    -   [x] Review all new docstrings for consistency and clarity.

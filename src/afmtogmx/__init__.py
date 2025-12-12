@@ -1,12 +1,12 @@
-"""The afmtools_v2 package contains tools related to the production of input files for a gromacs
+"""
+The afmtogmx package contains tools related to the production of input files for a GROMACS
 simulation based on a .off file produced from CRYOFF. The main functions of the program are found
-within the package gen_md. We suggest using the package in the following way:
+within the core modules. We suggest using the package in the following way:
 
-    >>> import afmtogmx as afm
-    >>> off = afm.ReadOFF(off_loc = "path/to/intra.off")
+    >>> import afmtogmx
+    >>> off = afmtogmx.ReadOFF(off_loc="path/to/intra.off")
 
-From here, bonded and nonbonded parameters are stored as dictionaries at off.bonded, off.nonbonded
-
+From here, bonded and nonbonded parameters are stored as dictionaries at off.bonded, off.nonbonded.
 
 CONFIGURATION SYSTEM
 ====================
@@ -24,21 +24,19 @@ To get configuration values:
     >>> spacing = off.get_config('spacing_nonbonded')  # Returns specific value
 
 Configuration keys include: incl_mol, excl_interactions, excl_pairs, spacing_nonbonded, length_nonbonded,
-scale_C6, sc_sigma, spacing_bonded, length_bonded, tabpot_prefix, tabpot_dir, write_blank, name_translation, special_pairs
+scale_C6, sc_sigma, spacing_bonded, length_bonded, tabpot_prefix, tabpot_dir, write_blank, name_translation, special_pairs.
 
 When calling workflow methods, explicitly passed parameters override config values, which override built-in defaults.
-
 
 CHARGE ASSIGNMENT
 =================
 
-If charges are needed, they can be manually assigned to the off.charges dictionary. By default, all atom charges are
-0.0. The dictionary format is: {"MolName": {"AtomName": charge_value}}. For example:
+By default, all atom charges are 0.0. If charges are needed, they can be assigned to the `off.charges` dictionary:
 
     >>> off.charges['H20QM']['OQM'] = -0.82
     >>> off.charges['H20QM']['HQM'] = 0.41
 
-Alternatively, charges can be loaded from a file using load_charges_from_file():
+Alternatively, charges can be loaded from a file using `load_charges_from_file()`:
 
     >>> off.load_charges_from_file('charges.txt')
 
@@ -46,84 +44,45 @@ The file format should be:
     MOLNAME1
     Atom1 Charge1
     Atom2 Charge2
-    MOLNAME2
-    Atom3 Charge3
 
 Any atoms not specified in the file will remain at their default charge of 0.0.
 
+EXAMPLE WORKFLOW
+================
 
-GENERATING TABULATED POTENTIALS
-================================
+A typical workflow from an `.off` file to a complete GROMACS force field is as follows:
 
-To generate nonbonded tabulated potentials, the recommended workflow is as follows:
-
-    >>> off.gen_nonbonded_tabpot()  # Stores result in off.nonbonded_tabpot
-
-Several options are available for gen_nonbonded_tabpot(), but by default, tabulated potentials are generated for all
-nonbonded interactions (besides coulombic) between atoms. The result is automatically stored in off.nonbonded_tabpot
-for convenient access. You can still capture the return value if needed for advanced use cases.
-See the helpdocs for more in depth discussion
-
-
-To generate bonded tabulated potentials, the recommended workflow is as follows:
-
-    >>> off.gen_bonded_tabpot()  # Stores result in off.bonded_tabpot
-
-Several more options are available; see the helpdocs for more in depth discussion
-
-
-To produce topology files, use functions gen_nonbonded_topology() and gen_bonded_topology(), along with a template.off
-file. An example for the template.off file can be seen in the afmtools_v2/examples directory located on your device.
-Recommended workflow for generating nonbonded topology files is
-
-    >>> off.gen_nonbonded_topology(template_file = 'template.top', write_to = 'temp_nonbonded.top')
-
-
-Recommended workflow for generating bonded topology files (assuming nonbonded .top file 'temp_nonbonded.top' was
-created) is
-
-    >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top')
-
-Several more options are available; see the helpdocs for more in depth discussion
-
-
-Finally, to write out tabulated potentials, use the functions write_nonbonded_tabpot() and write_bonded_tabpot().
-These methods automatically use the stored potentials from the gen methods:
-
-    >>> off.write_nonbonded_tabpot()  # Uses off.nonbonded_tabpot
-    >>> off.write_bonded_tabpot()     # Uses off.bonded_tabpot
-
-You can still pass custom dictionaries explicitly if needed for advanced use cases.
-
-So, a good final workflow going from intra.off file to functional force field is:
-
-    >>> import afmtogmx as afm
-    >>> off = afm.ReadOFF(off_loc = "path/to/intra.off")
-    >>> # Manually set charges if needed:
-    >>> # off.charges['MolName']['AtomName'] = charge_value
-    >>> # Or load from file:
-    >>> # off.load_charges_from_file('charges.txt')
-    >>> off.gen_nonbonded_tabpot()  # Stores in off.nonbonded_tabpot
-    >>> off.gen_bonded_tabpot()     # Stores in off.bonded_tabpot (optional)
-    >>> off.write_nonbonded_tabpot()  # Uses off.nonbonded_tabpot
-    >>> off.write_bonded_tabpot()     # Uses off.bonded_tabpot
-    >>> off.gen_nonbonded_topology(template_file = 'template.top', write_to = 'temp_nonbonded.top')
-    >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top')
-
-
-Recommended: Using the configuration system for cleaner code:
-
-    >>> import afmtogmx as afm
-    >>> off = afm.ReadOFF(off_loc = "path/to/intra.off")
-    >>> off.set_config(tabpot_prefix='my_table', tabpot_dir='tables/')
+    >>> import afmtogmx
+    >>>
+    >>> # 1. Initialize the reader with the .off file
+    >>> off = afmtogmx.ReadOFF(off_loc="path/to/intra.off")
+    >>>
+    >>> # 2. Set any desired global configurations
+    >>> off.set_config(tabpot_dir='tables/', name_translation={'C_off': 'C_top'})
+    >>>
+    >>> # 3. Load charges if necessary
     >>> off.load_charges_from_file('charges.txt')
-    >>> off.gen_nonbonded_tabpot()  # Stores automatically, uses config values
-    >>> off.gen_bonded_tabpot()     # Stores automatically, uses config values
-    >>> off.write_nonbonded_tabpot()  # Uses stored result and config prefix/dir
-    >>> off.write_bonded_tabpot()     # Uses stored result and config prefix/dir
-    >>> off.gen_nonbonded_topology(template_file = 'template.top', write_to = 'temp_nonbonded.top')
-    >>> off.gen_bonded_topology(template_file = 'temp_nonbonded.top', write_to='topol.top')
+    >>>
+    >>> # 4. Generate all required tabulated potentials (stored internally)
+    >>> off.gen_nonbonded_tabpot()
+    >>> off.gen_bonded_tabpot()
+    >>>
+    >>> # 5. Write the tabulated potential .xvg files to the configured directory
+    >>> off.write_nonbonded_tabpot()
+    >>> off.write_bonded_tabpot()
+    >>>
+    >>> # 6. Generate the nonbonded topology from a template
+    >>> off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
+    >>>
+    >>> # 7. Generate the final, complete topology
+    >>> off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
 
 """
-from afmtogmx.core import topology, tabulated_potentials, gen_md, functions, compare
-from afmtogmx.core.gen_md import ReadOFF
+
+__version__ = "0.1.0"
+
+from .core.gen_md import ReadOFF
+
+__all__ = [
+    "ReadOFF",
+]
