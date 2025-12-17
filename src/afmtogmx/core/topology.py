@@ -32,6 +32,33 @@ def _find_keyword_location(template_file, keyword="", begin=0):
         If the specified `keyword` cannot be found in the `template_file` after
         the `begin` index, the program exits with an error message.
     """
+    # This script could be improved upon/combined with scripts for matching keywords further down
+    found = False
+    expression = rf'\[[\t ]*{keyword}[\t ]*][\s\S]*?^\s*?$'  # painful regex to match up to next blank line
+    matches = re.finditer(expression, template_file, re.MULTILINE)  # find all matches
+    for match in matches:  # check to get first match that has location that is greater than begin
+        if match.span()[0] >= begin:
+            poss_beg = match.span()[0]
+            prev_newline = template_file[:poss_beg].rfind('\n')
+            if prev_newline == poss_beg:  # easy check if '[' is at beginning of line
+                found = True
+                break
+            else:
+                if ";" in template_file[prev_newline:poss_beg]:  # check for comments
+                    pass
+                else:
+                    found = True  # if no comments, we found the match
+                    break
+        else:
+            pass  # skip characters with location < begin
+
+    if not found:  # If a match could not be found at all
+        print(
+            f"Could not find valid KEYWORD '{keyword}' between character at LOCATION '{begin}' and the end of the file."
+            "Please check your inputs")
+        exit(1)
+    else:  # If a match was found, return beginning and ending of match
+        return match.span()[0], match.span()[1]
 
 def _gen_nonbonded_string(scale_C6, special_pairs, name_translation, nonbonded):
     """Generate the `[ nonbond_params ]` section as a string.
