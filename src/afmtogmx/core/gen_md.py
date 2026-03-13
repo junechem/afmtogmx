@@ -448,6 +448,10 @@ class ReadOFF:
                     atom_pair = tuple(entries[:2])
                     new_c12 = C6*(p.sc_sigma**6)
                     new_nonbonded_string += topology.single_nonbonded_pair_string(pair = tuple(atom_pair), name_translation={}, C6=C6, C12=new_c12)
+                elif C6 != 0 and C12 == 0:
+                    atom_pair = tuple(entries[:2])
+                    new_c12 = C6*(p.sc_sigma**6)
+                    new_nonbonded_string += topology.single_nonbonded_pair_string(pair = tuple(atom_pair), name_translation={}, C6=C6, C12=new_c12)
                 else:
                     new_nonbonded_string += line + "\n"
             nonbonded_string = new_nonbonded_string
