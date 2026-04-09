@@ -1,5 +1,6 @@
 from afmtogmx.core import topology, tabulated_potentials, functions, residues
 from types import SimpleNamespace
+from collections import defaultdict
 """ This module contains the main class, ReadOFF, which is used to generate input files for gmx
 """
 
@@ -953,6 +954,11 @@ class ReadOFF:
         """
         try:
             with open(file_path, 'r') as f:
+                atoms_to_mol = defaultdict(list)
+                for key, value in self.charges.items():
+                    atoms = [str(i) for i in value.keys()]
+                    for atom in atoms:
+                        atoms_to_mol[atom].append(key)
                 current_mol = None
                 for line in f:
                     line = line.strip()
@@ -969,17 +975,19 @@ class ReadOFF:
                             current_mol = None
                     elif len(parts) == 2:
                         # This is an atom-charge pair
-                        if current_mol is None:
-                            print(f"Warning: Atom-charge pair '{line}' found before any molecule name. Skipping.")
-                            continue
-
                         atomname, charge = parts[0], float(parts[1])
+                        if current_mol is None:
+                            print(f"Warning: Atom-charge pair '{line}' found before any molecule name. Adding atom to all possible molecules.")
+                            mols_with_atom = atoms_to_mol[atomname]
+                            for mol in mols_with_atom:
+                                self.charges[mol][atomname] = charge
 
-                        if atomname not in self.charges[current_mol]:
+                        elif atomname not in self.charges[current_mol]:
                             print(f"Warning: Atom '{atomname}' not found in molecule '{current_mol}'. Skipping.")
                             continue
 
-                        self.charges[current_mol][atomname] = charge
+                        else:
+                            self.charges[current_mol][atomname] = charge
                     else:
                         print(f"Warning: Unrecognized line format: '{line}'. Skipping.")
 
