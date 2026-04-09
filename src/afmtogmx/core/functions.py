@@ -261,6 +261,24 @@ def gen_empty_nonbonded():
 
     return atom_pair
 
+def _params_dict(dic, *args):
+    """Create the empty parameter dictionary to hold atom index information for bonded terms
+
+    This function analyzes a current dictionary "dic" to see if parameters
+    already exist as a key within that dictionary. If they do not exist, a new key:value
+    pair is created for that dictionary with args as the key and an empty list as the value,
+    which will be populated later with atom indexes for bonded terms which use the key as their parameters.
+
+    Returns:
+    -------
+    None, dictionary is modified in place
+    """
+
+    if args in dic:
+        pass
+    else:
+        dic[args] = []
+
 
 def _find_off_keywords(off_file_str=str):
     """Parse an .off file string into its constituent sections.
@@ -624,13 +642,13 @@ def _parse_bonded_section(uns_bonded, section=str, beginning=int, ending=int, ff
                 total_bonded_added += 1  # iterate counter to keep track of which parameters to use from uns_bonded
                 is_qua, is_har = True, False
                 P1, P2, P3, P4 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-4:]]
-                QUA[(P1, P2, P3, P4)] = []
+                _params_dict(QUA, P1, P2, P3, P4)
                 continue
             if "HAR" in line:
                 total_bonded_added += 1
                 is_har, is_qua = True, False
                 P1, P2, = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-2:]]
-                HAR[(P1, P2)] = []
+                _params_dict(HAR, P1, P2)
                 continue
             at1, at2 = [int(i) for i in line.split()]  # split up atoms
             if is_qua:
@@ -652,13 +670,13 @@ def _parse_bonded_section(uns_bonded, section=str, beginning=int, ending=int, ff
                 total_bonded_added += 1
                 is_qua, is_har = True, False
                 P1, P2, P3, P4 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-4:]]
-                QUA[(P1, P2, P3, P4)] = []
+                _params_dict(QUA, P1, P2, P3, P4)
                 continue
             if "HAR" in line:
                 total_bonded_added += 1
                 is_har, is_qua = True, False
                 P1, P2 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-2:]]
-                HAR[(P1, P2)] = []
+                _params_dict(HAR, P1, P2)
                 continue
             at1, at2, at3 = [int(i) for i in line.split()]
             if is_qua:
@@ -681,12 +699,13 @@ def _parse_bonded_section(uns_bonded, section=str, beginning=int, ending=int, ff
                 total_bonded_added += 1
                 is_qbb, is_mub = True, False
                 P1, P2, P3, P4, P5 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-5:]]
-                QBB[(P1, P2, P3, P4, P5)] = []
+                _params_dict(QBB, P1, P2, P3, P4, P5)
                 continue
             if "MUB" in line:
                 total_bonded_added += 1
                 is_mub, is_qbb = True, False
                 P1, P2, P3, P4 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-4:]]
+                _params_dict(MUB, P1, P2, P3, P4)
                 continue
             at1, at2, at3 = [int(i) for i in line.split()]
             if is_qbb:
@@ -710,21 +729,21 @@ def _parse_bonded_section(uns_bonded, section=str, beginning=int, ending=int, ff
                 total_bonded_added += 1
                 is_har, is_nco, is_cos = True, False, False
                 P1, P2 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-2:]]
-                HAR[(P1, P2)] = []
+                _params_dict(HAR, P1, P2)
                 continue
 
             if "NCO" in line:
                 total_bonded_added += 1
                 is_nco, is_har, is_cos = True, False, False
                 P1, P2, P3 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-3:]]
-                NCO[(P1, P2, P3)] = []
+                _params_dict(NCO, P1, P2, P3)
                 continue
 
             if "COS" in line:
                 total_bonded_added += 1
                 is_cos, is_har, is_nco = True, False, False
                 P1, P2, P3 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-3:]]
-                COS[(P1, P2, P3)] = []
+                _params_dict(COS, P1, P2, P3)
                 continue
 
             at1, at2, at3, at4 = [int(i) for i in line.split()]
@@ -750,13 +769,13 @@ def _parse_bonded_section(uns_bonded, section=str, beginning=int, ending=int, ff
                 total_bonded_added += 1
                 is_cnco, is_ccos = True, False
                 P1, P2, P3, P4 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-4:]]
-                CNCO[(P1, P2, P3, P4)] = []
+                _params_dict(CNCO, P1, P2, P3, P4)
                 continue
             if "CCOS" in line:
                 total_bonded_added += 1
                 is_ccos, is_cnco = True, False
                 P1, P2, P3, P4 = [float(i) for i in uns_bonded[total_bonded_added - 1].split("\n")[0].split()[-4:]]
-                CCOS[(P1, P2, P3, P4)] = []
+                _params_dict(CCOS, P1, P2, P3, P4)
                 continue
 
             at1, at2, at3, at4 = [int(i) for i in line.split()]
