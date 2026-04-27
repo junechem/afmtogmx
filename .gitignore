@@ -1,5 +1,6 @@
 /test/local_tests/
 /test/test.py
+/offtoopenmm/
 
 # Python cache files
 __pycache__/
