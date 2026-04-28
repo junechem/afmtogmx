@@ -322,13 +322,14 @@ class ReadOFF:
 
         print("Done generating residues")
 
-    def change_molecule(self, mol_name, reference_ff, atom_name_map=None):
+    def change_molecule(self, mol_name, reference_ff, atom_name_map=None, ref_mol_name=None):
         """Replace a molecule's force field parameters with a stored reference FF.
 
         Loads a reference `.off` file from the package's ``reference_ff/`` directory,
         replaces all bonded and water-water nonbonded parameters for ``mol_name`` with
         those from the reference, and renames all affected atom types using
-        ``atom_name_map``.
+        ``atom_name_map``. If a matching ``.charges`` file exists alongside the ``.off``
+        file (same stem), it is loaded automatically.
 
         Cross-term pairs (one atom from ``mol_name``, one from another molecule) are
         preserved with their original fitted parameter values — only the atom type
@@ -343,9 +344,13 @@ class ReadOFF:
             Name of the reference FF file in ``src/afmtogmx/reference_ff/``, without
             the ``.off`` extension (e.g. ``'BLYPSP-4F'``).
         atom_name_map : dict, optional
-            Maps atom type names in the current ``.off`` file to atom type names in the
-            reference FF. Example: ``{'OQM': 'OW_sp4f', 'HQM': 'HW_sp4f', 'EQM': 'EW_sp4f'}``.
+            Maps atom type names in the current ``.off`` file to new names used in all
+            output. Example: ``{'OW': 'OW_sp4f', 'HW': 'HW_sp4f'}``.
             Atom types not in the map are left unchanged. Defaults to ``{}``.
+        ref_mol_name : str, optional
+            Molecule name to use from the reference FF file. Required when the reference
+            FF contains more than one molecule. If ``None`` and the reference FF has
+            exactly one molecule, that molecule is used automatically.
 
         Returns
         -------
@@ -355,11 +360,13 @@ class ReadOFF:
         Raises
         ------
         KeyError
-            If ``mol_name`` is not found in ``self.bonded``.
+            If ``mol_name`` is not found in ``self.bonded``, or ``ref_mol_name`` is
+            specified but not found in the reference FF.
         FileNotFoundError
             If the reference FF file does not exist.
         ValueError
-            If the reference FF file contains more than one molecule.
+            If the reference FF file contains more than one molecule and
+            ``ref_mol_name`` is not specified.
 
         Examples
         --------
@@ -367,7 +374,8 @@ class ReadOFF:
         >>> off.change_molecule(
         ...     mol_name='H2OQM',
         ...     reference_ff='BLYPSP-4F',
-        ...     atom_name_map={'OQM': 'OW_sp4f', 'HQM': 'HW_sp4f', 'EQM': 'EW_sp4f'},
+        ...     ref_mol_name='H2OQM',
+        ...     atom_name_map={'OW': 'OW_sp4f', 'HW': 'HW_sp4f'},
         ... )
         >>> # off.bonded['H2OQM'] now holds BLYPSP-4F bonded parameters
         >>> # off.nonbonded water-water pairs now use OW_sp4f / HW_sp4f atom types
@@ -385,12 +393,24 @@ class ReadOFF:
         ref_path = Path(__file__).parent.parent / 'reference_ff' / f'{reference_ff}.off'
         ref = ReadOFF(str(ref_path))
 
-        if len(ref.bonded) != 1:
-            raise ValueError(
-                f"Reference FF '{reference_ff}' must contain exactly one molecule; "
-                f"found: {list(ref.bonded.keys())}"
+        # Resolve which molecule to use from the reference FF
+        if ref_mol_name is None:
+            if len(ref.bonded) == 1:
+                ref_mol_name = list(ref.bonded.keys())[0]
+            else:
+                raise ValueError(
+                    f"Reference FF '{reference_ff}' contains multiple molecules "
+                    f"({list(ref.bonded.keys())}). Specify ref_mol_name."
+                )
+        elif ref_mol_name not in ref.bonded:
+            raise KeyError(
+                f"Molecule '{ref_mol_name}' not found in reference FF '{reference_ff}'."
             )
-        ref_mol_name = list(ref.bonded.keys())[0]
+
+        # Auto-load a matching .charges file if one exists alongside the .off file
+        ref_charges_path = ref_path.with_suffix('.charges')
+        if ref_charges_path.exists():
+            ref.load_charges_from_file(str(ref_charges_path))
 
         # Atom types that belong to mol_name (excluding NETF/TORQ)
         mol_atoms = {
@@ -399,13 +419,21 @@ class ReadOFF:
             if entry[1] not in ('NETF', 'TORQ')
         }
 
+        # Atom types that belong to ref_mol_name in the reference FF
+        ref_mol_atoms = {
+            entry[1]
+            for entry in ref.bonded[ref_mol_name]['ATO']['All'].values()
+            if entry[1] not in ('NETF', 'TORQ')
+        }
+
         # Replace bonded parameters
         self.bonded[mol_name] = ref.bonded[ref_mol_name]
 
-        # Replace charges — rename keys, values come from reference FF
+        # Replace charges — rename keys via atom_name_map; look up values by old name
+        # (before renaming) since ref_charges is indexed by the reference FF's atom type names
         ref_charges = ref.charges.get(ref_mol_name, {})
         self.charges[mol_name] = {
-            atom_name_map.get(old, old): ref_charges.get(atom_name_map.get(old, old), 0.0)
+            atom_name_map.get(old, old): ref_charges.get(old, 0.0)
             for old in self.charges.get(mol_name, {})
         }
 
@@ -430,7 +458,14 @@ class ReadOFF:
         for pair in pairs_to_remove:
             del self.nonbonded[pair]
         self.nonbonded.update(cross_pairs)
-        self.nonbonded.update(ref.nonbonded)
+
+        # Add reference FF nonbonded pairs for ref_mol_name only, applying atom_name_map
+        renamed_ref_nonbonded = {
+            (atom_name_map.get(a1, a1), atom_name_map.get(a2, a2)): params
+            for (a1, a2), params in ref.nonbonded.items()
+            if a1 in ref_mol_atoms and a2 in ref_mol_atoms
+        }
+        self.nonbonded.update(renamed_ref_nonbonded)
 
         # Rebuild residues from updated bonded data
         self.residues = {
