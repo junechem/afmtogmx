@@ -157,31 +157,41 @@ atom type names for water than the stored reference FF does.
 
 ## Implementation Order
 
-1. **`gmx_backend.py`** — Create `GROMACSBackend` class. Move all GROMACS methods
+1. ✅ **`gmx_backend.py`** — Create `GROMACSBackend` class. Move all GROMACS methods
    (`gen_nonbonded_tabpot`, `write_nonbonded_tabpot`, `gen_bonded_tabpot`,
    `write_bonded_tabpot`, `gen_nonbonded_topology`, `gen_bonded_topology`,
    `set_config`, `get_config`) from `gen_md.py` into this class.
    Each method reads from `self._parent.nonbonded`, `self._parent.bonded`, etc.
 
-2. **`ReadOFF.__init__`** — Add `self.gmx = GROMACSBackend(self)` and
-   `self.openmm = OpenMMBackend(self)`. Remove old method bodies (they become wrappers).
+2. ✅ **`ReadOFF.__init__`** — Add `self.gmx = GROMACSBackend(self)`.
+   Remove old method bodies (they become wrappers).
 
-3. **Deprecation wrappers** — Add deprecated methods and properties to `ReadOFF`
-   that warn and delegate to `off.gmx`.
+3. ✅ **Deprecation wrappers** — Add deprecated methods and properties to `ReadOFF`
+   that warn and delegate to `off.gmx` (`config`, `nonbonded_tabpot`, `bonded_tabpot`,
+   `set_config`, `get_config`, and all six generation/write methods).
 
-4. **`openmm_backend.py`** — Create `OpenMMBackend` skeleton with `gen_xml()` stub.
+4. ✅ **`openmm_backend.py`** — Create `OpenMMBackend` skeleton with `gen_xml()` stub
+   (raises `NotImplementedError` until Step 8).
 
-5. **`change_molecule()`** — Add to `ReadOFF`. Implement reference FF loading and
-   in-place parameter replacement.
+5. **Wire `OpenMMBackend`** — Add `self.openmm = OpenMMBackend(self)` to
+   `ReadOFF.__init__`.
 
-6. **`reference_ff/BLYPSP-4F.off`** — Store the reference water FF in partial `.off` format.
+6. **Update tests** — Update `test_regression.py` to use `off.gmx.xxx()`.
+   `test_parsing.py` needs no changes (tests shared data structures). Do this
+   before the OpenMM port to confirm the GROMACS path is unbroken.
 
-7. **Update tests** — Update `test_regression.py` to use `off.gmx.xxx()`.
-   `test_parsing.py` needs no changes (tests shared data structures).
+7. **`change_molecule()`** — Add to `ReadOFF`. Implement reference FF loading and
+   in-place parameter replacement. This is the primary motivating feature of the merge.
 
-8. **OpenMM XML generation** — Port `offtoopenmm/off_to_openmm.py` logic into
-   `OpenMMBackend.gen_xml()`, replacing the standalone parser with reads from
+8. **`reference_ff/BLYPSP-4F.off`** — Store the reference water FF in partial `.off`
+   format so `change_molecule()` can load it.
+
+9. **OpenMM XML generation** — Port `offtoopenmm/off_to_openmm.py` logic into
+   `OpenMMBackend.gen_xml()`, replacing the standalone `OffFileParser` with reads from
    `self._parent.nonbonded`, `self._parent.bonded`, `self._parent.charges`.
+   **Note:** `off_to_openmm.py` uses `#define` extraction while `afmtogmx` uses
+   `functions.py`-style parsing — verify data-structure equivalence before porting,
+   and fill any gaps in `functions.py` rather than working around them.
 
 ---
 

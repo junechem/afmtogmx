@@ -1,5 +1,6 @@
 from afmtogmx.core import functions, residues
 from afmtogmx.core.gmx_backend import GROMACSBackend
+from afmtogmx.core.openmm_backend import OpenMMBackend
 import warnings
 from collections import defaultdict
 """ This module contains the main class, ReadOFF, which is used to generate input files for gmx
@@ -41,6 +42,9 @@ class ReadOFF:
         GROMACS output backend. Provides all GROMACS-specific methods such
         as ``gen_nonbonded_tabpot`` and topology generation. Configuration
         and generated tabulated potentials are owned by this object.
+    openmm : OpenMMBackend
+        OpenMM output backend. Provides ``gen_xml()`` for generating OpenMM
+        force field XML files from the same parsed data.
 
     Examples
     --------
@@ -71,6 +75,7 @@ class ReadOFF:
         self._gen_nonbonded()  # Creates self.nonbonded dictionary with all sections populated with fitted parameters
         self.residues = {"Definitions" : {k : {'All' : functions._remove_netf_torq_atname(v['ATO']['All'])} for k, v in self.bonded.items()}, "Residues" : {k : {'All' : [functions._remove_netf_torq_atnum(v['ATO']['All'])]} for k, v in self.bonded.items()}}
         self.gmx = GROMACSBackend(self)
+        self.openmm = OpenMMBackend(self)
 
     def _gen_sections_dict(self):
         """Loads an off file into memory, breaks into sections, and stores it as the variable self.sections"""
