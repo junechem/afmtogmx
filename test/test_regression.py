@@ -107,10 +107,10 @@ def test1_methane_basic(tmp_path):
     baseline = _setup(tmp_path, 'test1_methane_basic')
 
     off = afm.ReadOFF(off_loc=str(SAMPLES / 'methane_intra.off'))
-    nonbonded_tabpot = off.gen_nonbonded_tabpot()
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+    nonbonded_tabpot = off.gmx.gen_nonbonded_tabpot()
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
 
     _compare_all(tmp_path, baseline)
 
@@ -120,12 +120,12 @@ def test2_ethane_bonded(tmp_path):
     baseline = _setup(tmp_path, 'test2_ethane_bonded')
 
     off = afm.ReadOFF(off_loc=str(SAMPLES / 'ethane_intra.off'))
-    nonbonded_tabpot = off.gen_nonbonded_tabpot()
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
-    bonded_tabpot = off.gen_bonded_tabpot()
-    off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+    nonbonded_tabpot = off.gmx.gen_nonbonded_tabpot()
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
+    bonded_tabpot = off.gmx.gen_bonded_tabpot()
+    off.gmx.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
 
     _compare_all(tmp_path, baseline)
 
@@ -140,14 +140,14 @@ def test3_water_charges(tmp_path):
         off.charges['H20QM']['HQM'] =  0.41
         off.charges['H20QM']['EQM'] =  0.0
 
-    nonbonded_tabpot = off.gen_nonbonded_tabpot(incl_mol=['H20QM'])
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
-    bonded_tabpot = off.gen_bonded_tabpot(incl_mol=['H20QM'])
-    off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
-                               incl_mol=['H20QM'])
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top',
-                            incl_mol=['H20QM'], bonded_tabpot=bonded_tabpot)
+    nonbonded_tabpot = off.gmx.gen_nonbonded_tabpot(incl_mol=['H20QM'])
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
+    bonded_tabpot = off.gmx.gen_bonded_tabpot(incl_mol=['H20QM'])
+    off.gmx.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
+                                   incl_mol=['H20QM'])
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top',
+                                incl_mol=['H20QM'], bonded_tabpot=bonded_tabpot)
 
     _compare_all(tmp_path, baseline)
 
@@ -161,17 +161,17 @@ def test4_butanediol_nametrans(tmp_path):
     }
 
     off = afm.ReadOFF(off_loc=str(SAMPLES / 'butanediol_intra.off'))
-    nonbonded_tabpot = off.gen_nonbonded_tabpot()
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot,
-                               tabpot_prefix='table',
-                               name_translation=name_translation)
-    bonded_tabpot = off.gen_bonded_tabpot()
-    off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
-                               name_translation=name_translation)
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top',
-                            name_translation=name_translation,
-                            bonded_tabpot=bonded_tabpot)
+    nonbonded_tabpot = off.gmx.gen_nonbonded_tabpot()
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot,
+                                   tabpot_prefix='table',
+                                   name_translation=name_translation)
+    bonded_tabpot = off.gmx.gen_bonded_tabpot()
+    off.gmx.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
+                                   name_translation=name_translation)
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top',
+                                name_translation=name_translation,
+                                bonded_tabpot=bonded_tabpot)
 
     _compare_all(tmp_path, baseline)
 
@@ -182,11 +182,11 @@ def test5_methane_scsigma(tmp_path):
     sc_sigma_value = 0.3
 
     off = afm.ReadOFF(off_loc=str(SAMPLES / 'methane_intra.off'))
-    nonbonded_tabpot = off.gen_nonbonded_tabpot(sc_sigma=sc_sigma_value)
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
-                               sc_sigma=sc_sigma_value)
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+    nonbonded_tabpot = off.gmx.gen_nonbonded_tabpot(sc_sigma=sc_sigma_value)
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
+                                   sc_sigma=sc_sigma_value)
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
 
     _compare_all(tmp_path, baseline)
 
@@ -197,14 +197,14 @@ def test6_ethane_exclpairs(tmp_path):
     excl_pairs = [['C', 'C'], ['H', 'H']]
 
     off = afm.ReadOFF(off_loc=str(SAMPLES / 'ethane_intra.off'))
-    nonbonded_tabpot = off.gen_nonbonded_tabpot(excl_pairs=excl_pairs)
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
-    bonded_tabpot = off.gen_bonded_tabpot()
-    off.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
-                               excl_pairs=excl_pairs)
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top',
-                            bonded_tabpot=bonded_tabpot)
+    nonbonded_tabpot = off.gmx.gen_nonbonded_tabpot(excl_pairs=excl_pairs)
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot, tabpot_prefix='table')
+    bonded_tabpot = off.gmx.gen_bonded_tabpot()
+    off.gmx.write_bonded_tabpot(bonded_tabpot=bonded_tabpot, tabpot_prefix='table')
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top',
+                                   excl_pairs=excl_pairs)
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top',
+                                bonded_tabpot=bonded_tabpot)
 
     _compare_all(tmp_path, baseline)
 
@@ -214,7 +214,7 @@ def test7_methane_config(tmp_path):
     baseline = _setup(tmp_path, 'test7_methane_config', extra_inputs=['charges.txt'])
 
     off = afm.ReadOFF(off_loc=str(SAMPLES / 'methane_intra.off'))
-    off.set_config(
+    off.gmx.set_config(
         spacing_nonbonded=0.001,
         length_nonbonded=2.5,
         tabpot_prefix='config_table',
@@ -223,16 +223,16 @@ def test7_methane_config(tmp_path):
     )
     off.load_charges_from_file('charges.txt')
 
-    nonbonded_tabpot = off.gen_nonbonded_tabpot()
+    nonbonded_tabpot = off.gmx.gen_nonbonded_tabpot()
     # Write using config defaults (config_tabpot/config_table_*.xvg)
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot)
     # Write again with explicit override (override_tabpot/override_table_*.xvg)
-    off.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot,
-                               tabpot_prefix='override_table',
-                               tabpot_dir='override_tabpot')
+    off.gmx.write_nonbonded_tabpot(nonbonded_tabpot=nonbonded_tabpot,
+                                   tabpot_prefix='override_table',
+                                   tabpot_dir='override_tabpot')
 
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
 
     _compare_all(tmp_path, baseline)
 
@@ -242,7 +242,7 @@ def test8_ethane_clean_workflow(tmp_path):
     baseline = _setup(tmp_path, 'test8_ethane_clean_workflow', extra_inputs=['charges.txt'])
 
     off = afm.ReadOFF(off_loc=str(SAMPLES / 'ethane_intra.off'))
-    off.set_config(
+    off.gmx.set_config(
         spacing_nonbonded=0.0005,
         length_nonbonded=3.0,
         spacing_bonded=0.0001,
@@ -252,11 +252,11 @@ def test8_ethane_clean_workflow(tmp_path):
         scale_C6=True,
     )
     off.load_charges_from_file('charges.txt')
-    off.gen_nonbonded_tabpot()
-    off.write_nonbonded_tabpot()
-    off.gen_bonded_tabpot()
-    off.write_bonded_tabpot()
-    off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
-    off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+    off.gmx.gen_nonbonded_tabpot()
+    off.gmx.write_nonbonded_tabpot()
+    off.gmx.gen_bonded_tabpot()
+    off.gmx.write_bonded_tabpot()
+    off.gmx.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
+    off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
 
     _compare_all(tmp_path, baseline)
