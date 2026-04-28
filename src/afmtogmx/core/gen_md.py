@@ -122,6 +122,61 @@ class ReadOFF:
                     self.nonbonded[atom_pair][f'{inter_term}'].append(params)  # populate with parameters
 
     # ---------------------------------------------------------------------------
+    # Deprecated properties — forward to off.gmx equivalents
+    # ---------------------------------------------------------------------------
+
+    @property
+    def config(self):
+        """Deprecated. Use ``off.gmx.config`` instead."""
+        warnings.warn(
+            "ReadOFF.config is deprecated; use off.gmx.config instead.",
+            DeprecationWarning, stacklevel=2
+        )
+        return self.gmx.config
+
+    @config.setter
+    def config(self, value):
+        warnings.warn(
+            "ReadOFF.config is deprecated; use off.gmx.config instead.",
+            DeprecationWarning, stacklevel=2
+        )
+        self.gmx.config = value
+
+    @property
+    def nonbonded_tabpot(self):
+        """Deprecated. Use ``off.gmx.nonbonded_tabpot`` instead."""
+        warnings.warn(
+            "ReadOFF.nonbonded_tabpot is deprecated; use off.gmx.nonbonded_tabpot instead.",
+            DeprecationWarning, stacklevel=2
+        )
+        return self.gmx.nonbonded_tabpot
+
+    @nonbonded_tabpot.setter
+    def nonbonded_tabpot(self, value):
+        warnings.warn(
+            "ReadOFF.nonbonded_tabpot is deprecated; use off.gmx.nonbonded_tabpot instead.",
+            DeprecationWarning, stacklevel=2
+        )
+        self.gmx.nonbonded_tabpot = value
+
+    @property
+    def bonded_tabpot(self):
+        """Deprecated. Use ``off.gmx.bonded_tabpot`` instead."""
+        warnings.warn(
+            "ReadOFF.bonded_tabpot is deprecated; use off.gmx.bonded_tabpot instead.",
+            DeprecationWarning, stacklevel=2
+        )
+        return self.gmx.bonded_tabpot
+
+    @bonded_tabpot.setter
+    def bonded_tabpot(self, value):
+        warnings.warn(
+            "ReadOFF.bonded_tabpot is deprecated; use off.gmx.bonded_tabpot instead.",
+            DeprecationWarning, stacklevel=2
+        )
+        self.gmx.bonded_tabpot = value
+
+    # ---------------------------------------------------------------------------
     # Deprecated wrappers — all GROMACS methods have moved to off.gmx
     # ---------------------------------------------------------------------------
 
