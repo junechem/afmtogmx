@@ -322,6 +322,130 @@ class ReadOFF:
 
         print("Done generating residues")
 
+    def change_molecule(self, mol_name, reference_ff, atom_name_map=None):
+        """Replace a molecule's force field parameters with a stored reference FF.
+
+        Loads a reference `.off` file from the package's ``reference_ff/`` directory,
+        replaces all bonded and water-water nonbonded parameters for ``mol_name`` with
+        those from the reference, and renames all affected atom types using
+        ``atom_name_map``.
+
+        Cross-term pairs (one atom from ``mol_name``, one from another molecule) are
+        preserved with their original fitted parameter values — only the atom type
+        names on the ``mol_name`` side are renamed. This is correct because those
+        cross terms were fitted against the reference FF as the fixed water model.
+
+        Parameters
+        ----------
+        mol_name : str
+            The molecule name as it appears in the ``.off`` file (e.g. ``'H2OQM'``).
+        reference_ff : str
+            Name of the reference FF file in ``src/afmtogmx/reference_ff/``, without
+            the ``.off`` extension (e.g. ``'BLYPSP-4F'``).
+        atom_name_map : dict, optional
+            Maps atom type names in the current ``.off`` file to atom type names in the
+            reference FF. Example: ``{'OQM': 'OW_sp4f', 'HQM': 'HW_sp4f', 'EQM': 'EW_sp4f'}``.
+            Atom types not in the map are left unchanged. Defaults to ``{}``.
+
+        Returns
+        -------
+        ReadOFF
+            Returns ``self`` for method chaining.
+
+        Raises
+        ------
+        KeyError
+            If ``mol_name`` is not found in ``self.bonded``.
+        FileNotFoundError
+            If the reference FF file does not exist.
+        ValueError
+            If the reference FF file contains more than one molecule.
+
+        Examples
+        --------
+        >>> off = ReadOFF('butanol_water.off')
+        >>> off.change_molecule(
+        ...     mol_name='H2OQM',
+        ...     reference_ff='BLYPSP-4F',
+        ...     atom_name_map={'OQM': 'OW_sp4f', 'HQM': 'HW_sp4f', 'EQM': 'EW_sp4f'},
+        ... )
+        >>> # off.bonded['H2OQM'] now holds BLYPSP-4F bonded parameters
+        >>> # off.nonbonded water-water pairs now use OW_sp4f / HW_sp4f atom types
+        >>> # off.nonbonded cross pairs keep original values, water atoms renamed
+        """
+        from pathlib import Path
+
+        if atom_name_map is None:
+            atom_name_map = {}
+
+        if mol_name not in self.bonded:
+            raise KeyError(f"Molecule '{mol_name}' not found in self.bonded.")
+
+        # Load the reference FF using the existing parser
+        ref_path = Path(__file__).parent.parent / 'reference_ff' / f'{reference_ff}.off'
+        ref = ReadOFF(str(ref_path))
+
+        if len(ref.bonded) != 1:
+            raise ValueError(
+                f"Reference FF '{reference_ff}' must contain exactly one molecule; "
+                f"found: {list(ref.bonded.keys())}"
+            )
+        ref_mol_name = list(ref.bonded.keys())[0]
+
+        # Atom types that belong to mol_name (excluding NETF/TORQ)
+        mol_atoms = {
+            entry[1]
+            for entry in self.bonded[mol_name]['ATO']['All'].values()
+            if entry[1] not in ('NETF', 'TORQ')
+        }
+
+        # Replace bonded parameters
+        self.bonded[mol_name] = ref.bonded[ref_mol_name]
+
+        # Replace charges — rename keys, values come from reference FF
+        ref_charges = ref.charges.get(ref_mol_name, {})
+        self.charges[mol_name] = {
+            atom_name_map.get(old, old): ref_charges.get(atom_name_map.get(old, old), 0.0)
+            for old in self.charges.get(mol_name, {})
+        }
+
+        # Update nonbonded pairs:
+        #   - pure mol_name pairs  → remove (reference FF supplies replacements)
+        #   - cross pairs          → rename mol_name atom type, keep parameter values
+        pairs_to_remove = []
+        cross_pairs = {}
+        for pair, params in self.nonbonded.items():
+            a1, a2 = pair
+            a1_in = a1 in mol_atoms
+            a2_in = a2 in mol_atoms
+            if a1_in and a2_in:
+                pairs_to_remove.append(pair)
+            elif a1_in:
+                pairs_to_remove.append(pair)
+                cross_pairs[(atom_name_map.get(a1, a1), a2)] = params
+            elif a2_in:
+                pairs_to_remove.append(pair)
+                cross_pairs[(a1, atom_name_map.get(a2, a2))] = params
+
+        for pair in pairs_to_remove:
+            del self.nonbonded[pair]
+        self.nonbonded.update(cross_pairs)
+        self.nonbonded.update(ref.nonbonded)
+
+        # Rebuild residues from updated bonded data
+        self.residues = {
+            "Definitions": {
+                k: {'All': functions._remove_netf_torq_atname(v['ATO']['All'])}
+                for k, v in self.bonded.items()
+            },
+            "Residues": {
+                k: {'All': [functions._remove_netf_torq_atnum(v['ATO']['All'])]}
+                for k, v in self.bonded.items()
+            },
+        }
+
+        return self
+
     def load_charges_from_file(self, file_path):
         """Load atomic charges from a file into `self.charges`.
 

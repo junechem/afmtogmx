@@ -195,6 +195,64 @@ atom type names for water than the stored reference FF does.
 
 ---
 
+## Mixed FF Systems — AFM Solute + Standard Water (e.g. TIP4P)
+
+When a system uses an AFM-fitted solute alongside a *standard* water model rather than a
+fully AFM-fitted water, the following architecture applies.
+
+### How TIP4P gets into the XML
+
+OpenMM ships its own `tip4p.xml` (and `tip4pfb.xml`, `tip4p-ew.xml`). We do **not** embed
+TIP4P in our generated XML. Instead the user loads two files:
+
+```python
+ForceField('our_afm.xml', 'tip4p.xml')
+```
+
+Our XML covers the solute residues + all custom forces. TIP4P's XML covers water-water.
+OpenMM merges them at runtime.
+
+### Combination rules
+
+TIP4P's `NonbondedForce` uses standard LJ with combination rules — that handles
+water-water automatically. Solute-water cross terms **cannot** use combination rules
+because AFM (EXP+POW) and LJ are incompatible functional forms.
+
+Instead, the fitted cross-term pairs in the `.off` file (solute~water) are renamed via
+`change_molecule()` to use TIP4P atom type names (`OW`, `HW`, etc.) and emitted in our
+XML as a **second** `CustomNonbondedForce` restricted to `addInteractionGroup(solute, water)`.
+
+So `gen_xml()` emits two custom force blocks:
+1. Solute-solute: `CustomNonbondedForce` covering only solute atom pairs
+2. Solute-water: `CustomNonbondedForce` with `addInteractionGroup(solute_atoms, water_atoms)`
+
+The `NonbondedForce` in our XML handles charges for solute atoms (epsilon=0 to suppress
+LJ, since the custom forces handle VdW). TIP4P's `NonbondedForce` handles water charges
+and LJ.
+
+### PDB editing
+
+TIP4P water residues are standard `HOH` in PDB files. OpenMM computes the virtual site
+(`M`/`EP`) position from the XML at simulation time — it does not need to be in the PDB.
+The PDB preprocessor should add `CONECT` records for **solute residues only** and leave
+`HOH` residues untouched.
+
+### Config keys needed in `gen_xml()`
+
+```python
+off.openmm.set_config(
+    incl_mol=['CYCQM'],              # AFM-parameterized molecules (no water)
+    water_mol='H2OQM',              # which .off molecule is water (for cross-term splitting)
+    molname_translations={'CYCQM': 'CYC'},
+)
+```
+
+The `water_mol` key tells `gen_xml()` which nonbonded pairs are cross-term (one atom from
+solute, one from water) so they can be emitted in the restricted interaction-group force
+rather than the solute-only force.
+
+---
+
 ## Full Example Workflow (After Implementation)
 
 ```python
