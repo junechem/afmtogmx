@@ -237,6 +237,58 @@ def test7_methane_config(tmp_path):
     _compare_all(tmp_path, baseline)
 
 
+def test9_change_molecule_blypsp4f(tmp_path):
+    """change_molecule() — replace fitted H2OQM with BLYPSP-4F reference FF.
+
+    Verifies that after calling change_molecule():
+      - Pure water-water fitted params (EXPW, STRC) are removed
+      - BLYPSP-4F water-water params (EXP, STR) are inserted with correct values
+      - Solute-water cross-term pairs are preserved with original values
+      - H2OQM charges are updated from BLYPSP-4F.charges
+      - UNK (butanol) charges are unaffected
+    """
+    off = afm.ReadOFF(off_loc=str(SAMPLES / 'h_butanol_fitwater.off'))
+
+    # Hardcode butanol charges
+    off.charges['UNK']['O0'] = -0.85675
+    off.charges['UNK']['C1'] =  0.40654
+    off.charges['UNK']['H0'] =  0.45021
+
+    # Confirm fitted water-water params exist before replacement
+    assert 'EXPW' in off.nonbonded[('OW', 'OW')]
+    assert 'STRC' in off.nonbonded[('EW', 'HW')]
+
+    off.change_molecule(
+        mol_name='H2OQM',
+        reference_ff='BLYPSP-4F',
+        ref_mol_name='H2OQM',
+    )
+
+    # Fitted water-water params should be gone
+    assert 'EXPW' not in off.nonbonded[('OW', 'OW')]
+    assert ('EW', 'HW') not in off.nonbonded or 'STRC' not in off.nonbonded[('EW', 'HW')]
+
+    # BLYPSP-4F water-water params with correct values
+    assert off.nonbonded[('OW', 'OW')]['EXP'][0]  == pytest.approx([210710.0, 4.055])
+    assert off.nonbonded[('OW', 'OW')]['POW'][0]  == pytest.approx([-610.578, -6.0])
+    assert off.nonbonded[('EW', 'HW')]['STR'][0]  == pytest.approx([81.489, 4.0, 2.483])
+
+    # Solute-water cross-term pairs preserved with original fitted values
+    assert ('O0', 'OW') in off.nonbonded
+    assert off.nonbonded[('O0', 'OW')]['EXP'][0] == pytest.approx([255748.69, 4.198])
+    assert ('C1', 'OW') in off.nonbonded
+
+    # H2OQM charges replaced with BLYPSP-4F values
+    assert off.charges['H2OQM']['OW'] == pytest.approx(0.0)
+    assert off.charges['H2OQM']['HW'] == pytest.approx(0.6645)
+    assert off.charges['H2OQM']['EW'] == pytest.approx(-1.329)
+
+    # Butanol charges unchanged
+    assert off.charges['UNK']['O0'] == pytest.approx(-0.85675)
+    assert off.charges['UNK']['C1'] == pytest.approx(0.40654)
+    assert off.charges['UNK']['H0'] == pytest.approx(0.45021)
+
+
 def test8_ethane_clean_workflow(tmp_path):
     """Ethane workflow — config-based API (set_config + auto-store pattern)."""
     baseline = _setup(tmp_path, 'test8_ethane_clean_workflow', extra_inputs=['charges.txt'])
