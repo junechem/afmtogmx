@@ -26,6 +26,14 @@ import xml.etree.ElementTree as ET
 def _parse_residues_from_xml(root):
     """Parse the ``<Residues>`` section.
 
+    Reads each ``<Residue>``'s atom list (preserving XML order) and its
+    per-residue ``<Bond atomName1=... atomName2=.../>`` connectivity.
+    These atom-name bonds are the actual covalent topology — distinct
+    from the type-pair entries inside ``<HarmonicBondForce>`` /
+    ``<CustomBondForce>``, which carry only the bonded-force parameters
+    and would generate Cartesian-product bond explosion if used as
+    connectivity for residues with multiple atoms sharing a type.
+
     Parameters
     ----------
     root : xml.etree.ElementTree.Element
@@ -34,47 +42,32 @@ def _parse_residues_from_xml(root):
     Returns
     -------
     dict
-        ``{resname: {'atom_names': [...], 'type_to_names': {type: [names]}}}``
-        ``atom_names`` preserves XML order. ``type_to_names`` allows mapping
-        a bond's type-pair back to actual atom names within the residue.
+        ``{resname: {'atom_names': [...], 'bonds': [(n1, n2), ...]}}``
     """
     residues = {}
     for residue in root.findall('Residues/Residue'):
         resname = residue.attrib['name']
-        atom_names = []
-        type_to_names = {}
-        for atom in residue.findall('Atom'):
-            aname = atom.attrib['name']
-            atype = atom.attrib['type']
-            atom_names.append(aname)
-            type_to_names.setdefault(atype, []).append(aname)
-        residues[resname] = {
-            'atom_names': atom_names,
-            'type_to_names': type_to_names,
-        }
+        atom_names = [atom.attrib['name'] for atom in residue.findall('Atom')]
+        bonds = [
+            (bond.attrib['atomName1'], bond.attrib['atomName2'])
+            for bond in residue.findall('Bond')
+        ]
+        residues[resname] = {'atom_names': atom_names, 'bonds': bonds}
     return residues
 
 
-def _parse_bonds_from_xml(root):
-    """Parse all bond-defining force sections into a list of type pairs.
+def _parse_bond_parameters_from_xml(root):
+    """Parse the global bond *parameter* sections into a list of type pairs.
 
-    Handles both attribute conventions:
-    - ``<HarmonicBondForce><Bond class1=... class2=.../></HarmonicBondForce>``
-    - ``<CustomBondForce><Bond type1=... type2=.../></CustomBondForce>``
-
-    The ``<Bond>`` child elements inside ``<Residue>`` are *not* read here;
-    those reference atom names rather than types and are stored separately
-    by OpenMM's force-field definition.
-
-    Parameters
-    ----------
-    root : xml.etree.ElementTree.Element
+    Reads ``<HarmonicBondForce>``/``<CustomBondForce>`` ``<Bond>`` entries,
+    which assign force-field parameters to atom-type pairs. NOT used for
+    PDB connectivity (see :func:`_parse_residues_from_xml`); kept as a
+    seam for a future XML→ReadOFF parser that also rebuilds parameters.
 
     Returns
     -------
     list of tuple
-        ``[(type1, type2), ...]`` — each entry is a pair of force-field
-        atom type names that participate in a bond.
+        ``[(type1, type2), ...]``
     """
     bonds = []
     for bond in root.findall('HarmonicBondForce/Bond'):
@@ -91,9 +84,10 @@ def _parse_bonds_from_xml(root):
 def build_residue_topology_from_xml(xml_file):
     """Read an OpenMM XML force field and return per-residue topology.
 
-    Joins the residue definitions (atom names + types) with the global
-    bond list (type-pair → bond) so that each residue ends up with the
-    explicit list of (atom_name, atom_name) bonds within it.
+    The result is suitable as input to :func:`process_pdb`. Connectivity
+    is taken straight from each ``<Residue>``'s own ``<Bond>`` children
+    (atom-name bonds), which is the canonical place OpenMM stores residue
+    topology — independent of any force-section parameter assignments.
 
     Parameters
     ----------
@@ -104,7 +98,6 @@ def build_residue_topology_from_xml(xml_file):
     -------
     dict
         ``{resname: {'atom_names': [ordered_names], 'bonds': [(n1, n2), ...]}}``
-        in the format expected by :func:`process_pdb`.
 
     Examples
     --------
@@ -112,20 +105,7 @@ def build_residue_topology_from_xml(xml_file):
     >>> process_pdb('conf.pdb', 'conf_processed.pdb', topology)
     """
     root = ET.parse(xml_file).getroot()
-    residues = _parse_residues_from_xml(root)
-    bond_type_pairs = _parse_bonds_from_xml(root)
-
-    result = {}
-    for resname, info in residues.items():
-        type_to_names = info['type_to_names']
-        bonds = []
-        for t1, t2 in bond_type_pairs:
-            for n1 in type_to_names.get(t1, []):
-                for n2 in type_to_names.get(t2, []):
-                    if n1 != n2:
-                        bonds.append((n1, n2))
-        result[resname] = {'atom_names': info['atom_names'], 'bonds': bonds}
-    return result
+    return _parse_residues_from_xml(root)
 
 
 # --------------------------------------------------------------------------
