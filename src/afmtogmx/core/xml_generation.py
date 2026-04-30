@@ -215,7 +215,7 @@ def gen_residues(bonded, mol_names, molname_translations):
 def _virtual_site_xml(site_name, definition, unique):
     """Parse a virtual-site definition tuple → ``<VirtualSite>`` element."""
     try:
-        parts     = list(definition)
+        parts     = [p for p in definition if p != '+']  # Strip '+' separators
         num_atoms = int(parts[0].rstrip(':'))
         weights, atom_ids = [], []
         i = 1
@@ -290,7 +290,11 @@ def gen_bond_force(bonded, mol_names):
              '<PerBondParameter name="r0"/>', '<PerBondParameter name="k2"/>',
              '<PerBondParameter name="k3"/>', '<PerBondParameter name="k4"/>']
     for q1, q2, r0, k2, k3, k4 in entries:
-        lines.append(f'<Bond type1="{q1}" type2="{q2}" r0="{r0}" k2="{k2}" k3="{k3}" k4="{k4}"/>')
+        r0_nm = r0 * 0.1
+        k2_kj = k2 * 418.4
+        k3_kj = k3 * 4184.0
+        k4_kj = k4 * 41840.0
+        lines.append(f'<Bond type1="{q1}" type2="{q2}" r0="{r0_nm}" k2="{k2_kj}" k3="{k3_kj}" k4="{k4_kj}"/>')
     lines.append('</CustomBondForce>')
     return '\n'.join(lines)
 
@@ -333,7 +337,8 @@ def gen_angle_force(bonded, mol_names):
     lines = ['<CustomAngleForce energy="(k/2)*(theta-theta0)^2">',
              '<PerAngleParameter name="k"/>', '<PerAngleParameter name="theta0"/>']
     for q1, q2, q3, theta0, k in entries:
-        lines.append(f'<Angle type1="{q1}" type2="{q2}" type3="{q3}" theta0="{theta0}" k="{k}"/>')
+        k_kj = k * 4.184
+        lines.append(f'<Angle type1="{q1}" type2="{q2}" type3="{q3}" theta0="{theta0}" k="{k_kj}"/>')
     lines.append('</CustomAngleForce>')
     return '\n'.join(lines)
 
