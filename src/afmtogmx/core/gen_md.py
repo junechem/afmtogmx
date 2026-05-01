@@ -1,4 +1,5 @@
-from afmtogmx.core import functions, residues
+import copy
+from afmtogmx.core import functions, populate_bonded, residues
 from afmtogmx.core.gmx_backend import GROMACSBackend
 from afmtogmx.core.openmm_backend import OpenMMBackend
 import warnings
@@ -480,6 +481,96 @@ class ReadOFF:
         }
 
         return self
+
+    def populate_bonded(self, directory, new_mol_name, remove_molecules=None):
+        """Build a new ReadOFF whose bonded section for ``new_mol_name`` is
+        reconstructed from a user-supplied topology directory.
+
+        The directory must contain ``atoms.dat``, ``bonds.dat``,
+        ``valid_dihedrals.dat``, and ``parameters.dat``. See
+        :mod:`afmtogmx.core.populate_bonded` for the file formats.
+
+        Co-fitted molecules in the original ``self`` (e.g. a co-fitted water
+        model) are carried through unchanged. ``remove_molecules`` lets the
+        caller drop the original monomer being replaced. ``self.nonbonded``
+        is filtered to atom-type pairs whose types still appear in some
+        surviving molecule.
+
+        Parameters
+        ----------
+        directory : str
+            Path to the topology-input directory.
+        new_mol_name : str
+            Name for the assembled molecule in the returned ReadOFF.
+        remove_molecules : list of str, optional
+            Molecule names in the current ReadOFF to drop from the new object.
+
+        Returns
+        -------
+        ReadOFF
+            A new ReadOFF instance. ``self`` is not modified.
+
+        Raises
+        ------
+        ValueError
+            If a required file is missing, an atom type in ``atoms.dat`` is
+            not present in any surviving molecule, or any bond/angle/dihedral
+            signature cannot be resolved against ``parameters.dat``.
+        """
+        if remove_molecules is None:
+            remove_molecules = []
+
+        new = copy.deepcopy(self)
+
+        # Atom types known to the original FF: union of ATO types across every
+        # molecule (including those about to be removed, since their nonbonded
+        # entries carry across as long as some surviving molecule uses the same
+        # type — typical when CB7 reuses C7F's types).
+        atom_type_universe = set()
+        for mol_data in new.bonded.values():
+            for entry in mol_data['ATO']['All'].values():
+                atype = entry[1]
+                if atype not in ('NETF', 'TORQ'):
+                    atom_type_universe.add(atype)
+
+        for name in remove_molecules:
+            new.bonded.pop(name, None)
+            new.charges.pop(name, None)
+            new.residues['Definitions'].pop(name, None)
+            new.residues['Residues'].pop(name, None)
+
+        new.bonded[new_mol_name] = populate_bonded.build_new_molecule_bonded(
+            directory, atom_type_universe
+        )
+
+        # Charges: one entry per atom type in the new molecule, default 0.0
+        # (matching the __init__ convention of keying by atom type via pair[1]).
+        new_types = {entry[1] for entry in new.bonded[new_mol_name]['ATO']['All'].values()}
+        new.charges[new_mol_name] = {atype: 0.0 for atype in new_types}
+
+        # Prune nonbonded to atom-type pairs whose types still appear somewhere.
+        surviving_types = set()
+        for mol_data in new.bonded.values():
+            for entry in mol_data['ATO']['All'].values():
+                atype = entry[1]
+                if atype not in ('NETF', 'TORQ'):
+                    surviving_types.add(atype)
+        new.nonbonded = {
+            pair: params
+            for pair, params in new.nonbonded.items()
+            if pair[0] in surviving_types and pair[1] in surviving_types
+        }
+
+        # Add residues entry for new_mol_name, matching __init__'s one-liner.
+        ato_all = new.bonded[new_mol_name]['ATO']['All']
+        new.residues['Definitions'][new_mol_name] = {
+            'All': functions._remove_netf_torq_atname(ato_all)
+        }
+        new.residues['Residues'][new_mol_name] = {
+            'All': [functions._remove_netf_torq_atnum(ato_all)]
+        }
+
+        return new
 
     def load_charges_from_file(self, file_path):
         """Load atomic charges from a file into `self.charges`.
