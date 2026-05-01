@@ -6,7 +6,9 @@
       "Bash(python generate_test3.py:*)",
       "Bash(python generate_test4.py:*)",
       "Bash(python generate_test5.py:*)",
-      "Bash(python generate_test6.py:*)"
+      "Bash(python generate_test6.py:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []

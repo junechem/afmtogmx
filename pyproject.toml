@@ -23,8 +23,9 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["afmtogmx", "afmtogmx.core"]
+packages = ["afmtogmx", "afmtogmx.core", "afmtogmx.reference_ff"]
 package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
 afmtogmx = ["py.typed"]
+"afmtogmx.reference_ff" = ["*.off"]
