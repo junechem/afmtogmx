@@ -115,73 +115,91 @@ BONDED_CATEGORY_ORDER = ['BON', 'ANG', 'BD3', 'DIH', 'CDI', 'CDIH']
 # ---------------------------------------------------------------------------
 # Nonbonded interaction schemas
 # ---------------------------------------------------------------------------
+#
+# The CRYOFF manual (page 23, Table 6 footnote) is explicit:
+#
+#   "The CRYOFF symbols are the minimal symbols to be used in the .ff file to
+#    denote their functional forms; Addition letters could follow the minimal
+#    symbol for identification such as EXPinter."
+#
+# So a stored key like 'EXPINTRA' / 'EXPINTER' / 'EXPW' / 'STRC' / 'STRCINTER'
+# is the user-chosen full identifier of a fit, and its first 3 characters
+# (EXP / STR / ...) name the functional form. The report groups every stored
+# key under its 3-char-prefix section and uses the manual's formula text.
 
+# Formulas as written in the CRYOFF manual, Table 6 (vdW) plus Coulomb forms.
 NONBONDED_FORMULAS = {
-    'EXP':      'EXP = A*exp(-alpha*r)',
-    'EXPINTRA': 'EXPINTRA = A*exp(-alpha*r)  (intramolecular)',
-    'EXPINTER': 'EXPINTER = A*exp(-alpha*r)  (intermolecular)',
-    'BUC':      'BUC = A*exp(-alpha*r) - C6/r^6',
-    'DBU':      'DBU = damped Buckingham',
-    'STR':      'STR = C/r^n  (stretched repulsion)',
-    'STRC':     'STRC = C/r^n  (stretched, Coulomb context)',
-    'SHTR':     'SHTR = short-range repulsion',
-    'POW':      'POW = C6/r^n',
-    'POW_6':    'POW_6 = C6/r^6',
-    'PEX':      'PEX = power-expansion repulsion',
-    'PEX_6':    'PEX_6 = C6/r^6  (power-expansion)',
-    'DPO':      'DPO = damped power dispersion',
-    'DPO_6':    'DPO_6 = C6/r^6  (damped)',
-    'SRD':      'SRD = C6/(r^n + R0^n)',
-    'SRD_6':    'SRD_6 = C6/(r^6 + R0^6)',
-    'COU':      'COU = q1*q2 / r',
-    'THC':      'THC = Thole charge-charge',
-    'GLJ':      'GLJ = generalized Lennard-Jones',
+    'COU': 'COU = q1*q2 / (4*pi*eps0*r)',
+    'THC': 'THC = Thole-damped Coulomb (q1, q2, alpha)',
+    'GLJ': 'GLJ = P1/r^P3 + P2/r^P4',
+    'BUC': 'BUC = P1*exp(-P3*r) + P2/r^6',
+    'DBU': 'DBU = P1*exp(-P3*r) + P2 * 1/(1 + exp(-P4*(r-P5)))',
+    'STR': 'STR = P1 * [(1/r^P2 - 1/R0^P2) + P2*(r-R0)/R0^(P2+1)] for r<=R0  (shift-truncated)',
+    'EXP': 'EXP = P1 * exp(-P2 * r)',
+    'GEX': 'GEX = (1 + P2*r + P3*r^2)^(-P4)',
+    'POW': 'POW = P1 * r^P2',
+    'CSP': 'CSP = (P1/2) * r^P2 * [cos(pi*(r-P3)/(P4-P3)) + 1] for P3<r<P4, else 0',
+    'GDP': 'GDP = P1 * r^P2 * exp(-P3 * r^2)',
+    'PEX': 'PEX = P1 * r^P2 * exp(-P3 * r)',
+    'DPO': 'DPO = P1 * r^P2 / (1 + exp(-P3*(r-P4)))',
+    'SRD': 'SRD = P1 / (r^|P2| + |P3|^|P2|)',
+    'TTP': 'TTP = Tang-Toennies damped dispersion',
 }
 
-# Schemas describe the columns rendered for each interaction type. `remap`
-# (optional) takes the raw param list and returns the values to feed into
-# the column format specs — useful for skipping internal exponents that
-# don't need to appear in the report.
+# Column schemas for each 3-char prefix. Parameter names (where they are
+# unambiguous in the manual) are used as labels for publication readability;
+# the formula in the section header tells the reader exactly what each P is.
+# Stored parameter order matches the manual's P1..PN ordering as fit by CRYOFF.
 NONBONDED_SCHEMAS = {
-    'EXP':      {'cols': [('A(kcal/mol)', '>16.3f'),
-                          ('alpha(1/A)', '>14.3f')]},
-    'EXPINTRA': {'cols': [('A(kcal/mol)', '>16.3f'),
-                          ('alpha(1/A)', '>14.3f')]},
-    'EXPINTER': {'cols': [('A(kcal/mol)', '>16.3f'),
-                          ('alpha(1/A)', '>14.3f')]},
-    'BUC':      {'cols': [('A(kcal/mol)', '>16.3f'),
-                          ('alpha(1/A)', '>14.3f'),
-                          ('C6(kcal mol^-1 A^6)', '>22.3f')]},
-    'SHTR':     {'cols': [('A(kcal/mol)', '>16.3f'),
-                          ('alpha(1/A)', '>14.3f')]},
-    # SRD stored as (C6, exponent, R0); report shows just C6 and R0.
-    'SRD':      {'cols': [('C6(kcal mol^-1 A^6)', '>22.3f'),
-                          ('R0(A)', '>10.3f')],
-                 'remap': lambda p: (p[0], p[2])},
-    'SRD_6':    {'cols': [('C6(kcal mol^-1 A^6)', '>22.3f'),
-                          ('R0(A)', '>10.3f')],
-                 'remap': lambda p: (p[0], p[2])},
-    # STR / STRC stored as (C, n, R0); report shows C and R0 only.
-    'STR':      {'cols': [('C(kcal mol^-1 A^n)', '>22.3f'),
-                          ('R0(A)', '>10.3f')],
-                 'remap': lambda p: (p[0], p[2])},
-    'STRC':     {'cols': [('C(kcal mol^-1 A^n)', '>22.3f'),
-                          ('R0(A)', '>10.3f')],
-                 'remap': lambda p: (p[0], p[2])},
-    'POW_6':    {'cols': [('C6(kcal mol^-1 A^6)', '>22.3f')]},
-    'DPO_6':    {'cols': [('C6(kcal mol^-1 A^6)', '>22.3f')]},
-    'PEX_6':    {'cols': [('C6(kcal mol^-1 A^6)', '>22.3f')]},
-    'COU':      {'cols': [('q1*q2 (e^2)', '>14.5f')]},
-    'THC':      {'cols': [('P1', '>14.4f'), ('P2', '>14.4f')]},
-    'GLJ':      {'cols': [('P1', '>14.4f'), ('P2', '>14.4f')]},
-    'DBU':      {'cols': [('P1', '>14.4f'), ('P2', '>14.4f'),
-                          ('P3', '>14.4f')]},
+    'COU': {'cols': [('q1*q2(e^2)', '>14.5f')]},
+    'THC': {'cols': [('q1*q2(e^2)', '>14.5f'), ('alpha', '>12.4f')]},
+    'GLJ': {'cols': [('P1', '>14.4f'), ('P2', '>14.4f'),
+                     ('P3', '>10.4f'), ('P4', '>10.4f')]},
+    'BUC': {'cols': [('A(kcal/mol)', '>16.3f'),
+                     ('C6', '>16.3f'),
+                     ('alpha(1/A)', '>14.3f')]},
+    'DBU': {'cols': [('P1', '>14.4f'), ('P2', '>14.4f'),
+                     ('P3', '>10.4f'), ('P4', '>10.4f'), ('P5', '>10.4f')]},
+    'STR': {'cols': [('P1(kcal/mol)', '>16.3f'),
+                     ('n', '>8.3f'),
+                     ('R0(A)', '>10.3f')]},
+    'EXP': {'cols': [('A(kcal/mol)', '>16.3f'),
+                     ('alpha(1/A)', '>14.3f')]},
+    'GEX': {'cols': [('P1', '>14.4f'), ('P2', '>14.4f'),
+                     ('P3', '>14.4f'), ('P4', '>10.4f')]},
+    'POW': {'cols': [('P1(kcal/mol)', '>16.3f'),
+                     ('n', '>8.3f')]},
+    'CSP': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
+                     ('P3', '>10.4f'), ('P4', '>10.4f')]},
+    'GDP': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
+                     ('P3', '>10.4f')]},
+    'PEX': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
+                     ('P3', '>10.4f')]},
+    'DPO': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
+                     ('P3', '>10.4f'), ('P4', '>10.4f')]},
+    'SRD': {'cols': [('P1(kcal/mol)', '>16.3f'),
+                     ('n', '>8.3f'),
+                     ('R0(A)', '>10.3f')]},
+    'TTP': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
+                     ('P3', '>10.4f')]},
 }
 
-# Order in which nonbonded interaction types are emitted (most useful first).
-NONBONDED_ORDER = ['EXP', 'EXPINTRA', 'EXPINTER', 'BUC', 'SHTR', 'STR',
-                   'STRC', 'DBU', 'POW_6', 'PEX_6', 'DPO_6', 'SRD', 'SRD_6',
-                   'COU', 'THC', 'GLJ']
+# Section render order: Coulombics first, then short-range repulsion/dispersion
+# forms following the manual's Table 6 layout.
+NONBONDED_ORDER = ['COU', 'THC',
+                   'GLJ', 'BUC', 'DBU', 'STR', 'EXP', 'GEX',
+                   'POW', 'CSP', 'GDP', 'PEX', 'DPO', 'SRD', 'TTP']
+
+
+def _prefix(itype):
+    """Return the 3-char minimal symbol for a stored interaction-type key.
+
+    Per the CRYOFF manual (Table 6 footnote, page 23), the first 3 characters
+    of an interaction-type name determine the functional form; any trailing
+    characters are a user-chosen identifier (e.g. EXPINTRA, EXPINTER, EXPW,
+    STRC, STRCINTER). All such suffixed names share the prefix's schema.
+    """
+    return itype[:3] if isinstance(itype, str) else itype
 
 ATOM_W = 6  # column width for atom-name cells
 
@@ -455,44 +473,51 @@ def _render_nonbonded(pairs, name_tr):
     if not pairs:
         return ['(no nonbonded interactions)', '']
 
-    # Discover which interaction types appear, in canonical order.
-    present = []
+    # Discover which 3-char prefixes appear across all stored keys. A stored
+    # key like 'EXPINTRA' contributes prefix 'EXP'; 'STRC' contributes 'STR'.
+    # Preserve first-appearance order for any prefix not in NONBONDED_ORDER.
+    present_prefixes = []
     seen = set()
     for ints in pairs.values():
         for itype in ints:
-            if itype not in seen:
-                seen.add(itype)
-                present.append(itype)
+            pref = _prefix(itype)
+            if pref not in seen:
+                seen.add(pref)
+                present_prefixes.append(pref)
 
-    ordered = [t for t in NONBONDED_ORDER if t in seen]
-    extras = [t for t in present if t not in ordered]
+    ordered = [p for p in NONBONDED_ORDER if p in seen]
+    extras = [p for p in present_prefixes if p not in ordered]
     ordered.extend(extras)
 
     lines = ['Energy expressions:']
-    for itype in ordered:
-        lines.append(f'  {NONBONDED_FORMULAS.get(itype, itype + " (custom)")}')
+    for pref in ordered:
+        lines.append(f'  {NONBONDED_FORMULAS.get(pref, pref + " (custom)")}')
     lines.append('')
 
-    for itype in ordered:
-        lines.extend(_render_nonbonded_section(itype, pairs, name_tr))
+    for pref in ordered:
+        lines.extend(_render_nonbonded_section(pref, pairs, name_tr))
     return lines
 
 
-def _render_nonbonded_section(itype, pairs, name_tr):
-    schema = NONBONDED_SCHEMAS.get(itype)
+def _render_nonbonded_section(prefix, pairs, name_tr):
+    """Render every stored-key row whose 3-char prefix matches `prefix`."""
+    schema = NONBONDED_SCHEMAS.get(prefix)
     if schema is None:
-        # Unknown interaction — emit generic columns from the data itself.
+        # Unknown prefix — emit generic P1, P2, ... columns sized to the data.
         max_params = max(
-            (len(p) for ints in pairs.values() for p in ints.get(itype, [])),
+            (len(p)
+             for ints in pairs.values()
+             for itype, plist in ints.items() if _prefix(itype) == prefix
+             for p in plist),
             default=0,
         )
         cols = [(f'P{i+1}', '>14.4f') for i in range(max_params)]
-        remap = None
     else:
         cols = schema['cols']
-        remap = schema.get('remap')
 
-    header = f'{itype} interactions:  {NONBONDED_FORMULAS.get(itype, "")}'
+    # Formula already shown once in the "Energy expressions:" block above; keep
+    # the per-section header short so total line width stays within 95 chars.
+    header = f'{prefix} interactions:'
     atom_header = f'{"atom1":<{ATOM_W}}{"atom2":<{ATOM_W}}'
     col_header = ''.join(f'{name:>{_fmt_width(spec)}}' for name, spec in cols)
     columns_line = f'{atom_header}{col_header}'
@@ -501,20 +526,20 @@ def _render_nonbonded_section(itype, pairs, name_tr):
 
     any_rows = False
     for (a1, a2), ints in pairs.items():
-        if itype not in ints:
-            continue
-        for params in ints[itype]:
-            rendered = remap(params) if remap else params
-            d1 = name_tr.get(a1, a1)
-            d2 = name_tr.get(a2, a2)
-            atom_cells = f'{d1:<{ATOM_W}}{d2:<{ATOM_W}}'
-            param_cells = ''.join(
-                f'{rendered[i]:{spec}}' if i < len(rendered)
-                else f'{"":>{_fmt_width(spec)}}'
-                for i, (_, spec) in enumerate(cols)
-            )
-            block.append(f'{atom_cells}{param_cells}')
-            any_rows = True
+        for itype, param_list in ints.items():
+            if _prefix(itype) != prefix:
+                continue
+            for params in param_list:
+                d1 = name_tr.get(a1, a1)
+                d2 = name_tr.get(a2, a2)
+                atom_cells = f'{d1:<{ATOM_W}}{d2:<{ATOM_W}}'
+                param_cells = ''.join(
+                    f'{params[i]:{spec}}' if i < len(params)
+                    else f'{"":>{_fmt_width(spec)}}'
+                    for i, (_, spec) in enumerate(cols)
+                )
+                block.append(f'{atom_cells}{param_cells}')
+                any_rows = True
 
     if not any_rows:
         block.append('(none for selected molecule)')
