@@ -158,25 +158,6 @@ def _prefix(itype):
     return itype[:3] if isinstance(itype, str) else itype
 
 
-def _shared_abs_exponent(rows, idx):
-    """Return the common |exponent| at column `idx` if every row agrees, else None.
-
-    Used so POW/SRD section headers can render a definite `C6` when every row
-    in the section has the same exponent magnitude.
-    """
-    mags = set()
-    for r in rows:
-        if len(r) <= idx:
-            return None
-        try:
-            mags.add(abs(int(round(r[idx]))))
-        except (TypeError, ValueError):
-            return None
-    if len(mags) == 1:
-        return mags.pop()
-    return None
-
-
 def _nonbonded_layout(prefix, rows, notation):
     """Return ``(formula, [(header, fmt), ...], row_transform)`` for a section.
 
@@ -212,20 +193,12 @@ def _nonbonded_layout(prefix, rows, notation):
                  ('n1', '>5.2f'), ('n2', '>5.2f')],
                 lambda r: r)
     if prefix == 'POW':
-        n = _shared_abs_exponent(rows, 1)
-        c_label = f'C{n}(kcal/mol)' if n is not None else 'Cn(kcal/mol)'
-        formula_sym = f'C{n}' if n is not None else 'Cn'
-        formula = f'POW = {formula_sym} / r^n'
-        return (formula,
-                [(c_label, '>16.3f'), ('n', '>4.0f')],
+        return ('POW = Cn / r^n',
+                [('Cn(kcal/mol)', '>16.3f'), ('n', '>4.0f')],
                 lambda r: (r[0], abs(r[1])))
     if prefix == 'SRD':
-        n = _shared_abs_exponent(rows, 1)
-        c_label = f'C{n}(kcal/mol)' if n is not None else 'Cn(kcal/mol)'
-        formula_sym = f'C{n}' if n is not None else 'Cn'
-        formula = f'SRD = {formula_sym} / (r^n + R0^n)'
-        return (formula,
-                [(c_label, '>16.3f'), ('n', '>4.0f'), ('R0(A)', '>10.3f')],
+        return ('SRD = Cn / (r^n + R0^n)',
+                [('Cn(kcal/mol)', '>16.3f'), ('n', '>4.0f'), ('R0(A)', '>10.3f')],
                 lambda r: (r[0], abs(r[1]), r[2]))
     if prefix == 'STR':
         formula = 'STR = A * [(1/r^n - 1/R0^n) + n*(r-R0)/R0^(n+1)]  for r<=R0  (shift-truncated)'
