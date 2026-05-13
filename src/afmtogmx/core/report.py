@@ -569,10 +569,6 @@ def _render_nonbonded(pairs, name_tr, notation):
     for pref in ordered:
         formula, _, _ = layouts[pref]
         lines.append(f'  {formula}')
-    if notation == 'standard' and any(p in {'POW', 'SRD', 'STR'} for p in ordered):
-        lines.append(
-            '  (For POW/SRD/STR: n is |exponent|; coefficient keeps fitted sign.)'
-        )
     lines.append('')
 
     for pref in ordered:
