@@ -113,7 +113,7 @@ BONDED_CATEGORY_LABEL = {
 BONDED_CATEGORY_ORDER = ['BON', 'ANG', 'BD3', 'DIH', 'CDI', 'CDIH']
 
 # ---------------------------------------------------------------------------
-# Nonbonded interaction schemas
+# Nonbonded interaction layout
 # ---------------------------------------------------------------------------
 #
 # The CRYOFF manual (page 23, Table 6 footnote) is explicit:
@@ -125,64 +125,20 @@ BONDED_CATEGORY_ORDER = ['BON', 'ANG', 'BD3', 'DIH', 'CDI', 'CDIH']
 # So a stored key like 'EXPINTRA' / 'EXPINTER' / 'EXPW' / 'STRC' / 'STRCINTER'
 # is the user-chosen full identifier of a fit, and its first 3 characters
 # (EXP / STR / ...) name the functional form. The report groups every stored
-# key under its 3-char-prefix section and uses the manual's formula text.
-
-# Formulas as written in the CRYOFF manual, Table 6 (vdW) plus Coulomb forms.
-NONBONDED_FORMULAS = {
-    'COU': 'COU = q1*q2 / (4*pi*eps0*r)',
-    'THC': 'THC = Thole-damped Coulomb (q1, q2, alpha)',
-    'GLJ': 'GLJ = P1/r^P3 + P2/r^P4',
-    'BUC': 'BUC = P1*exp(-P3*r) + P2/r^6',
-    'DBU': 'DBU = P1*exp(-P3*r) + P2 * 1/(1 + exp(-P4*(r-P5)))',
-    'STR': 'STR = P1 * [(1/r^P2 - 1/R0^P2) + P2*(r-R0)/R0^(P2+1)] for r<=R0  (shift-truncated)',
-    'EXP': 'EXP = P1 * exp(-P2 * r)',
-    'GEX': 'GEX = (1 + P2*r + P3*r^2)^(-P4)',
-    'POW': 'POW = P1 * r^P2',
-    'CSP': 'CSP = (P1/2) * r^P2 * [cos(pi*(r-P3)/(P4-P3)) + 1] for P3<r<P4, else 0',
-    'GDP': 'GDP = P1 * r^P2 * exp(-P3 * r^2)',
-    'PEX': 'PEX = P1 * r^P2 * exp(-P3 * r)',
-    'DPO': 'DPO = P1 * r^P2 / (1 + exp(-P3*(r-P4)))',
-    'SRD': 'SRD = P1 / (r^|P2| + |P3|^|P2|)',
-    'TTP': 'TTP = Tang-Toennies damped dispersion',
-}
-
-# Column schemas for each 3-char prefix. Parameter names (where they are
-# unambiguous in the manual) are used as labels for publication readability;
-# the formula in the section header tells the reader exactly what each P is.
-# Stored parameter order matches the manual's P1..PN ordering as fit by CRYOFF.
-NONBONDED_SCHEMAS = {
-    'COU': {'cols': [('q1*q2(e^2)', '>14.5f')]},
-    'THC': {'cols': [('q1*q2(e^2)', '>14.5f'), ('alpha', '>12.4f')]},
-    'GLJ': {'cols': [('P1', '>14.4f'), ('P2', '>14.4f'),
-                     ('P3', '>10.4f'), ('P4', '>10.4f')]},
-    'BUC': {'cols': [('A(kcal/mol)', '>16.3f'),
-                     ('C6', '>16.3f'),
-                     ('alpha(1/A)', '>14.3f')]},
-    'DBU': {'cols': [('P1', '>14.4f'), ('P2', '>14.4f'),
-                     ('P3', '>10.4f'), ('P4', '>10.4f'), ('P5', '>10.4f')]},
-    'STR': {'cols': [('P1(kcal/mol)', '>16.3f'),
-                     ('n', '>8.3f'),
-                     ('R0(A)', '>10.3f')]},
-    'EXP': {'cols': [('A(kcal/mol)', '>16.3f'),
-                     ('alpha(1/A)', '>14.3f')]},
-    'GEX': {'cols': [('P1', '>14.4f'), ('P2', '>14.4f'),
-                     ('P3', '>14.4f'), ('P4', '>10.4f')]},
-    'POW': {'cols': [('P1(kcal/mol)', '>16.3f'),
-                     ('n', '>8.3f')]},
-    'CSP': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
-                     ('P3', '>10.4f'), ('P4', '>10.4f')]},
-    'GDP': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
-                     ('P3', '>10.4f')]},
-    'PEX': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
-                     ('P3', '>10.4f')]},
-    'DPO': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
-                     ('P3', '>10.4f'), ('P4', '>10.4f')]},
-    'SRD': {'cols': [('P1(kcal/mol)', '>16.3f'),
-                     ('n', '>8.3f'),
-                     ('R0(A)', '>10.3f')]},
-    'TTP': {'cols': [('P1', '>14.4f'), ('P2', '>10.4f'),
-                     ('P3', '>10.4f')]},
-}
+# key under its 3-char-prefix section.
+#
+# Two label conventions are supported:
+#   notation='standard' (default): publication-style names from the manual —
+#                                  A, alpha, Cn, R0 — consistent within a row.
+#   notation='PN':                 generic P1, P2, P3, ... matching the
+#                                  manual's positional parameter order.
+#
+# For POW and SRD the exponent stored by CRYOFF is signed (e.g. -6 for
+# attractive dispersion). The 'standard' notation reports the magnitude in
+# the `n` column and folds that magnitude into the coefficient label as
+# `C{n}` (e.g. C6), matching the convention used in Wang-group publications.
+# The coefficient itself keeps its sign, so the formula `U = Cn / r^n` with
+# positive n recovers the correct attractive/repulsive sign.
 
 # Section render order: Coulombics first, then short-range repulsion/dispersion
 # forms following the manual's Table 6 layout.
@@ -201,6 +157,130 @@ def _prefix(itype):
     """
     return itype[:3] if isinstance(itype, str) else itype
 
+
+def _shared_abs_exponent(rows, idx):
+    """Return the common |exponent| at column `idx` if every row agrees, else None.
+
+    Used so POW/SRD section headers can render a definite `C6` when every row
+    in the section has the same exponent magnitude.
+    """
+    mags = set()
+    for r in rows:
+        if len(r) <= idx:
+            return None
+        try:
+            mags.add(abs(int(round(r[idx]))))
+        except (TypeError, ValueError):
+            return None
+    if len(mags) == 1:
+        return mags.pop()
+    return None
+
+
+def _nonbonded_layout(prefix, rows, notation):
+    """Return ``(formula, [(header, fmt), ...], row_transform)`` for a section.
+
+    The row_transform takes a stored param list and returns the values to feed
+    into the column format specs. For most prefixes it is the identity. For
+    POW/SRD/STR under standard notation it folds the signed exponent in the
+    stored data into the column's magnitude convention.
+    """
+    if notation == 'PN':
+        return _pn_layout(prefix, rows)
+
+    if prefix == 'COU':
+        return ('COU = q1*q2 / (4*pi*eps0*r)',
+                [('q1*q2(e^2)', '>14.5f')],
+                lambda r: r)
+    if prefix == 'THC':
+        return ('THC = (q1*q2 / (4*pi*eps0*r)) * Thole_damping(alpha)',
+                [('q1*q2(e^2)', '>14.5f'), ('alpha', '>12.4f')],
+                lambda r: r)
+    if prefix == 'EXP':
+        return ('EXP = A * exp(-alpha * r)',
+                [('A(kcal/mol)', '>16.3f'), ('alpha(1/A)', '>14.3f')],
+                lambda r: r)
+    if prefix == 'BUC':
+        return ('BUC = A * exp(-alpha * r) + C6 / r^6',
+                [('A(kcal/mol)', '>16.3f'),
+                 ('C6(kcal mol^-1 A^6)', '>22.3f'),
+                 ('alpha(1/A)', '>14.3f')],
+                lambda r: r)
+    if prefix == 'GLJ':
+        return ('GLJ = C(n1)/r^n1 + C(n2)/r^n2',
+                [('C(n1)(kcal/mol)', '>16.4f'), ('C(n2)(kcal/mol)', '>16.4f'),
+                 ('n1', '>5.2f'), ('n2', '>5.2f')],
+                lambda r: r)
+    if prefix == 'POW':
+        n = _shared_abs_exponent(rows, 1)
+        c_label = f'C{n}(kcal/mol)' if n is not None else 'Cn(kcal/mol)'
+        formula_sym = f'C{n}' if n is not None else 'Cn'
+        formula = f'POW = {formula_sym} / r^n'
+        return (formula,
+                [(c_label, '>16.3f'), ('n', '>4.0f')],
+                lambda r: (r[0], abs(r[1])))
+    if prefix == 'SRD':
+        n = _shared_abs_exponent(rows, 1)
+        c_label = f'C{n}(kcal/mol)' if n is not None else 'Cn(kcal/mol)'
+        formula_sym = f'C{n}' if n is not None else 'Cn'
+        formula = f'SRD = {formula_sym} / (r^n + R0^n)'
+        return (formula,
+                [(c_label, '>16.3f'), ('n', '>4.0f'), ('R0(A)', '>10.3f')],
+                lambda r: (r[0], abs(r[1]), r[2]))
+    if prefix == 'STR':
+        formula = 'STR = A * [(1/r^n - 1/R0^n) + n*(r-R0)/R0^(n+1)]  for r<=R0  (shift-truncated)'
+        return (formula,
+                [('A(kcal/mol)', '>16.3f'), ('n', '>4.0f'), ('R0(A)', '>10.3f')],
+                lambda r: (r[0], abs(r[1]), r[2]))
+    if prefix == 'PEX':
+        return ('PEX = A * r^n * exp(-alpha * r)',
+                [('A(kcal/mol)', '>16.3f'), ('n', '>5.2f'),
+                 ('alpha(1/A)', '>14.3f')],
+                lambda r: (r[0], abs(r[1]), r[2]) if len(r) >= 3 else r)
+    if prefix == 'GDP':
+        return ('GDP = A * r^n * exp(-beta * r^2)',
+                [('A(kcal/mol)', '>16.3f'), ('n', '>5.2f'),
+                 ('beta(1/A^2)', '>14.4f')],
+                lambda r: (r[0], abs(r[1]), r[2]) if len(r) >= 3 else r)
+    if prefix == 'DPO':
+        return ('DPO = A * r^n / (1 + exp(-beta * (r - r0)))',
+                [('A(kcal/mol)', '>16.3f'), ('n', '>5.2f'),
+                 ('beta(1/A)', '>10.3f'), ('r0(A)', '>10.3f')],
+                lambda r: (r[0], abs(r[1]), r[2], r[3]) if len(r) >= 4 else r)
+    if prefix == 'GEX':
+        return ('GEX = (1 + a*r + b*r^2)^(-c)',
+                [('P1', '>14.4f'), ('a', '>12.4f'),
+                 ('b', '>12.4f'), ('c', '>8.3f')],
+                lambda r: r)
+    if prefix == 'CSP':
+        return ('CSP = (A/2) * r^n * [cos(pi*(r-r1)/(r2-r1)) + 1]  for r1<r<r2; 0 otherwise',
+                [('A(kcal/mol)', '>16.3f'), ('n', '>5.2f'),
+                 ('r1(A)', '>10.3f'), ('r2(A)', '>10.3f')],
+                lambda r: (r[0], abs(r[1]), r[2], r[3]) if len(r) >= 4 else r)
+    if prefix == 'DBU':
+        return ('DBU = A * exp(-alpha * r) + C6 * f(r);  f = 1/(1 + exp(-beta*(r-r0)))',
+                [('A(kcal/mol)', '>16.3f'),
+                 ('C6(kcal mol^-1 A^6)', '>22.3f'),
+                 ('alpha(1/A)', '>10.3f'),
+                 ('beta(1/A)', '>10.3f'),
+                 ('r0(A)', '>10.3f')],
+                lambda r: r)
+    if prefix == 'TTP':
+        return ('TTP = A * r^n * [1 - exp(-beta r) * sum_{k=0..n} (beta r)^k / k!]',
+                [('A(kcal/mol)', '>16.3f'), ('n', '>5.2f'),
+                 ('beta(1/A)', '>10.3f')],
+                lambda r: (r[0], abs(r[1]), r[2]) if len(r) >= 3 else r)
+    # Unknown prefix — fall through to the PN layout.
+    return _pn_layout(prefix, rows)
+
+
+def _pn_layout(prefix, rows):
+    """Generic PN layout: P1, P2, P3, ... sized to the longest row."""
+    max_len = max((len(r) for r in rows), default=0)
+    cols = [(f'P{i+1}', '>14.4f') for i in range(max_len)]
+    formula = f'{prefix} = function of (P1, P2, ..., P{max_len})' if max_len else f'{prefix} = (custom)'
+    return formula, cols, lambda r: r
+
 ATOM_W = 6  # column width for atom-name cells
 
 
@@ -210,7 +290,7 @@ ATOM_W = 6  # column width for atom-name cells
 
 
 def write_report(off, path, incl_mol=None, name_translation=None,
-                 molname_translation=None):
+                 molname_translation=None, notation='standard'):
     """Write a publication-style text report of an :class:`ReadOFF` object.
 
     Parameters
@@ -231,7 +311,20 @@ def write_report(off, path, incl_mol=None, name_translation=None,
         ``{off_molecule_name: display_name}``. Applied to molecule names in
         banners and section headers. Molecules not in the dict are rendered
         unchanged.
+    notation : {'standard', 'PN'}, default 'standard'
+        Column label convention for nonbonded sections.
+        - 'standard': publication-style names (A, alpha, Cn, R0, ...). For
+          POW and SRD, the coefficient column is ``C{|n|}`` (e.g. ``C6``)
+          and the exponent column reports ``|n|``; the coefficient keeps its
+          fitted sign so ``Cn / r^n`` recovers the correct attractive vs.
+          repulsive contribution.
+        - 'PN': generic ``P1, P2, P3, ...`` matching the manual's positional
+          ordering, with no transformation of stored values.
     """
+    if notation not in ('standard', 'PN'):
+        raise ValueError(
+            f"notation must be 'standard' or 'PN', got {notation!r}"
+        )
     if not incl_mol:
         incl_mol = list(off.bonded.keys())
     name_translation = dict(name_translation or {})
@@ -244,7 +337,8 @@ def write_report(off, path, incl_mol=None, name_translation=None,
         if molname not in incl_mol:
             continue
         out.extend(_render_molecule(
-            off, molname, name_translation, molname_translation, issues
+            off, molname, name_translation, molname_translation, issues,
+            notation,
         ))
         out.append('')
 
@@ -265,7 +359,7 @@ def write_report(off, path, incl_mol=None, name_translation=None,
 # ---------------------------------------------------------------------------
 
 
-def _render_molecule(off, molname, name_tr, mol_tr, issues):
+def _render_molecule(off, molname, name_tr, mol_tr, issues, notation):
     display = mol_tr.get(molname, molname)
     lines = []
 
@@ -309,7 +403,7 @@ def _render_molecule(off, molname, name_tr, mol_tr, issues):
 
     mol_atom_names = set(off.charges.get(molname, {}).keys())
     relevant_pairs = _select_nonbonded_pairs(off.nonbonded, mol_atom_names)
-    lines.extend(_render_nonbonded(relevant_pairs, name_tr))
+    lines.extend(_render_nonbonded(relevant_pairs, name_tr, notation))
 
     lines.append('=' * LINE_WIDTH)
     return lines
@@ -469,7 +563,7 @@ def _select_nonbonded_pairs(nonbonded, mol_atom_names):
     }
 
 
-def _render_nonbonded(pairs, name_tr):
+def _render_nonbonded(pairs, name_tr, notation):
     if not pairs:
         return ['(no nonbonded interactions)', '']
 
@@ -478,42 +572,46 @@ def _render_nonbonded(pairs, name_tr):
     # Preserve first-appearance order for any prefix not in NONBONDED_ORDER.
     present_prefixes = []
     seen = set()
+    rows_by_prefix = {}
     for ints in pairs.values():
-        for itype in ints:
+        for itype, plist in ints.items():
             pref = _prefix(itype)
             if pref not in seen:
                 seen.add(pref)
                 present_prefixes.append(pref)
+            rows_by_prefix.setdefault(pref, []).extend(plist)
 
     ordered = [p for p in NONBONDED_ORDER if p in seen]
     extras = [p for p in present_prefixes if p not in ordered]
     ordered.extend(extras)
 
+    # Resolve each section's layout once so the energy-expressions block at
+    # the top of the nonbonded summary matches the column headers below.
+    layouts = {
+        pref: _nonbonded_layout(pref, rows_by_prefix.get(pref, []), notation)
+        for pref in ordered
+    }
+
     lines = ['Energy expressions:']
     for pref in ordered:
-        lines.append(f'  {NONBONDED_FORMULAS.get(pref, pref + " (custom)")}')
+        formula, _, _ = layouts[pref]
+        lines.append(f'  {formula}')
+    if notation == 'standard' and any(p in {'POW', 'SRD', 'STR'} for p in ordered):
+        lines.append(
+            '  (For POW/SRD/STR: n is |exponent|; coefficient keeps fitted sign.)'
+        )
     lines.append('')
 
     for pref in ordered:
-        lines.extend(_render_nonbonded_section(pref, pairs, name_tr))
+        lines.extend(
+            _render_nonbonded_section(pref, pairs, name_tr, layouts[pref])
+        )
     return lines
 
 
-def _render_nonbonded_section(prefix, pairs, name_tr):
+def _render_nonbonded_section(prefix, pairs, name_tr, layout):
     """Render every stored-key row whose 3-char prefix matches `prefix`."""
-    schema = NONBONDED_SCHEMAS.get(prefix)
-    if schema is None:
-        # Unknown prefix — emit generic P1, P2, ... columns sized to the data.
-        max_params = max(
-            (len(p)
-             for ints in pairs.values()
-             for itype, plist in ints.items() if _prefix(itype) == prefix
-             for p in plist),
-            default=0,
-        )
-        cols = [(f'P{i+1}', '>14.4f') for i in range(max_params)]
-    else:
-        cols = schema['cols']
+    _, cols, row_transform = layout
 
     # Formula already shown once in the "Energy expressions:" block above; keep
     # the per-section header short so total line width stays within 95 chars.
@@ -530,11 +628,12 @@ def _render_nonbonded_section(prefix, pairs, name_tr):
             if _prefix(itype) != prefix:
                 continue
             for params in param_list:
+                values = row_transform(params)
                 d1 = name_tr.get(a1, a1)
                 d2 = name_tr.get(a2, a2)
                 atom_cells = f'{d1:<{ATOM_W}}{d2:<{ATOM_W}}'
                 param_cells = ''.join(
-                    f'{params[i]:{spec}}' if i < len(params)
+                    f'{values[i]:{spec}}' if i < len(values)
                     else f'{"":>{_fmt_width(spec)}}'
                     for i, (_, spec) in enumerate(cols)
                 )

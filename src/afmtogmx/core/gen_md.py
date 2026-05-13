@@ -674,7 +674,7 @@ class ReadOFF:
         return self
 
     def write_report(self, path, incl_mol=None, name_translation=None,
-                     molname_translation=None):
+                     molname_translation=None, notation='standard'):
         """Write a publication-style text report of the parsed force field.
 
         Produces a fixed-width ASCII document summarising charges, bonded
@@ -698,6 +698,10 @@ class ReadOFF:
         molname_translation : dict, optional
             ``{off_molecule_name: display_name}``. Applied to molecule names
             in banners and section headers.
+        notation : {'standard', 'PN'}, default 'standard'
+            Column label convention for nonbonded sections. ``'standard'``
+            uses publication-style names (A, alpha, Cn, R0); ``'PN'`` uses
+            the manual's generic P1, P2, ... positional names.
 
         Returns
         -------
@@ -710,5 +714,6 @@ class ReadOFF:
             incl_mol=incl_mol,
             name_translation=name_translation,
             molname_translation=molname_translation,
+            notation=notation,
         )
         return self
