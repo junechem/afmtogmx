@@ -349,8 +349,6 @@ def _render_molecule(off, molname, name_tr, mol_tr, issues, notation):
     lines.append('=' * LINE_WIDTH)
     lines.append(f'bonded parameters of {display}:')
     lines.append('=' * LINE_WIDTH)
-    lines.append('Parameters are in the .off file native units (kcal/mol, Angstrom).')
-    lines.append('')
 
     bonded = off.bonded.get(molname, {})
     ato_map = bonded.get('ATO', {}).get('All', {})
