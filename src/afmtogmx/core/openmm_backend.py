@@ -141,7 +141,8 @@ class OpenMMBackend:
 
         xml_generation.write_xml(output, sections)
 
-    def preprocess_pdb(self, input_pdb, xml_file, output_pdb='output.pdb'):
+    def preprocess_pdb(self, input_pdb, xml_file, output_pdb='output.pdb',
+                       maxwarn=0):
         """Preprocess a PDB file for OpenMM compatibility using a force-field XML.
 
         Renames PDB atoms to match the atom names in the XML's ``<Residues>``
@@ -149,6 +150,19 @@ class OpenMMBackend:
         definitions. The XML file is the only source of force-field
         information used; no in-memory ``ReadOFF`` state is consulted, so a
         single XML can be reused to process many PDB files.
+
+        Atom identification uses one of two strategies, chosen automatically:
+
+        - **Topology matching** — used when the input PDB has CONECT records.
+          Each residue's bond graph is matched to the XML residue graph by
+          element-labelled graph isomorphism, so atoms are identified by
+          *connectivity* regardless of their order in the file. Atoms are
+          then reordered into the canonical XML order. This is the robust
+          path for PDBs whose atom order differs from the ``.off``/XML (e.g.
+          PDBs built from a CIF).
+        - **Positional matching** — fallback used when the PDB has no CONECT
+          records. The Nth atom of each residue receives the Nth XML name;
+          the ``maxwarn`` failsafe (below) guards against mis-ordered input.
 
         Parameters
         ----------
@@ -159,6 +173,10 @@ class OpenMMBackend:
             :meth:`gen_xml`.
         output_pdb : str, optional
             Path for output PDB file. Defaults to ``'output.pdb'``.
+        maxwarn : int, optional
+            Number of element-mismatch warnings tolerated on the positional
+            (no-CONECT) path before the run aborts. Default ``0`` (strict).
+            Ignored when the PDB has CONECT records.
 
         Returns
         -------
@@ -171,14 +189,17 @@ class OpenMMBackend:
             If ``input_pdb`` or ``xml_file`` does not exist.
         IOError
             If ``output_pdb`` cannot be written.
+        SystemExit
+            If a residue cannot be matched to the XML by bond topology, or
+            the positional element-mismatch count exceeds ``maxwarn``.
 
         Notes
         -----
-        - Positional atom naming: the Nth atom of each residue instance in
-          the input PDB receives the Nth name from that residue's
-          ``<Residues>`` block in the XML.
         - All existing CONECT records in the input PDB are replaced with
-          new ones derived from the XML bond definitions.
+          new ones derived from the XML bond definitions, and atom serial
+          numbers are renumbered sequentially.
+        - On the topology path, residue atoms are reordered into the XML
+          order; on the positional path the original order is kept.
         - Virtual sites (mass=0) are included in the atom renaming.
 
         Examples
@@ -196,5 +217,6 @@ class OpenMMBackend:
             pdb_processing.process_pdb('conf.pdb', 'conf_processed.pdb', topology)
         """
         residue_topology = pdb_processing.build_residue_topology_from_xml(xml_file)
-        pdb_processing.process_pdb(input_pdb, output_pdb, residue_topology)
+        pdb_processing.process_pdb(input_pdb, output_pdb, residue_topology,
+                                   maxwarn=maxwarn)
         return self
