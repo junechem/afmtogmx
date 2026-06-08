@@ -2,6 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code Reference Docs (read these first)
+
+`docs/code_reference/` contains a per-module reference describing every function in
+`src/afmtogmx/core/` — its purpose, inputs/outputs, and non-obvious behavior. **Read
+the relevant reference file before reading or modifying a `core/` source file**; it
+is faster than re-reading the source and is intended to save that round trip. Start
+with `docs/code_reference/README.md` for the module map and how the pieces fit
+together. Covered modules: `gen_md`, `functions`, `tabulated_potentials`,
+`topology`, `gmx_backend`, `openmm_backend`, `xml_generation`, `populate_bonded`.
+(`compare.py`, `residues.py`, and `__init__.py` are not documented there.)
+
+**Keep these docs in sync with the code.** Whenever you change, add, or remove a
+function in a documented `core/` module, update the matching reference file in
+`docs/code_reference/` in the same change. If a doc and the code disagree, the code
+wins — fix the doc.
+
 ## Project Overview
 
 `afmtogmx` is a Python package that converts .off files produced by CRYOFF into input files for GROMACS molecular dynamics simulations. The package generates tabulated potentials and topology files for both bonded and nonbonded interactions.
