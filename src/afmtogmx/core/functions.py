@@ -570,8 +570,11 @@ def _parse_bonded(unsorted_bonded, molecule=list, ff_input=str):
             continue
 
         # call function to do heavy lifting of breaking each key into proper sections and saving to dictionary
-        populated_molecule[f'{key}'] = _parse_bonded_section(unsorted_bonded, section=key, beginning=beg, ending=end,
-                                                             ff_input=ff_input)
+        # CDIH is the .off-file keyword; internally we store coupled-dihedral data under 'CDI'
+        # to match gen_empty_bonded and every downstream consumer (topology.py, populate_bonded.py).
+        internal_key = 'CDI' if key == 'CDIH' else key
+        populated_molecule[internal_key] = _parse_bonded_section(unsorted_bonded, section=key, beginning=beg,
+                                                                 ending=end, ff_input=ff_input)
     return populated_molecule
 
 

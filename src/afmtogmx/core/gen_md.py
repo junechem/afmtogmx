@@ -672,3 +672,48 @@ class ReadOFF:
             raise
 
         return self
+
+    def write_report(self, path, incl_mol=None, name_translation=None,
+                     molname_translation=None, notation='standard'):
+        """Write a publication-style text report of the parsed force field.
+
+        Produces a fixed-width ASCII document summarising charges, bonded
+        parameters, and nonbonded parameters per molecule, suitable for
+        pasting into a Word document at default margins with a monospace
+        font (Courier New 10pt). Units are the .off file's native
+        kcal/Angstrom — no conversion is performed.
+
+        Parameters
+        ----------
+        path : str
+            Output file path. Overwritten if it exists.
+        incl_mol : list of str, optional
+            Molecule names to include. ``None`` / empty list means all.
+            Nonbonded pairs where at least one atom belongs to an included
+            molecule are kept, so cross-molecule (e.g. solute-solvent)
+            interactions appear in the included molecule's section.
+        name_translation : dict, optional
+            ``{off_atom_name: display_name}``. Applied to every atom name
+            in every table.
+        molname_translation : dict, optional
+            ``{off_molecule_name: display_name}``. Applied to molecule names
+            in banners and section headers.
+        notation : {'standard', 'PN'}, default 'standard'
+            Column label convention for nonbonded sections. ``'standard'``
+            uses publication-style names (A, alpha, Cn, R0); ``'PN'`` uses
+            the manual's generic P1, P2, ... positional names.
+
+        Returns
+        -------
+        ReadOFF
+            ``self`` for method chaining.
+        """
+        from afmtogmx.core import report
+        report.write_report(
+            self, path,
+            incl_mol=incl_mol,
+            name_translation=name_translation,
+            molname_translation=molname_translation,
+            notation=notation,
+        )
+        return self

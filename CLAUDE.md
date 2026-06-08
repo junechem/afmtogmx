@@ -22,6 +22,8 @@ wins — fix the doc.
 
 `afmtogmx` is a Python package that converts .off files produced by CRYOFF into input files for GROMACS molecular dynamics simulations. The package generates tabulated potentials and topology files for both bonded and nonbonded interactions.
 
+For the **authoritative meanings, parameter orders, and units of every CRYOFF `.off` interaction symbol** (HAR, QUA, BD3, DIH, CDIH, COU, THC, GLJ, BUC, DBU, STR, EXP, GEX, POW, CSP, GDP, PEX, DPO, SRD, TTP, etc.) and for known naming inconsistencies inside this package (`CDI` vs `CDIH`, `STR` vs `STRC` vs `SHTR`, `POW` vs `POW_6`), read `docs/CRYOFF_REFERENCE.md`. Anything in this CLAUDE.md that conflicts with that reference is wrong; fix it.
+
 ## Core Architecture
 
 ### Main Entry Point
