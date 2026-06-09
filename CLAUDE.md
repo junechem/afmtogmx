@@ -10,7 +10,8 @@ the relevant reference file before reading or modifying a `core/` source file**;
 is faster than re-reading the source and is intended to save that round trip. Start
 with `docs/code_reference/README.md` for the module map and how the pieces fit
 together. Covered modules: `gen_md`, `functions`, `tabulated_potentials`,
-`topology`, `gmx_backend`, `openmm_backend`, `xml_generation`, `populate_bonded`.
+`topology`, `gmx_backend`, `openmm_backend`, `xml_generation`, `pdb_processing`,
+`populate_bonded`.
 (`compare.py`, `residues.py`, and `__init__.py` are not documented there.)
 
 **Keep these docs in sync with the code.** Whenever you change, add, or remove a
