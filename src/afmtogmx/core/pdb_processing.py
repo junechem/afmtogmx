@@ -36,20 +36,53 @@ import xml.etree.ElementTree as ET
 # Element helpers
 # --------------------------------------------------------------------------
 
+# Real element symbols, used to disambiguate multi-letter atom names such as
+# ``OW`` (oxygen, not the non-existent "Ow") from ``NA``/``CL`` (sodium,
+# chlorine). Kept local so this module stays free of an OpenMM dependency.
+_ELEMENT_SYMBOLS = frozenset((
+    'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', 'Al',
+    'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe',
+    'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr',
+    'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn',
+    'Sb', 'Te', 'I', 'Xe', 'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm',
+    'Eu', 'Gd', 'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Hf', 'Ta', 'W',
+    'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn',
+    'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf',
+    'Es', 'Fm', 'Md', 'No', 'Lr', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds',
+    'Rg', 'Cn', 'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og',
+))
+
+
 def _norm_element(symbol):
     """Normalise an element symbol for comparison (``'CL'`` → ``'Cl'``)."""
     return symbol.strip().capitalize()
 
 
 def _element_from_name(atom_name):
-    """Best-effort element guess from an atom name (``'O0'`` → ``'O'``)."""
+    """Best-effort element guess from an atom name.
+
+    Takes the leading alphabetic characters of the name, then resolves them to
+    a real element by trying the first two characters as a symbol before
+    falling back to the first character. This keeps two-letter elements like
+    sodium (``'NA'`` → ``'Na'``) and chlorine (``'CL'`` → ``'Cl'``) intact
+    while still mapping multi-letter atom names whose prefix is a single-letter
+    element (``'OW'`` → ``'O'``, ``'HW'`` → ``'H'``, ``'O0'`` → ``'O'``). Names
+    with no valid element prefix (e.g. the virtual site ``'EW'``) fall back to
+    the capitalised first character.
+    """
     element = ''
     for ch in atom_name:
         if ch.isalpha():
             element += ch
         else:
             break
-    return _norm_element(element)
+    if not element:
+        return ''
+    for n in (2, 1):
+        candidate = _norm_element(element[:n])
+        if candidate in _ELEMENT_SYMBOLS:
+            return candidate
+    return _norm_element(element[:1])
 
 
 def _atom_element(line):
