@@ -40,6 +40,27 @@ def _is_virtual(bonded, mol, attype):
     return False
 
 
+def _element_symbol(attype):
+    """Best-effort element symbol from an atom-type name.
+
+    Atom-type names encode the element as a prefix (``OW`` -> oxygen,
+    ``HW`` -> hydrogen). Two-letter elements such as sodium (``NA``) and
+    chlorine (``CL``) only resolve correctly if both leading characters are
+    considered, so this tries the first two characters as an element symbol
+    first and falls back to the first character. Returns the canonical OpenMM
+    symbol (e.g. ``'Na'``, ``'Cl'``, ``'O'``) on a match, otherwise the first
+    character of the type name.
+    """
+    if _OPENMM_AVAILABLE:
+        for n in (2, 1):
+            if len(attype) >= n:
+                try:
+                    return _OpenMMElement.getBySymbol(attype[:n]).symbol
+                except Exception:
+                    continue
+    return attype[0]
+
+
 def _get_mass(element_symbol):
     if not _OPENMM_AVAILABLE:
         return 0.0
@@ -57,7 +78,7 @@ def _unique_atom_names(atom_map):
         atname, attype = atom_map[atid]
         if attype in ('NETF', 'TORQ'):
             continue
-        element = attype[0]
+        element = _element_symbol(attype)
         n = counters.get(element, 0)
         counters[element] = n + 1
         result[atid] = f'{element}{n}'
@@ -163,7 +184,7 @@ def gen_atomtypes(bonded, atom_types):
         if _is_virtual(bonded, mol, raw):
             lines.append(f'<Type name="{qualified}" class="{qualified}" mass="0.0"/>')
         else:
-            element = raw[0]
+            element = _element_symbol(raw)
             mass = _get_mass(element)
             lines.append(f'<Type name="{qualified}" class="{qualified}" element="{element}" mass="{mass}"/>')
     lines.append('</AtomTypes>')

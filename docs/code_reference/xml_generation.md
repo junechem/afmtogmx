@@ -12,9 +12,13 @@ label stay globally unique.
 - `_atom_map(ato_all)` — normalize `ATO['All']` to `{int_id: (atname, attype)}`.
 - `_qualify(mol, attype)` — `"<mol>_<attype>"`.
 - `_is_virtual(bonded, mol, attype)` — True if the type is a virtual site in `mol`.
+- `_element_symbol(attype)` — element symbol from an atom-type name. Tries the
+  first **two** characters as an element symbol first (so `NA`→`Na`, `CL`→`Cl`),
+  then the first character (`OW`→`O`); returns the canonical OpenMM symbol on a
+  match, else `attype[0]`. Falls back to `attype[0]` when OpenMM is unavailable.
 - `_get_mass(element_symbol)` — element mass from OpenMM (0.0 if unavailable).
-- `_unique_atom_names(atom_map)` — per-residue unique names `C0, C1, H0, …`
-  (element letter + counter); skips NETF/TORQ.
+- `_unique_atom_names(atom_map)` — per-residue unique names `O0, H0, Na0, …`
+  (element symbol from `_element_symbol` + counter); skips NETF/TORQ.
 - `_matrix(n, val=0.0)` / `_matrix_str(matrix)` — N×N table helpers for the
   Discrete2D lookup tables used by the custom nonbonded forces.
 
@@ -29,8 +33,9 @@ label stay globally unique.
   BUC → one EXP entry + one SRD(power=-6) entry.
 
 ## Section builders (each returns a string, or `''` if empty)
-- `gen_atomtypes(bonded, atom_types)` — `<AtomTypes>`; virtual sites get mass 0.0
-  and no element.
+- `gen_atomtypes(bonded, atom_types)` — `<AtomTypes>`; element/mass come from
+  `_element_symbol` (handles two-letter elements like Na/Cl); virtual sites get
+  mass 0.0 and no element.
 - `gen_residues(bonded, mol_names, molname_translations)` — `<Residues>` with
   `<Atom>`, `<Bond>` (from `BON` data, deduped), and `<VirtualSite>` entries.
   Residue name comes from `molname_translations` (falls back to molname).
