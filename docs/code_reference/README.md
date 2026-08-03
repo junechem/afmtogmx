@@ -24,6 +24,7 @@ its inputs/outputs, and any non-obvious behavior.
 | `xml_generation.py` | [xml_generation.md](xml_generation.md) | Build OpenMM `<ForceField>` XML sections from FF data |
 | `pdb_processing.py` | [pdb_processing.md](pdb_processing.md) | Preprocess PDB for OpenMM: rename atoms, emit CONECT |
 | `populate_bonded.py` | [populate_bonded.md](populate_bonded.md) | Build a new molecule's bonded dict from a user topology directory |
+| `report.py` | [report.md](report.md) | Publication-style fixed-width text export of the parsed force field |
 
 Not documented here (excluded by request / trivial): `compare.py`, `residues.py`,
 `__init__.py` (empty).
@@ -38,10 +39,13 @@ ReadOFF(off_loc)                      # gen_md.py — parses .off via functions.
   │      ├── gen_nonbonded_tabpot / gen_bonded_tabpot   -> tabulated_potentials.py
   │      ├── write_*_tabpot                             -> tabulated_potentials.py
   │      └── gen_nonbonded_topology / gen_bonded_topology -> topology.py
-  └── off.openmm -> OpenMMBackend     # openmm_backend.py
-         ├── gen_xml          -> xml_generation.py
-         └── preprocess_pdb   -> pdb_processing.py
+  ├── off.openmm -> OpenMMBackend     # openmm_backend.py
+  │      ├── gen_xml          -> xml_generation.py
+  │      └── preprocess_pdb   -> pdb_processing.py
+  └── off.write_report                -> report.py
 ```
 
 `ReadOFF.change_molecule` and `ReadOFF.populate_bonded` (the latter via
 `populate_bonded.py`) rewrite the shared FF data before either backend runs.
+`ReadOFF.write_report` is engine-independent — it renders the parsed data as text
+rather than producing simulation input.
