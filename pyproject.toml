@@ -28,4 +28,4 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
 afmtogmx = ["py.typed"]
-"afmtogmx.reference_ff" = ["*.off"]
+"afmtogmx.reference_ff" = ["*.off", "*.charges"]
