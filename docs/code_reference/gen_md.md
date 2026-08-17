@@ -6,13 +6,24 @@ object that holds all force-field data and exposes two output backends
 
 ## Class `ReadOFF`
 
-### Constructor
+### Constructors
 `__init__(self, off_loc)`
 - Reads/parses the `.off` file at `off_loc` and populates instance attributes.
-- Build sequence: `_gen_sections_dict()` → `_gen_bonded()` → build `self.charges`
-  (all 0.0, keyed by atom name, NETF/TORQ excluded) → `_gen_nonbonded()` →
-  build `self.residues` → instantiate `GROMACSBackend(self)` and
-  `OpenMMBackend(self)`.
+- Build sequence: `_gen_sections_dict()` → `_gen_bonded()` → build charges
+  (all 0.0, keyed by atom name, NETF/TORQ excluded — a `.off` holds charge *products*, never
+  individual charges) → `_gen_nonbonded()` → `_finalize(charges)`.
+
+`from_json(cls, json_loc)` *(classmethod)*
+- Builds the same object from a pycryoff `pycryoff-ff/1` JSON document — see
+  [read_json.md](read_json.md). Same `bonded`/`nonbonded`/`charges`/`residues`, same native units,
+  so both backends work unchanged. `charges` arrives **populated** when the fit resolved per-atom
+  charges, and the object gains `polarization`, `combinations`, `provenance` and `fit`.
+- Raises `ValueError` on an unknown schema version or non-native units.
+
+`_finalize(self, charges)`
+- Everything both constructors do once `bonded`/`nonbonded` are populated: install `self.charges`,
+  build `self.residues`, instantiate `GROMACSBackend(self)` and `OpenMMBackend(self)`. Shared so
+  the two entry points cannot drift.
 
 ### Key attributes
 - `off_loc` — path to the `.off` file.

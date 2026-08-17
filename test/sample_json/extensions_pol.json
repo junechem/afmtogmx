@@ -1,0 +1,376 @@
+{
+  "schema": "pycryoff-ff/1",
+  "units": {
+    "length": "angstrom",
+    "energy": "kcal/mol",
+    "angle": "degree",
+    "charge": "e",
+    "polarizability": "angstrom^3"
+  },
+  "provenance": {
+    "pycryoff": "0.1.0",
+    "ff_file": "extensions_pol.ff",
+    "note": "synthetic deck, no fit \u2014 exercises [POL], [COMB] and an OOP virtual site"
+  },
+  "files": {
+    "ref": "total.ref",
+    "out": "extensions_pol.off"
+  },
+  "options": {
+    "mode": "inter",
+    "weight_scheme": "rms",
+    "weight_factor": 1.0,
+    "optimizer": "varpro",
+    "max_iter": 300,
+    "tol": 1e-07,
+    "svd_rcond": 2.220446049250313e-12,
+    "ridge": null,
+    "kfold": 1,
+    "kfold_random_seed": null,
+    "frame_range": null,
+    "cmd_atoms": [],
+    "neutralize_prefer": [],
+    "charge_molecules": []
+  },
+  "molecules": [
+    {
+      "name": "MOH",
+      "equiv_to": null,
+      "atoms": [
+        {
+          "index": 1,
+          "name": "1",
+          "vdw_type": "O0",
+          "cou_type": "O0",
+          "pseudo": null
+        },
+        {
+          "index": 2,
+          "name": "2",
+          "vdw_type": "C1",
+          "cou_type": "C1",
+          "pseudo": null
+        },
+        {
+          "index": 3,
+          "name": "3",
+          "vdw_type": "H0",
+          "cou_type": "H0",
+          "pseudo": null
+        },
+        {
+          "index": 4,
+          "name": "4",
+          "vdw_type": "H1",
+          "cou_type": "H1",
+          "pseudo": null
+        },
+        {
+          "index": 5,
+          "name": "5",
+          "vdw_type": "H1",
+          "cou_type": "H1",
+          "pseudo": null
+        },
+        {
+          "index": 6,
+          "name": "6",
+          "vdw_type": "LP",
+          "cou_type": "LP",
+          "pseudo": null,
+          "virtual_site": {
+            "kind": "oop",
+            "rule": [
+              [
+                0.3,
+                1
+              ],
+              [
+                0.3,
+                2
+              ],
+              [
+                0.55,
+                3
+              ]
+            ]
+          }
+        },
+        {
+          "index": 7,
+          "name": "7",
+          "vdw_type": "NetF",
+          "cou_type": "NetF",
+          "pseudo": "NETF"
+        },
+        {
+          "index": 8,
+          "name": "8",
+          "vdw_type": "Torq",
+          "cou_type": "Torq",
+          "pseudo": "TORQ"
+        }
+      ],
+      "exclusions": [],
+      "fudge": {
+        "vdw": 1.0,
+        "qq": 1.0,
+        "pairs": []
+      },
+      "bonded": []
+    }
+  ],
+  "nonbonded": [
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "O0"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": true,
+      "params": [
+        {
+          "name": "A",
+          "value": 800000.0,
+          "linear": true,
+          "fit": true
+        },
+        {
+          "name": "alpha",
+          "value": 4.8,
+          "linear": false,
+          "fit": true,
+          "nonlinear": true,
+          "derived": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "O0"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": true,
+      "params": [
+        {
+          "name": "A",
+          "value": 90000.0,
+          "linear": true,
+          "fit": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.8,
+          "linear": false,
+          "fit": true,
+          "nonlinear": true,
+          "derived": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": true,
+      "params": [
+        {
+          "name": "A",
+          "value": 10000.0,
+          "linear": true,
+          "fit": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.1,
+          "linear": false,
+          "fit": true,
+          "nonlinear": true,
+          "derived": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -415.24803,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.9495,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "O0"
+      ]
+    }
+  ],
+  "combinations": [
+    {
+      "param": "alpha",
+      "target": "EXP",
+      "rule": "harmonic",
+      "values": {
+        "O0": {
+          "name": "O0",
+          "value": 4.8,
+          "linear": false,
+          "fit": true,
+          "nonlinear": true,
+          "bounds": [
+            2.0,
+            8.0
+          ],
+          "step": 0.2
+        },
+        "C1": {
+          "name": "C1",
+          "value": 3.1,
+          "linear": false,
+          "fit": true,
+          "nonlinear": true,
+          "bounds": [
+            2.0,
+            8.0
+          ],
+          "step": 0.2
+        },
+        "H0": {
+          "name": "H0",
+          "value": 2.3,
+          "linear": false,
+          "fit": true,
+          "nonlinear": true,
+          "bounds": [
+            2.0,
+            8.0
+          ],
+          "step": 0.2
+        },
+        "H1": {
+          "name": "H1",
+          "value": 3.2,
+          "linear": false,
+          "fit": true,
+          "nonlinear": true,
+          "bounds": [
+            2.0,
+            8.0
+          ],
+          "step": 0.2
+        }
+      }
+    }
+  ],
+  "charges": {
+    "per_atom": {
+      "O0": -0.62089,
+      "C1": 0.11104,
+      "H0": 0.41169,
+      "H1": 0.04885,
+      "LP": 0.0
+    },
+    "route": "declared",
+    "declared": {
+      "O0": -0.62089,
+      "C1": 0.11104,
+      "H0": 0.41169,
+      "H1": 0.04885,
+      "LP": 0.0
+    },
+    "products": {
+      "O0~O0": 0.0,
+      "O0~C1": 0.0,
+      "C1~C1": 0.0
+    }
+  },
+  "polarization": {
+    "mode": "split",
+    "poltype": "direct",
+    "thole": 0.42,
+    "eps": 2.5e-06,
+    "intramolecular": "exclude",
+    "alphas": {
+      "O0": 0.8552,
+      "C1": 1.363,
+      "H0": 0.5068,
+      "H1": 0.5068,
+      "LP": 0.0
+    }
+  },
+  "charge_constraints": [],
+  "fit": null
+}
