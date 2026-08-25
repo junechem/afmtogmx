@@ -117,18 +117,27 @@ def collect_atom_types(bonded, mol_names):
 
 
 def build_type_to_charge(bonded, charges, atom_types):
-    """Return ``{qualified_type: charge}`` joining ATO atom names with charges dict."""
-    name_lookup = {}  # (mol, attype) → atname for charge lookup
-    for mol, raw, qualified in atom_types:
-        for atnum, (atname, attype) in bonded[mol]['ATO']['All'].items():
-            if attype == raw:
-                name_lookup.setdefault((mol, raw), atname)
+    """Return ``{qualified_type: charge}`` joining ATO types with the charges dict.
 
-    result = {}
-    for mol, raw, qualified in atom_types:
-        atname = name_lookup.get((mol, raw))
-        result[qualified] = charges.get(mol, {}).get(atname, 0.0)
-    return result
+    A charge belongs to the **Coulomb** type, which is ``attype`` — the third column of a CRYOFF
+    atom line ``<label> <VDWtype> [COUtype]`` — and that is how both constructors key
+    ``self.charges``: the ``.off`` path seeds it from ``pair[1]`` and
+    :func:`read_json._build_charges` from the same field.
+
+    This used to look the charge up by ``atname``, the **vdW** type, via a ``name_lookup`` that
+    mapped each Coulomb type back to the first vdW type seen with it. On a deck where the two
+    columns are equal — every deck before phenol — that is a no-op, which is why it survived. On
+    a split-typed deck it silently returns 0.0 for every Coulomb type that is not also the name
+    of a vdW type, and the resulting XML is complete, well-formed, and has no electrostatics on
+    most of the molecule. Phenol's 5 vdW / 9 Coulomb typing kept charges only on ``O0``, ``C1``
+    and ``H0`` — the three names common to both namespaces — and zeroed the six ortho/meta/para
+    types.
+
+    There is no caller-side workaround: three distinct charges (``C2_o``, ``C2_m``, ``C2_p``)
+    cannot be stored under the single vdW key ``C2``.
+    """
+    return {qualified: charges.get(mol, {}).get(raw, 0.0)
+            for mol, raw, qualified in atom_types}
 
 
 def collect_nonbonded(nonbonded, atom_types, bonded=None):

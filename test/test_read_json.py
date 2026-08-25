@@ -283,6 +283,26 @@ def test_nonbonded_expands_across_types_sharing_a_vdw_type():
     assert shared == {(30937.8, 3.471)}, 'expanded pairs must share the fitted parameters'
 
 
+def test_charges_follow_the_coulomb_column():
+    """A charge belongs to the Coulomb type, including when that name is not a vdW type.
+
+    `build_type_to_charge` used to join through the vdW column, which is a no-op on any deck
+    whose two type columns are equal and therefore went unnoticed. On a split-typed deck it
+    returned 0.0 for every Coulomb type that is not also the name of a vdW type -- here that is
+    C2o/C2m/C2p/H1o/H1m, i.e. everything but O0 -- and the emitted XML was complete, well-formed
+    and had no electrostatics on most of the molecule. There is no caller-side workaround: three
+    charges cannot be stored under the one vdW key `C2`.
+    """
+    from afmtogmx.core import xml_generation
+    at = _split_atom_types()
+    charges = {'UNK': {'O0': -0.61, 'C2o': -0.34, 'C2m': -0.06, 'C2p': -0.22,
+                       'H1o': 0.16, 'H1m': 0.13}}
+    got = xml_generation.build_type_to_charge(_SPLIT_BONDED, charges, at)
+    assert got == {'UNK_O0': -0.61, 'UNK_C2o': -0.34, 'UNK_C2m': -0.06,
+                   'UNK_C2p': -0.22, 'UNK_H1o': 0.16, 'UNK_H1m': 0.13}
+    assert 0.0 not in got.values(), 'a Coulomb type silently lost its charge'
+
+
 def test_unmatched_vdw_names_warn_instead_of_silently_zeroing():
     """Without `bonded` the pairs are dropped; that must not be silent."""
     from afmtogmx.core import xml_generation
