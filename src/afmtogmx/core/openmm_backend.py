@@ -129,8 +129,11 @@ class OpenMMBackend:
             if section:
                 sections.append(section)
 
+        # `bonded` is what lets collect_nonbonded tell the vdW namespace (which keys the
+        # nonbonded cards) from the Coulomb namespace (which keys the OpenMM types). Drop it
+        # and a force field that splits the two loses those pairs silently -- see its docstring.
         exp_entries, str_entries, srd_by_power = xml_generation.collect_nonbonded(
-            nonbonded, atom_types,
+            nonbonded, atom_types, bonded,
         )
         if exp_entries:
             sections.append(xml_generation.gen_exp_force(exp_entries, atom_types))

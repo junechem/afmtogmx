@@ -24,13 +24,38 @@ label stay globally unique.
 
 ## Data collection (called by the orchestrator)
 - `collect_atom_types(bonded, mol_names)` — `[(mol, raw_type, qualified_type), …]`
-  in ATO appearance order; skips NETF/TORQ.
+  in ATO appearance order; skips NETF/TORQ. The `raw_type` here is the **Coulomb**
+  type, because that is what carries a per-atom charge — see the note below.
 - `build_type_to_charge(bonded, charges, atom_types)` — `{qualified_type: charge}`
   by joining ATO atom names to the charges dict.
-- `collect_nonbonded(nonbonded, atom_types)` — splits nonbonded entries by type and
-  expands raw type names to all matching qualified types. Returns
+- `collect_nonbonded(nonbonded, atom_types, bonded=None)` — splits nonbonded entries by
+  type and expands raw type names to all matching qualified types. Returns
   `(exp_entries, str_entries, srd_by_power)` in kcal/Å units. POW → SRD with r0=0;
-  BUC → one EXP entry + one SRD(power=-6) entry.
+  BUC → one EXP entry + one SRD(power=-6) entry. Warns when a vdW type named by the
+  nonbonded cards matches no atom type, since those entries are discarded and the
+  lookup tables are zero-filled. Pairs carrying only `COU` are exempt from that warning:
+  they build no force here, so an unmatched name on one is normal (butanol's MM
+  embedding shell is entirely `COU`).
+
+### The two atom-type namespaces
+
+A CRYOFF atom line is `<label> <VDWtype> [COUtype]`. The third column is optional and
+almost always omitted, in which case the Coulomb type is copied from the vdW type and
+the distinction below is invisible.
+
+When it *is* given the two namespaces differ, and they are used in different places:
+
+| keyed on the **vdW** type | keyed on the **Coulomb** type |
+|---|---|
+| `nonbonded` pairs: EXP, SRD, POW, STR, BUC | `charges`, and every OpenMM `<Type>` |
+
+So one repulsion type can serve several charge types — five aromatic carbons sharing a
+single `EXP` type but split ortho/meta/para for charges, say. `collect_nonbonded` needs
+`bonded` to map a qualified type back to the vdW type of the atoms using it; without it
+it assumes the namespaces coincide, `raw_to_qualified` misses, and the pair is dropped.
+Nothing raises — `_matrix` is zero-filled, so the XML comes out with `A = 0` for those
+pairs and the failure only appears as a collapsing box in a later MD run. That is what
+the warning exists to catch.
 
 ## Section builders (each returns a string, or `''` if empty)
 - `gen_atomtypes(bonded, atom_types)` — `<AtomTypes>`; element/mass come from

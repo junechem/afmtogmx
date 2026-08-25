@@ -9,6 +9,7 @@ globally unique even when two ``.off`` molecules happen to reuse the
 same raw type label.
 """
 import math
+import warnings
 from collections import defaultdict
 
 try:
@@ -130,7 +131,7 @@ def build_type_to_charge(bonded, charges, atom_types):
     return result
 
 
-def collect_nonbonded(nonbonded, atom_types):
+def collect_nonbonded(nonbonded, atom_types, bonded=None):
     """Walk ``nonbonded`` and split entries by interaction type.
 
     Returns
@@ -142,17 +143,52 @@ def collect_nonbonded(nonbonded, atom_types):
     Raw .off type names (``OW``) are expanded to all matching qualified
     types (``H2OQM_OW``, ``H2OMM_OW``); shared parameters get applied to
     every qualified pair, matching the .off file's intent.
+
+    Two namespaces meet here and they are not the same one. A CRYOFF atom line is
+    ``<label> <VDWtype> [COUtype]``: the nonbonded cards (EXP/SRD/POW/...) are keyed on
+    the **vdW** type, while ``atom_types`` — and therefore every OpenMM ``<Type>`` — is
+    built from the **Coulomb** type, because that is what carries a per-atom charge.
+    Most force fields never declare the third column, the two names coincide, and the
+    distinction is invisible.  When they differ (say five ring carbons sharing one
+    repulsion type but split into ortho/meta/para charges) matching them by name finds
+    nothing: ``raw_to_qualified.get('C2')`` misses, the pair is dropped, and since the
+    lookup tables in the section builders are zero-filled the result is an XML with
+    ``A = 0`` for those pairs -- no exception, no warning, and no repulsion.
+
+    So pass ``bonded`` to map each qualified type back to the vdW type of the atoms that
+    use it.  Without it this falls back to assuming the two namespaces coincide, which is
+    correct for every force field that omits the Coulomb column and wrong silently for
+    the ones that do not.
     """
     raw_to_qualified = defaultdict(list)
-    for mol, raw, qualified in atom_types:
-        raw_to_qualified[raw].append(qualified)
+    if bonded is None:
+        for mol, raw, qualified in atom_types:
+            raw_to_qualified[raw].append(qualified)
+    else:
+        seen = set()
+        for mol, cou, qualified in atom_types:
+            for _atid, (vdw, atom_cou) in bonded[mol]['ATO']['All'].items():
+                if atom_cou != cou or vdw in ('NETF', 'TORQ'):
+                    continue
+                if (vdw, qualified) not in seen:      # one vdW type serves many Coulomb types
+                    seen.add((vdw, qualified))
+                    raw_to_qualified[vdw].append(qualified)
 
     exp_entries, str_entries, srd_by_power = [], [], {}
+    dropped = set()
 
     def _add_srd(q1, q2, P1, power, r0):
         srd_by_power.setdefault(power, []).append((q1, q2, P1, r0))
 
     for (raw1, raw2), params in nonbonded.items():
+        # A pair carrying only COU is a charge-product term; the custom forces build nothing
+        # from it and <NonbondedForce> carries the charges instead. Butanol's MM embedding
+        # shell is entirely COU, so an unmatched name there is normal and must not warn --
+        # only an unmatched name on a pair that *would* have produced a force is a defect.
+        if any(t not in ('COU',) for t in params):
+            for raw in (raw1, raw2):
+                if raw not in raw_to_qualified:
+                    dropped.add(raw)
         for q1 in raw_to_qualified.get(raw1, []):
             for q2 in raw_to_qualified.get(raw2, []):
                 for itype, param_sets in params.items():
@@ -169,6 +205,15 @@ def collect_nonbonded(nonbonded, atom_types):
                             p1, p2, p3 = float(pset[0]), float(pset[1]), float(pset[2])
                             exp_entries.append((q1, q2, p1, p3))
                             _add_srd(q1, q2, p2, -6.0, 0.0)
+
+    if dropped:
+        warnings.warn(
+            f"{len(dropped)} vdW type(s) named by the nonbonded cards match no atom type and "
+            f"their interactions were discarded: {', '.join(sorted(dropped)[:8])}"
+            f"{', ...' if len(dropped) > 8 else ''}. The lookup tables are zero-filled, so the "
+            f"affected pairs would get zero repulsion and zero dispersion. This is what a vdW / "
+            f"Coulomb type-name mismatch looks like: pass `bonded` so the two can be told apart.",
+            stacklevel=2)
 
     return exp_entries, str_entries, srd_by_power
 

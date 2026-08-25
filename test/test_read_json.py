@@ -236,3 +236,102 @@ def test_off_parsing_is_unaffected():
     off = afm.ReadOFF(str(TEST_DIR / 'sample_off_files' / 'water_intra.off'))
     assert off.charges and off.residues and off.gmx and off.openmm
     assert set(off.bonded['H20QM']) == set(functions.gen_empty_bonded())
+
+
+# --------------------------------------------------------------------------
+# Split vdW / Coulomb atom typing
+# --------------------------------------------------------------------------
+# A CRYOFF atom line is `<label> <VDWtype> [COUtype]`. When the third column is given, the
+# nonbonded cards stay keyed on the vdW type while every OpenMM <Type> comes from the Coulomb
+# type -- one repulsion type can serve several charge types. Matching the two namespaces by
+# name then silently finds nothing, and because the Discrete2D tables are zero-filled the XML
+# comes out with A = 0 for those pairs rather than raising.
+
+_SPLIT_NONBONDED = {('C2', 'C2'): {'EXP': [[30937.8, 3.471]]},
+                    ('C2', 'H1'): {'EXP': [[5701.5, 3.394]]},
+                    ('O0', 'O0'): {'EXP': [[33520.4, 3.521]]}}
+#: five ring carbons sharing one repulsion type, split ortho/meta/para for charges
+_SPLIT_BONDED = {'UNK': {'ATO': {'All': {1: ('O0', 'O0'), 2: ('C2', 'C2o'), 3: ('C2', 'C2m'),
+                                         4: ('C2', 'C2p'), 5: ('H1', 'H1o'), 6: ('H1', 'H1m')},
+                                 'Virtual': {}}}}
+
+
+def _split_atom_types():
+    from afmtogmx.core import xml_generation
+    return xml_generation.collect_atom_types(_SPLIT_BONDED, ['UNK'])
+
+
+def test_atom_types_come_from_the_coulomb_column():
+    """OpenMM types must follow the Coulomb type -- that is what carries a per-atom charge."""
+    assert [q for _, _, q in _split_atom_types()] == [
+        'UNK_O0', 'UNK_C2o', 'UNK_C2m', 'UNK_C2p', 'UNK_H1o', 'UNK_H1m']
+
+
+def test_nonbonded_expands_across_types_sharing_a_vdw_type():
+    """One vdW pair must reach every Coulomb-type pair that maps onto it, same parameters."""
+    from afmtogmx.core import xml_generation
+    at = _split_atom_types()
+    exp, _, _ = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at, _SPLIT_BONDED)
+
+    carbons, hydrogens = ('UNK_C2o', 'UNK_C2m', 'UNK_C2p'), ('UNK_H1o', 'UNK_H1m')
+    got = {(q1, q2) for q1, q2, _, _ in exp}
+    assert {(a, b) for a in carbons for b in carbons} <= got, 'C2 x C2 not fully expanded'
+    assert {(a, b) for a in carbons for b in hydrogens} <= got, 'C2 x H1 not fully expanded'
+    assert ('UNK_O0', 'UNK_O0') in got
+
+    shared = {(A, alpha) for q1, q2, A, alpha in exp if q1 in carbons and q2 in carbons}
+    assert shared == {(30937.8, 3.471)}, 'expanded pairs must share the fitted parameters'
+
+
+def test_unmatched_vdw_names_warn_instead_of_silently_zeroing():
+    """Without `bonded` the pairs are dropped; that must not be silent."""
+    from afmtogmx.core import xml_generation
+    at = _split_atom_types()
+    with pytest.warns(UserWarning, match='match no atom type'):
+        exp, _, _ = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at)
+    assert [q for q in exp if q[0].startswith('UNK_C2')] == [], 'expected the dropped-pair case'
+
+
+def test_cou_only_pairs_do_not_warn():
+    """Butanol's MM shell interacts by charge alone; an unmatched name there is normal."""
+    from afmtogmx.core import xml_generation
+    import warnings as _w
+    with _w.catch_warnings():
+        _w.simplefilter('error')                       # any warning fails the test
+        xml_generation.collect_nonbonded(
+            {('O0', 'O01MM'): {'COU': [[-0.0166]]}}, _split_atom_types(), _SPLIT_BONDED)
+
+
+def test_unsplit_force_fields_are_unaffected():
+    """The common case -- no Coulomb column -- must produce exactly what it did before."""
+    from afmtogmx.core import xml_generation
+    bonded = {'UNK': {'ATO': {'All': {1: ('O0', 'O0'), 2: ('C2', 'C2'), 3: ('H1', 'H1')},
+                              'Virtual': {}}}}
+    at = xml_generation.collect_atom_types(bonded, ['UNK'])
+    without = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at)[0]
+    with_ = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at, bonded)[0]
+    assert sorted(without) == sorted(with_)
+
+
+def test_butanol_xml_repulsion_table_is_not_silently_zero(butanol, tmp_path):
+    """End to end on the real fixture: the QM molecule's repulsion must reach the XML table.
+
+    The MM shell's block is legitimately zero -- it interacts by charge alone -- so this
+    checks the QM block specifically rather than the table as a whole.
+    """
+    import xml.etree.ElementTree as ET
+    out = tmp_path / 'forcefield.xml'
+    butanol.openmm.gen_xml(output=str(out))
+    root = ET.parse(out).getroot()
+
+    types = [t.get('name') for t in root.iter('Type')]
+    table = next(f for f in root.iter('Function') if f.get('name') == 'aTable')
+    n = int(table.get('xsize'))
+    values = [float(v) for v in table.text.split()]
+    assert len(values) == n * n == len(types) ** 2
+
+    qm = [i for i, t in enumerate(types) if t.startswith('UNK_')]
+    assert qm, 'no QM types in the XML'
+    for i in qm:
+        for j in qm:
+            assert values[i * n + j] != 0.0, f'zero repulsion for {types[i]} x {types[j]}'
