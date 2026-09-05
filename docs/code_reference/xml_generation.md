@@ -21,6 +21,16 @@ label stay globally unique.
   (element symbol from `_element_symbol` + counter); skips NETF/TORQ.
 - `_matrix(n, val=0.0)` / `_matrix_str(matrix)` — N×N table helpers for the
   Discrete2D lookup tables used by the custom nonbonded forces.
+- `_type_sort_key(name)` — orders type names numerically when they are numbers.
+- `build_type_names(atom_types, numeric=False)` — `{qualified_type: the name its
+  `<Type>` carries}`. Identity by default. `numeric=True` renames every type
+  `"1"`, `"2"`, … , which is **mandatory** as soon as an `<AmoebaMultipoleForce>`
+  appears anywhere in the file: OpenMM reads AMOEBA parameters with
+  `int(atom.attrib['type'])` and assigns them with
+  `int(data.atomType[atom])`, so a descriptive name is a `ValueError` at
+  `createSystem`. The descriptive name survives on the type's `class`, and every
+  section other than `<AtomTypes>` and the `<Residue>` atom lines refers to atoms
+  by `class`, so the file stays readable.
 
 ## Data collection (called by the orchestrator)
 - `collect_atom_types(bonded, mol_names)` — `[(mol, raw_type, qualified_type), …]`
@@ -30,12 +40,15 @@ label stay globally unique.
   by joining ATO atom names to the charges dict.
 - `collect_nonbonded(nonbonded, atom_types, bonded=None)` — splits nonbonded entries by
   type and expands raw type names to all matching qualified types. Returns
-  `(exp_entries, str_entries, srd_by_power)` in kcal/Å units. POW → SRD with r0=0;
+  `(exp_entries, str_entries, srd_by_power, cpn_entries)` in kcal/Å units. POW → SRD with r0=0;
   BUC → one EXP entry + one SRD(power=-6) entry. Warns when a vdW type named by the
   nonbonded cards matches no atom type, since those entries are discarded and the
   lookup tables are zero-filled. Pairs carrying only `COU` are exempt from that warning:
   they build no force here, so an unmatched name on one is normal (butanol's MM
   embedding shell is entirely `COU`).
+  `cpn_entries` are `(qual1, qual2, [11 params])` and are **orientation-sensitive**:
+  `read_json` keeps the deck's own pair order for CPN rather than sorting it, because
+  the parameters do not survive a transposition.
 
 ### The two atom-type namespaces
 
@@ -58,16 +71,21 @@ pairs and the failure only appears as a collapsing box in a later MD run. That i
 the warning exists to catch.
 
 ## Section builders (each returns a string, or `''` if empty)
-- `gen_atomtypes(bonded, atom_types)` — `<AtomTypes>`; element/mass come from
+- `gen_atomtypes(bonded, atom_types, type_names=None)` — `<AtomTypes>`; `name` comes
+  from `type_names`, `class` is always the qualified type; element/mass come from
   `_element_symbol` (handles two-letter elements like Na/Cl); virtual sites get
   mass 0.0 and no element.
-- `gen_residues(bonded, mol_names, molname_translations)` — `<Residues>` with
+- `gen_residues(bonded, mol_names, molname_translations, type_names=None)` — `<Residues>` with
   `<Atom>`, `<Bond>` (from `BON` data, deduped), and `<VirtualSite>` entries.
   Residue name comes from `molname_translations` (falls back to molname).
 - `_virtual_site_xml(site_name, definition, unique)` — parse a virtual-site tuple
   into an `average2`/`average3` `<VirtualSite>` element (or `None`).
-- `gen_nonbonded_force(atom_types, type_to_charge)` — `<NonbondedForce>` carrying
-  point charges only (sigma=epsilon=0).
+- `gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False)` —
+  `<NonbondedForce>` carrying point charges only (sigma=epsilon=0).
+  `charges_elsewhere=True` zeroes them because an `<AmoebaMultipoleForce>` is carrying
+  the permanent electrostatics; the force is still written, since it is where the
+  periodic method and cutoff are declared and `afm_openmm.prepare_afm_system` reads
+  both off it.
 - `gen_bond_force(bonded, mol_names)` — unified `<CustomBondForce>` for HAR
   (k3=k4=0) and QUA bonds, with the quartic energy expression. Converts r0 (×0.1),
   k2 (×418.4), k3 (×4184), k4 (×41840).
@@ -77,15 +95,39 @@ the warning exists to catch.
   (theta0→radians, k×4.184).
 - `gen_dihedral_force(bonded, mol_names)` — `<PeriodicTorsionForce>` for NCO
   dihedrals (k kcal→kJ; phase already radians; reverse-duplicate suppressed).
-- `gen_exp_force(exp_entries, atom_types)` — `<CustomNonbondedForce>` for
+- `gen_exp_force(exp_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for
   `U=A·exp(-alpha·r)` via Discrete2D tables (A×4.184, alpha×10).
-- `gen_srd_force(entries, power, atom_types)` — `<CustomNonbondedForce>` for
+- `gen_srd_force(entries, power, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for
   `U=disp/(r^|p|+r0^|p|)` (disp scaled by `4.184·0.1^-power`, r0×0.1).
-- `gen_str_force(str_entries, atom_types)` — `<CustomNonbondedForce>` for the
+- `gen_str_force(str_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for the
   shifted-truncated power potential; guards against `0^0` for unused pairs.
-- `_custom_nb_xml(energy, tables, qualified, n)` — assembles a
+- `gen_cpn_force(cpn_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>`
+  for CPN, charge penetration on the MBIS core/valence split. **The pycryoff form is
+  not symmetric in i and j**, and a `CustomNonbondedForce` chooses which particle of a
+  pair is `t1`, so the expression is rewritten as a sum over the two *exponentials*
+  (`bA`/`bB`) with `(1 + b·r/2)` folded into each side's polynomial. Exchanging the two
+  atoms then exchanges side A with side B, and entry `(j, i)` is entry `(i, j)` with
+  the sides swapped — the total is the same whichever order OpenMM picks. Ten
+  Discrete2D tables; `FCOV_COU = 332.0637` is pycryoff's own Coulomb constant.
+- `gen_multipole_force(bonded, mol_names, atom_types, type_names, type_to_charge,
+  polarization)` — `<AmoebaMultipoleForce>` for a `[POL]` deck. Zero dipoles and
+  quadrupoles (`kz = kx = 0` ⇒ `NoAxisType`); this is a point-charge model *with*
+  polarizability, and AMOEBA is used only because it is OpenMM's one mutual-induction
+  solver. `pgrp` entries link each type to its bonded types so the polarization group
+  closes over the molecule. `polarizability` is converted Å³→nm³. Raises for a
+  `POLTYPE` or `EPS` the XML cannot express (both are `createSystem` arguments in
+  OpenMM, so writing the file anyway would silently change the model).
+  **`INTRA=EXCLUDE` cannot be expressed here at all** — AMOEBA's 1-4/1-5 permanent
+  scale factors are not settable — and must be fixed on the `System` afterwards by
+  `afm_openmm.match_multipole_covalent_maps`.
+- `required_bond_cutoff(bonded, mol_names, max_cutoff=5)` — the `bondCutoff` that
+  reproduces the deck's `[Exc]` card exactly, or `ValueError` if no cutoff does. A
+  ForceField XML can only exclude by bond count; hard-coding 2 for a deck that
+  excludes every intramolecular pair leaves the widest pairs interacting through an
+  exchange wall the fit never applied to them.
+- `_custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2)` — assembles a
   `<CustomNonbondedForce>` block with N×N Discrete2D `<Function>` lookup tables and
-  one `<Atom type=… t=index/>` per qualified type.
+  one `<Atom class=… t=index/>` per qualified type.
 
 ## Output
 - `write_xml(path, sections)` — wraps the section strings in `<ForceField>…</ForceField>`

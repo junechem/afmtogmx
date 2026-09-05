@@ -111,14 +111,29 @@ def _build_bonded(doc):
     return bonded
 
 
+#: Forms whose parameter list is NOT symmetric under exchanging the two atoms of the pair.
+#: ``CPN`` is one: ``V0..V3`` ride the exponential in ``bi`` and ``W0, W1`` the one in ``bj``,
+#: so the row written for ``(H0, C1)`` is a different list of numbers from the row for
+#: ``(C1, H0)`` describing the same interaction. Sorting such a key detaches the parameters
+#: from the orientation they were written for, and the result is a plausible, wrong
+#: short-range correction on every unlike pair — with no error anywhere.
+_ORIENTED_FORMS = {"CPN"}
+
+
 def _build_nonbonded(doc):
-    """``{(typeA, typeB): {InteractionType: [params, ...]}}``, pair key sorted, ``COU*`` folded."""
+    """``{(typeA, typeB): {InteractionType: [params, ...]}}``, ``COU*`` folded.
+
+    The pair key is sorted, so that a consumer can look a pair up without knowing which way
+    round the deck wrote it — except for the forms in :data:`_ORIENTED_FORMS`, whose keys
+    keep the deck's own order because their parameters do not survive a transposition.
+    """
     nonbonded = {}
     for term in doc.get("nonbonded", []):
         pair = term.get("pair")
         if not pair:
             continue
-        key = tuple(sorted(pair))
+        raw = term.get("raw_name", term["form"]).upper()
+        key = tuple(pair) if raw in _ORIENTED_FORMS else tuple(sorted(pair))
         itype = term.get("raw_name", term["form"]).upper()
         if "COU" in itype:
             itype = "COU"                      # matches gen_md._gen_nonbonded

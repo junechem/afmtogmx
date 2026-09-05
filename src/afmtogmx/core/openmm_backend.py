@@ -89,8 +89,12 @@ class OpenMMBackend:
 
         Notes
         -----
-        - Supported nonbonded interaction types: EXP, STR/STRC, SRD, POW, BUC.
+        - Supported nonbonded interaction types: EXP, STR/STRC, SRD, POW, BUC, CPN.
           POW is folded into the SRD force (r0=0). BUC is split into EXP+SRD.
+        - A ``[POL]`` card (``off.polarization``, JSON path only) is written as an
+          ``<AmoebaMultipoleForce>`` and the ``<NonbondedForce>`` charges are zeroed, since
+          that force then carries the permanent electrostatics as well as the induced
+          dipoles. ``afm_openmm.prepare_afm_system`` must still fix its covalent maps.
         - Unit conversions: kcal/mol → kJ/mol (×4.184), Å → nm (×0.1).
         - Charges live on ``self._parent.charges`` keyed by atom *name*; the
           builder maps name → type via the ATO section before writing the
@@ -117,10 +121,26 @@ class OpenMMBackend:
         atom_types     = xml_generation.collect_atom_types(bonded, mol_names)
         type_to_charge = xml_generation.build_type_to_charge(bonded, charges, atom_types)
 
+        # A [POL] deck's electrostatics is charges PLUS the dipoles they induce in each
+        # other, and OpenMM has exactly one solver for that. Its XML parser reads atom types
+        # with int(), so the whole file has to be numbered the moment the force appears --
+        # see xml_generation.build_type_names.
+        polarization = getattr(self._parent, 'polarization', None)
+        type_names   = xml_generation.build_type_names(atom_types,
+                                                       numeric=polarization is not None)
+        # Exclusions are stated pair by pair in the deck and by bond count in the XML. They
+        # agree only by luck, so ask which count reproduces the card rather than assuming.
+        bond_cutoff = xml_generation.required_bond_cutoff(bonded, mol_names)
+
         sections = []
-        sections.append(xml_generation.gen_atomtypes(bonded, atom_types))
-        sections.append(xml_generation.gen_residues(bonded, mol_names, p.molname_translations))
-        sections.append(xml_generation.gen_nonbonded_force(atom_types, type_to_charge))
+        sections.append(xml_generation.gen_atomtypes(bonded, atom_types, type_names))
+        sections.append(xml_generation.gen_residues(bonded, mol_names, p.molname_translations,
+                                                    type_names))
+        sections.append(xml_generation.gen_nonbonded_force(
+            atom_types, type_to_charge, charges_elsewhere=polarization is not None))
+        if polarization is not None:
+            sections.append(xml_generation.gen_multipole_force(
+                bonded, mol_names, atom_types, type_names, type_to_charge, polarization))
 
         for builder in (xml_generation.gen_bond_force,
                         xml_generation.gen_angle_force,
@@ -132,15 +152,18 @@ class OpenMMBackend:
         # `bonded` is what lets collect_nonbonded tell the vdW namespace (which keys the
         # nonbonded cards) from the Coulomb namespace (which keys the OpenMM types). Drop it
         # and a force field that splits the two loses those pairs silently -- see its docstring.
-        exp_entries, str_entries, srd_by_power = xml_generation.collect_nonbonded(
+        exp_entries, str_entries, srd_by_power, cpn_entries = xml_generation.collect_nonbonded(
             nonbonded, atom_types, bonded,
         )
         if exp_entries:
-            sections.append(xml_generation.gen_exp_force(exp_entries, atom_types))
+            sections.append(xml_generation.gen_exp_force(exp_entries, atom_types, bond_cutoff))
         for power in sorted(srd_by_power.keys()):
-            sections.append(xml_generation.gen_srd_force(srd_by_power[power], power, atom_types))
+            sections.append(xml_generation.gen_srd_force(srd_by_power[power], power, atom_types,
+                                                         bond_cutoff))
         if str_entries:
-            sections.append(xml_generation.gen_str_force(str_entries, atom_types))
+            sections.append(xml_generation.gen_str_force(str_entries, atom_types, bond_cutoff))
+        if cpn_entries:
+            sections.append(xml_generation.gen_cpn_force(cpn_entries, atom_types, bond_cutoff))
 
         xml_generation.write_xml(output, sections)
 

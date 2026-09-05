@@ -271,7 +271,7 @@ def test_nonbonded_expands_across_types_sharing_a_vdw_type():
     """One vdW pair must reach every Coulomb-type pair that maps onto it, same parameters."""
     from afmtogmx.core import xml_generation
     at = _split_atom_types()
-    exp, _, _ = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at, _SPLIT_BONDED)
+    exp, _, _, _ = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at, _SPLIT_BONDED)
 
     carbons, hydrogens = ('UNK_C2o', 'UNK_C2m', 'UNK_C2p'), ('UNK_H1o', 'UNK_H1m')
     got = {(q1, q2) for q1, q2, _, _ in exp}
@@ -308,7 +308,7 @@ def test_unmatched_vdw_names_warn_instead_of_silently_zeroing():
     from afmtogmx.core import xml_generation
     at = _split_atom_types()
     with pytest.warns(UserWarning, match='match no atom type'):
-        exp, _, _ = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at)
+        exp, _, _, _ = xml_generation.collect_nonbonded(_SPLIT_NONBONDED, at)
     assert [q for q in exp if q[0].startswith('UNK_C2')] == [], 'expected the dropped-pair case'
 
 
@@ -355,3 +355,252 @@ def test_butanol_xml_repulsion_table_is_not_silently_zero(butanol, tmp_path):
     for i in qm:
         for j in qm:
             assert values[i * n + j] != 0.0, f'zero repulsion for {types[i]} x {types[j]}'
+
+
+# --------------------------------------------------------------------------
+# Virtual sites survive the JSON -> OpenMM XML path
+# --------------------------------------------------------------------------
+
+def test_json_virtual_site_reaches_the_openmm_xml(tmp_path, monkeypatch):
+    """Regression: `from_json` stores the vsite rule structured, the .off parser stores it
+    as raw tokens, and the XML writer understood only the tokens -- so a JSON-loaded model
+    lost every <VirtualSite> line silently and OpenMM built the site as a free particle."""
+    from afmtogmx.core.xml_generation import gen_residues
+    bonded = {'W': {'ATO': {'All': {1: ('OW', 'OW'), 2: ('HW', 'HW'),
+                                    3: ('HW', 'HW'), 4: ('EW', 'EW')},
+                            'Virtual': {(4, 'EW', 'EW'): {'kind': 'average',
+                                                          'rule': [(0.6, 1), (0.2, 2), (0.2, 3)]}}},
+                    'BON': {}}}
+    xml = gen_residues(bonded, ['W'], {})
+    assert '<VirtualSite type="average3"' in xml
+    assert 'weight1="0.6"' in xml and 'weight2="0.2"' in xml and 'weight3="0.2"' in xml
+
+
+def test_off_token_virtual_site_still_works():
+    """The .off text parser's raw-token form must keep working unchanged."""
+    from afmtogmx.core.xml_generation import gen_residues
+    bonded = {'W': {'ATO': {'All': {1: ('OW', 'OW'), 2: ('HW', 'HW'),
+                                    3: ('HW', 'HW'), 4: ('EW', 'EW')},
+                            'Virtual': {(4, 'EW', 'EW'):
+                                        ('3:', '0.6', '1', '+', '0.2', '2', '+', '0.2', '3')}},
+                    'BON': {}}}
+    assert '<VirtualSite type="average3"' in gen_residues(bonded, ['W'], {})
+
+
+def test_unwritable_virtual_site_raises_instead_of_vanishing():
+    """An out-of-plane site is not a linear average; writing average3 would be wrong
+    geometry that looks well-formed. Refuse loudly rather than drop the line."""
+    from afmtogmx.core.xml_generation import gen_residues
+    bonded = {'W': {'ATO': {'All': {1: ('O0', 'O0'), 2: ('C1', 'C1'),
+                                    3: ('H0', 'H0'), 6: ('LP', 'LP')},
+                            'Virtual': {(6, 'LP', 'LP'): {'kind': 'oop',
+                                                          'rule': [(0.3, 1), (0.3, 2), (0.55, 3)]}}},
+                    'BON': {}}}
+    with pytest.raises(ValueError, match='virtual site'):
+        gen_residues(bonded, ['W'], {})
+
+
+# --------------------------------------------------------------------------
+# Charge penetration (CPN) reaches the OpenMM XML with the right energy
+# --------------------------------------------------------------------------
+
+FCOV_COU = 332.0637
+
+
+def _cpn_reference(params, r_angstrom):
+    """pycryoff's own CPN form, kcal/mol, r in Angstrom. Transcribed from
+    pycryoff.model.functional_forms and used here as the thing to match."""
+    import math
+    scale, ziqj, zjqi, bi, bj, v0, v1, v2, v3, w0, w1 = params
+    r = r_angstrom
+    return -FCOV_COU * scale / r * (
+        ziqj * (1 + bj * r / 2) * math.exp(-bj * r)
+        + zjqi * (1 + bi * r / 2) * math.exp(-bi * r)
+        + (v0 + v1 * r + v2 * r ** 2 + v3 * r ** 3) * math.exp(-bi * r)
+        + (w0 + w1 * r) * math.exp(-bj * r))
+
+
+def _energy_from_custom_nb_xml(section, n_types, t1, t2, r_nm):
+    """Build the emitted <CustomNonbondedForce> in OpenMM and evaluate it for one pair.
+
+    The point is to run the *string* the generator wrote, not a Python restatement of it.
+    """
+    import xml.etree.ElementTree as ET
+    import openmm as mm
+    from openmm import unit
+
+    el = ET.fromstring(section)
+    force = mm.CustomNonbondedForce(el.attrib['energy'])
+    for fn in el.findall('Function'):
+        values = [float(v) for v in fn.text.split()]
+        force.addTabulatedFunction(fn.attrib['name'], mm.Discrete2DFunction(
+            int(fn.attrib['xsize']), int(fn.attrib['ysize']), values))
+    force.addPerParticleParameter('t')
+    force.addParticle([t1])
+    force.addParticle([t2])
+
+    system = mm.System()
+    system.addParticle(1.0)
+    system.addParticle(1.0)
+    system.addForce(force)
+    context = mm.Context(system, mm.VerletIntegrator(1.0),
+                         mm.Platform.getPlatformByName('Reference'))
+    context.setPositions([(0, 0, 0), (r_nm, 0, 0)])
+    return context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(
+        unit.kilojoule_per_mole)
+
+
+def test_cpn_xml_reproduces_the_pycryoff_energy_both_ways_round():
+    """The CPN form is asymmetric in i and j, and a CustomNonbondedForce picks the order
+    of a pair itself. Filling the tables symmetrically would evaluate half the unlike pairs
+    with the two valence widths swapped -- a wrong number that looks perfectly ordinary."""
+    from afmtogmx.core import xml_generation
+
+    # C0~N0 from an acetonitrile fit: unequal widths, so V and W are both live and the
+    # asymmetry is real.
+    params = [1.0, -25.20978571, -25.78640356, 3.650181691, 4.12556543,
+              -3667.744861, 1078.114446, 0.0, 0.0, 3695.607315, 746.7201562]
+    atom_types = [('UNK', 'C0', 'UNK_C0'), ('UNK', 'N0', 'UNK_N0')]
+    section = xml_generation.gen_cpn_force([('UNK_C0', 'UNK_N0', params)], atom_types)
+
+    for r_ang in (2.5, 3.0, 3.5, 4.0, 6.0):
+        expected = _cpn_reference(params, r_ang) * 4.184      # kcal/mol -> kJ/mol
+        forward = _energy_from_custom_nb_xml(section, 2, 0, 1, r_ang * 0.1)
+        reverse = _energy_from_custom_nb_xml(section, 2, 1, 0, r_ang * 0.1)
+        assert abs(forward - expected) < 1e-6 * max(1.0, abs(expected)), (r_ang, forward, expected)
+        assert abs(reverse - expected) < 1e-6 * max(1.0, abs(expected)), (r_ang, reverse, expected)
+
+
+def test_cpn_like_pair_matches_too():
+    """The like-type case (equal widths, cubic V polynomial, W zero) is the other branch of
+    pycryoff's closed form and shares no code with the unequal one."""
+    from afmtogmx.core import xml_generation
+
+    params = [1.0, -21.02561168, -21.02561168, 3.650181691, 3.650181691,
+              23.23800538, 58.31577246, 58.05359043, 23.5451281, 0.0, 0.0]
+    atom_types = [('UNK', 'C0', 'UNK_C0')]
+    section = xml_generation.gen_cpn_force([('UNK_C0', 'UNK_C0', params)], atom_types)
+    for r_ang in (3.0, 4.0, 5.0):
+        expected = _cpn_reference(params, r_ang) * 4.184
+        got = _energy_from_custom_nb_xml(section, 1, 0, 0, r_ang * 0.1)
+        assert abs(got - expected) < 1e-6 * max(1.0, abs(expected)), (r_ang, got, expected)
+
+
+def test_cpn_vanishes_at_long_range():
+    """CPN is a correction that must die away, or it is silently changing the charges."""
+    from afmtogmx.core import xml_generation
+    params = [1.0, -25.20978571, -25.78640356, 3.650181691, 4.12556543,
+              -3667.744861, 1078.114446, 0.0, 0.0, 3695.607315, 746.7201562]
+    section = xml_generation.gen_cpn_force(
+        [('UNK_C0', 'UNK_N0', params)],
+        [('UNK', 'C0', 'UNK_C0'), ('UNK', 'N0', 'UNK_N0')])
+    assert abs(_energy_from_custom_nb_xml(section, 2, 0, 1, 1.2)) < 1e-6
+
+
+# --------------------------------------------------------------------------
+# Explicit polarization ([POL]) reaches the OpenMM XML
+# --------------------------------------------------------------------------
+
+_POL_BONDED = {
+    'UNK': {'ATO': {'All': {1: ('C0', 'C0'), 2: ('H0', 'H0'), 3: ('H0', 'H0'),
+                            4: ('H0', 'H0'), 5: ('C1', 'C1'), 6: ('N0', 'N0'),
+                            7: ('NETF', 'NETF'), 8: ('TORQ', 'TORQ')},
+                    'Virtual': {}},
+            'BON': {'HAR': {(1.47, 700.0): [[1, 5]],
+                            (1.09, 700.0): [[1, 2], [1, 3], [1, 4]],
+                            (1.16, 700.0): [[5, 6]]}},
+            'EXC': [[a, b] for a in range(1, 7) for b in range(a + 1, 7)]},
+}
+_POL_SPEC = {'mode': 'fixed', 'poltype': 'mutual', 'thole': 0.39, 'eps': 1e-05,
+             'intramolecular': 'exclude',
+             'alphas': {'C0': 1.476114, 'H0': 0.54884, 'C1': 1.476114, 'N0': 1.187309}}
+
+
+def _pol_atom_types():
+    from afmtogmx.core import xml_generation
+    return xml_generation.collect_atom_types(_POL_BONDED, ['UNK'])
+
+
+def test_polarize_types_are_numeric_because_amoeba_parses_them_with_int():
+    """OpenMM reads AMOEBA types with int(atom.attrib['type']) and assigns them with
+    int(data.atomType[atom]). A descriptive name anywhere in the file is a ValueError at
+    createSystem, so the whole file has to be numbered once this force appears."""
+    from afmtogmx.core import xml_generation
+    at = _pol_atom_types()
+    names = xml_generation.build_type_names(at, numeric=True)
+    assert sorted(names.values(), key=int) == ['1', '2', '3', '4']
+    for name in names.values():
+        int(name)
+    # the descriptive name survives as the class, which is what every other section uses
+    types_xml = xml_generation.gen_atomtypes(_POL_BONDED, at, names)
+    assert '<Type name="1" class="UNK_C0"' in types_xml
+    assert '<Atom name="C0" type="1"/>' in xml_generation.gen_residues(
+        _POL_BONDED, ['UNK'], {}, names)
+
+
+def test_multipole_force_carries_charges_alphas_and_polarization_groups():
+    from afmtogmx.core import xml_generation
+    at = _pol_atom_types()
+    names = xml_generation.build_type_names(at, numeric=True)
+    charges = {'UNK_C0': -0.4589474789, 'UNK_H0': 0.1729011118,
+               'UNK_C1': 0.3709080284, 'UNK_N0': -0.430663885}
+    xml = xml_generation.gen_multipole_force(_POL_BONDED, ['UNK'], at, names, charges,
+                                             _POL_SPEC)
+    assert '<Multipole type="1" kz="0" kx="0" c0="-0.4589474789"' in xml
+    # Angstrom^3 -> nm^3
+    assert 'polarizability="0.001476114"' in xml
+    # C0 is bonded to H0 and C1, so both are in its polarization group; the group then
+    # closes over the whole molecule, which is what stops it polarizing itself.
+    c0_line = [l for l in xml.splitlines() if l.startswith('<Polarize type="1"')][0]
+    assert 'pgrp1="2"' in c0_line and 'pgrp2="3"' in c0_line, c0_line
+    n0_line = [l for l in xml.splitlines() if l.startswith('<Polarize type="4"')][0]
+    assert 'pgrp1="3"' in n0_line
+    # every type needs a Polarize tag: the builder's polarizationParams is a defaultdict(dict)
+    # and a missing one surfaces as AttributeError deep inside createSystem
+    assert xml.count('<Polarize ') == 4
+
+
+def test_multipole_force_refuses_a_deck_openmm_cannot_express():
+    import pytest
+    from afmtogmx.core import xml_generation
+    at = _pol_atom_types()
+    names = xml_generation.build_type_names(at, numeric=True)
+    for key, value in (('poltype', 'direct'), ('eps', 1e-8)):
+        spec = dict(_POL_SPEC, **{key: value})
+        with pytest.raises(ValueError):
+            xml_generation.gen_multipole_force(_POL_BONDED, ['UNK'], at, names, {}, spec)
+
+
+def test_nonbonded_charges_are_zeroed_when_the_multipole_force_has_them():
+    """Both forces carrying the charges would double every Coulomb interaction."""
+    from afmtogmx.core import xml_generation
+    at = _pol_atom_types()
+    charges = {'UNK_C0': -0.46, 'UNK_H0': 0.17, 'UNK_C1': 0.37, 'UNK_N0': -0.43}
+    xml = xml_generation.gen_nonbonded_force(at, charges, charges_elsewhere=True)
+    assert xml.count('charge="0.0"') == 4
+    assert '-0.46' not in xml
+
+
+# --------------------------------------------------------------------------
+# bondCutoff is derived from the deck, not assumed
+# --------------------------------------------------------------------------
+
+def test_bond_cutoff_follows_the_exclusion_card():
+    from afmtogmx.core import xml_generation
+    # all 15 pairs excluded -> acetonitrile's widest separation is the 1-4 H...N, so 3
+    assert xml_generation.required_bond_cutoff(_POL_BONDED, ['UNK']) == 3
+
+    twelve = {'UNK': dict(_POL_BONDED['UNK'],
+                          EXC=[p for p in _POL_BONDED['UNK']['EXC']
+                               if tuple(p) not in ((2, 6), (3, 6), (4, 6))])}
+    assert xml_generation.required_bond_cutoff(twelve, ['UNK']) == 2
+
+
+def test_bond_cutoff_refuses_an_exclusion_set_it_cannot_express():
+    """An OpenMM CustomNonbondedForce in a ForceField XML can only exclude by bond count.
+    Silently using 2 for a deck that means something else exports a different model."""
+    import pytest
+    from afmtogmx.core import xml_generation
+    odd = {'UNK': dict(_POL_BONDED['UNK'], EXC=[[1, 2], [5, 6]])}
+    with pytest.raises(ValueError):
+        xml_generation.required_bond_cutoff(odd, ['UNK'])

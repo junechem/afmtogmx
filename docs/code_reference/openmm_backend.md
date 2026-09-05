@@ -20,11 +20,19 @@ Same explicit→config→default parameter resolution pattern as `GROMACSBackend
 - `gen_xml(output='forcefield.xml', incl_mol=None, molname_translations=None)` —
   builds a complete OpenMM `<ForceField>` XML from parsed `.off` data and writes it.
   Atom types are namespaced `"<MOLNAME>_<TYPE>"` to avoid collisions. Section order:
-  AtomTypes → Residues → NonbondedForce → Bond/Angle/Dihedral forces → EXP/SRD/STR
-  custom nonbonded forces. Calls the `xml_generation.*` collectors and builders, then
-  `write_xml`.
+  AtomTypes → Residues → NonbondedForce → [AmoebaMultipoleForce] → Bond/Angle/Dihedral
+  forces → EXP/SRD/STR/CPN custom nonbonded forces. Calls the `xml_generation.*`
+  collectors and builders, then `write_xml`.
   - Supported nonbonded types: EXP, STR/STRC, SRD, POW (folded into SRD with r0=0),
-    BUC (split into EXP + SRD).
+    BUC (split into EXP + SRD), CPN.
+  - A `[POL]` card (`parent.polarization`, JSON path only) becomes an
+    `<AmoebaMultipoleForce>`; the `<NonbondedForce>` charges are then zeroed, because
+    that force carries the permanent electrostatics as well as the induced dipoles, and
+    every `<Type>` is renumbered because OpenMM parses AMOEBA types with `int()`.
+    `afm_openmm.prepare_afm_system(system, topology=...)` must still correct its
+    covalent maps — see `xml_generation.gen_multipole_force`.
+  - `bondCutoff` is derived from the deck's `[Exc]` card by
+    `xml_generation.required_bond_cutoff`, not assumed to be 2.
   - Units converted: kcal/mol→kJ/mol (×4.184), Å→nm (×0.1).
   - Charges live on `parent.charges` keyed by atom **name**; mapped name→type via
     the ATO section before writing `<NonbondedForce>`.
