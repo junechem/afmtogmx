@@ -108,7 +108,12 @@ the warning exists to catch.
 - `gen_angle_force(bonded, mol_names)` — `<CustomAngleForce>` for HAR angles
   (theta0→radians, k×4.184).
 - `gen_dihedral_force(bonded, mol_names)` — `<PeriodicTorsionForce>` for NCO
-  dihedrals (k kcal→kJ; phase already radians; reverse-duplicate suppressed).
+  dihedrals (k kcal→kJ; phase already radians). **One `<Proper>` per class quartet
+  carrying every term on it** (`periodicity1/2/3…`): OpenMM applies only one `<Proper>`
+  template per torsion, so separate elements for the n=1, n=2, n=3 terms of a quartet
+  kept the first and silently dropped the rest. A quartet and its reverse are merged.
+  Raises `ValueError` if two atom quartets sharing a class quartet carry different term
+  sets, which no class-based template can express.
 - `gen_exp_force(exp_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for
   `U=A·exp(-alpha·r)` via Discrete2D tables (A×4.184, alpha×10).
 - `gen_srd_force(entries, power, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for

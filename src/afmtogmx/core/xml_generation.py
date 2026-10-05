@@ -577,8 +577,18 @@ def gen_dihedral_force(bonded, mol_names):
 
     NCO tuple key in bonded dict: ``(k_kcal, periodicity, phase_rad)``;
     ``k`` is converted kcal/mol → kJ/mol, phase is already in radians.
+
+    All the terms on one class quartet go into ONE ``<Proper>`` (``periodicity1``,
+    ``periodicity2``, ...). OpenMM applies a single ``<Proper>`` template per torsion, so a
+    quartet written as several elements (an n=1, n=2, n=3 Fourier set) silently kept only
+    the first and dropped the rest. A quartet and its reverse are the same torsion.
+
+    The XML matches torsions by class, so every quartet of atoms sharing a class quartet
+    gets the same terms. Raises ``ValueError`` if the deck gives two such quartets
+    different term sets: no class-based ``<Proper>`` can reproduce that.
     """
-    entries, written = [], set()
+    terms_of_class = {}      # class quartet (first orientation seen) -> [(n, phase, k_kj)]
+    terms_of_quad = {}       # (mol, class key, atom-id quartet, canonical) -> set of terms
 
     for mol in mol_names:
         if 'DIH' not in bonded[mol]:
@@ -586,25 +596,35 @@ def gen_dihedral_force(bonded, mol_names):
         atom_map = _atom_map(bonded[mol]['ATO']['All'])
 
         for (k_kcal, periodicity, phase_rad), quads in bonded[mol]['DIH'].get('NCO', {}).items():
-            k_kj = k_kcal * 4.184
-            for at1_id, at2_id, at3_id, at4_id in quads:
-                atoms = [atom_map.get(aid) for aid in (at1_id, at2_id, at3_id, at4_id)]
+            term = (int(periodicity), phase_rad, k_kcal * 4.184)
+            for quad in quads:
+                atoms = [atom_map.get(aid) for aid in quad]
                 if any(a is None or a[1] in ('NETF', 'TORQ') for a in atoms):
                     continue
-                q = [_qualify(mol, a[1]) for a in atoms]
-                key  = tuple(q) + (k_kcal, periodicity, phase_rad)
-                rkey = tuple(reversed(q)) + (k_kcal, periodicity, phase_rad)
-                if key not in written and rkey not in written:
-                    written.add(key)
-                    entries.append((*q, int(periodicity), phase_rad, k_kj))
+                q = tuple(_qualify(mol, a[1]) for a in atoms)
+                key = q if q in terms_of_class or q[::-1] not in terms_of_class else q[::-1]
+                terms = terms_of_class.setdefault(key, [])
+                if term not in terms:
+                    terms.append(term)
+                ids = tuple(int(a) for a in quad)
+                terms_of_quad.setdefault((mol, key, min(ids, ids[::-1])), set()).add(term)
 
-    if not entries:
+    for (mol, key, ids), terms in terms_of_quad.items():
+        if terms != set(terms_of_class[key]):
+            raise ValueError(
+                f"NCO dihedral {mol} {ids} ({'-'.join(key)}) carries {len(terms)} of the "
+                f"{len(terms_of_class[key])} terms on its class quartet; a class-based "
+                f"<Proper> would give it all of them")
+
+    if not terms_of_class:
         return ''
 
     lines = ['<PeriodicTorsionForce>']
-    for q1, q2, q3, q4, period, phase, k in entries:
+    for (q1, q2, q3, q4), terms in terms_of_class.items():
+        fourier = ' '.join(f'periodicity{i}="{n}" phase{i}="{phase}" k{i}="{k}"'
+                           for i, (n, phase, k) in enumerate(terms, 1))
         lines.append(f'<Proper class1="{q1}" class2="{q2}" class3="{q3}" class4="{q4}" '
-                     f'periodicity1="{period}" phase1="{phase}" k1="{k}"/>')
+                     f'{fourier}/>')
     lines.append('</PeriodicTorsionForce>')
     return '\n'.join(lines)
 

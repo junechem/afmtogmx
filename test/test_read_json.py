@@ -604,3 +604,62 @@ def test_bond_cutoff_refuses_an_exclusion_set_it_cannot_express():
     odd = {'UNK': dict(_POL_BONDED['UNK'], EXC=[[1, 2], [5, 6]])}
     with pytest.raises(ValueError):
         xml_generation.required_bond_cutoff(odd, ['UNK'])
+
+
+# --------------------------------------------------------------------------
+# NCO Fourier sets: every term on a quartet must reach OpenMM
+# --------------------------------------------------------------------------
+
+def _ring_bonded():
+    """Four carbons in a chain, typed C0 C1 C1 C0, with an n=1,2,3 Fourier set on the one
+    C0-C1-C1-C0 quartet -- the shape of a fitted ring torsion (cyclohexanol, 2026-10-05)."""
+    ato = {1: ('C1', 'C0'), 2: ('C2', 'C1'), 3: ('C3', 'C1'), 4: ('C4', 'C0')}
+    nco = {(31.3, 1.0, 0.0): [(1, 2, 3, 4)],
+           (-12.7, 2.0, 0.0): [(4, 3, 2, 1)],          # written reversed: the same torsion
+           (4.1, 3.0, 0.0): [(1, 2, 3, 4)]}
+    return {'UNK': {'ATO': {'All': ato}, 'DIH': {'NCO': nco}}}
+
+
+def test_a_fourier_set_is_one_proper_with_every_term():
+    """OpenMM applies one <Proper> template per torsion. Writing n=1, n=2, n=3 as three elements
+    kept only n=1 and dropped the rest without a word, which put cyclohexanol's axial conformer
+    28 kJ/mol below equatorial and over-puckered its ring."""
+    from afmtogmx.core import xml_generation
+    xml = xml_generation.gen_dihedral_force(_ring_bonded(), ['UNK'])
+    propers = [l for l in xml.splitlines() if l.startswith('<Proper')]
+    assert len(propers) == 1
+    for i, (n, k) in enumerate(((1, 31.3), (2, -12.7), (3, 4.1)), 1):
+        assert f'periodicity{i}="{n}"' in propers[0]
+        assert f'k{i}="{k * 4.184}"' in propers[0]
+
+
+def test_openmm_builds_every_fourier_term():
+    openmm_app = pytest.importorskip('openmm.app')
+    import io
+    from afmtogmx.core import xml_generation
+    body = xml_generation.gen_dihedral_force(_ring_bonded(), ['UNK'])
+    types = ''.join(f'<Type name="UNK_C{i}" class="UNK_C{i}" element="C" mass="12.011"/>' for i in (0, 1))
+    xml = (f'<ForceField><AtomTypes>{types}</AtomTypes><Residues><Residue name="UNK">'
+           + ''.join(f'<Atom name="C{i}" type="UNK_{t}"/>' for i, t in ((1, 'C0'), (2, 'C1'), (3, 'C1'), (4, 'C0')))
+           + '<Bond atomName1="C1" atomName2="C2"/><Bond atomName1="C2" atomName2="C3"/>'
+             '<Bond atomName1="C3" atomName2="C4"/></Residue></Residues>' + body + '</ForceField>')
+    ff = openmm_app.ForceField(io.StringIO(xml))
+    top = openmm_app.Topology()
+    res = top.addResidue('UNK', top.addChain())
+    atoms = [top.addAtom(f'C{i}', openmm_app.Element.getBySymbol('C'), res) for i in range(1, 5)]
+    for a, b in zip(atoms, atoms[1:]):
+        top.addBond(a, b)
+    system = ff.createSystem(top, constraints=None, rigidWater=False)
+    torsion = next(f for f in system.getForces() if f.__class__.__name__ == 'PeriodicTorsionForce')
+    assert sorted(torsion.getTorsionParameters(i)[4] for i in range(torsion.getNumTorsions())) == [1, 2, 3]
+
+
+def test_quartets_sharing_classes_but_not_terms_are_refused():
+    """XML templates match by class; two quartets of the same classes with different terms
+    cannot both be honoured, so this must fail loudly rather than pick one."""
+    from afmtogmx.core import xml_generation
+    bonded = _ring_bonded()
+    bonded['UNK']['ATO']['All'].update({5: ('C5', 'C1'), 6: ('C6', 'C0')})
+    bonded['UNK']['DIH']['NCO'][(9.9, 1.0, 0.0)] = [(6, 5, 3, 4)]   # C0-C1-C1-C0, n=1 only
+    with pytest.raises(ValueError, match='class quartet'):
+        xml_generation.gen_dihedral_force(bonded, ['UNK'])
