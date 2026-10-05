@@ -39,7 +39,10 @@ process many PDBs.
 ## XML section parsers (one per top-level XML section)
 - `_parse_atomtypes_from_xml(root)` — `<AtomTypes>` → `{type_name: element}`.
   Virtual-site types (no `element` attribute) are omitted.
-- `_parse_residues_from_xml(root, type_to_element)` — `<Residues>` →
+- `_drude_types_from_xml(root)` — type names of Drude particles (`<DrudeForce><Particle
+  class1|type1>`), which a PDB never carries (`Modeller.addExtraParticles` adds them).
+- `_parse_residues_from_xml(root, type_to_element, skip_types=())` — atoms whose type is in
+  `skip_types` (the Drudes) are left out. `<Residues>` →
   `{resname: {'atom_names': [...], 'bonds': [(n1, n2), ...], 'elements':
   {name: element}}}`. Connectivity comes from each `<Residue>`'s own
   `<Bond atomName1=… atomName2=…/>` children (the actual covalent topology) —
@@ -53,7 +56,7 @@ process many PDBs.
 ## Orchestrator
 - `build_residue_topology_from_xml(xml_file)` — parse the XML and return the
   `residue_topology` dict (shape above) for `process_pdb`. Just
-  `_parse_atomtypes_from_xml` then `_parse_residues_from_xml`.
+  `_parse_atomtypes_from_xml` then `_parse_residues_from_xml`, skipping Drude particles.
 
 ## PDB record parsing
 - `_parse_atom_line(line)` — ATOM/HETATM line → record dict

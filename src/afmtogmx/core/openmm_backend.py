@@ -132,12 +132,21 @@ class OpenMMBackend:
         # agree only by luck, so ask which count reproduces the card rather than assuming.
         bond_cutoff = xml_generation.required_bond_cutoff(bonded, mol_names)
 
+        # A [DRU] force field: a Drude particle on each polarizable type (pycryoff drude.py).
+        drude = getattr(self._parent, 'drude', None)
+        if drude is not None and polarization is not None:
+            raise ValueError("a force field cannot carry both [POL] and [DRU]")
+        drudes = xml_generation.collect_drude(atom_types, drude)
+
         sections = []
-        sections.append(xml_generation.gen_atomtypes(bonded, atom_types, type_names))
+        sections.append(xml_generation.gen_atomtypes(bonded, atom_types, type_names, drudes))
         sections.append(xml_generation.gen_residues(bonded, mol_names, p.molname_translations,
-                                                    type_names))
+                                                    type_names, drudes))
         sections.append(xml_generation.gen_nonbonded_force(
-            atom_types, type_to_charge, charges_elsewhere=polarization is not None))
+            atom_types, type_to_charge, charges_elsewhere=polarization is not None,
+            drudes=drudes))
+        if drudes:
+            sections.append(xml_generation.gen_drude_force(drudes))
         if polarization is not None:
             sections.append(xml_generation.gen_multipole_force(
                 bonded, mol_names, atom_types, type_names, type_to_charge, polarization))
@@ -155,6 +164,11 @@ class OpenMMBackend:
         exp_entries, str_entries, srd_by_power, cpn_entries = xml_generation.collect_nonbonded(
             nonbonded, atom_types, bonded,
         )
+        if drudes and cpn_entries:
+            raise NotImplementedError("CPN with Drude particles is not implemented")
+        # Drude types join the custom forces with all-zero table rows: no repulsion, no
+        # dispersion. They must be listed, because every particle needs a per-particle value.
+        atom_types = atom_types + xml_generation.drude_atom_types(drudes)
         if exp_entries:
             sections.append(xml_generation.gen_exp_force(exp_entries, atom_types, bond_cutoff))
         for power in sorted(srd_by_power.keys()):

@@ -85,7 +85,8 @@ polarizable model flattened to point charges is a *different* force field.
 
 `populate(obj, path)` → the charges dict
 - Fills a bare `ReadOFF` with `off_loc`, `document`, `sections` (empty — there are no `.off` text
-  sections), `bonded`, `nonbonded`, `polarization`, `combinations`, `provenance`, `fit`; returns
+  sections), `bonded`, `nonbonded`, `polarization`, `drude` (the `[DRU]` block or `None`),
+  `combinations`, `provenance`, `fit`; returns
   the charges for `_finalize` to install. Warns when `polarization` is present, because writing a
   polarizable model as a fixed point-charge topology reproduces only its permanent part.
 

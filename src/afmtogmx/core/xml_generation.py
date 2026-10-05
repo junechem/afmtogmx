@@ -264,7 +264,55 @@ def collect_nonbonded(nonbonded, atom_types, bonded=None):
 # Section builders
 # --------------------------------------------------------------------------
 
-def gen_atomtypes(bonded, atom_types, type_names=None):
+#: Coulomb constant in the .off's units, kcal*A/mol/e^2 (pycryoff openmm_backend/drude.py).
+_DRUDE_COULOMB = 332.0637
+
+
+def collect_drude(atom_types, drude):
+    """``[(mol, raw, qualified, drude_qualified, q_D, alpha_nm3, thole_atom)]`` for a ``[DRU]``
+    force field, one entry per polarizable qualified type; ``[]`` when ``drude`` is ``None``.
+
+    pycryoff's model (``openmm_backend/drude.py``): ``q_D = -sqrt(alpha k / 332.0637)`` with
+    alpha in A^3 and k in kcal/mol/A^2 (``k d^2/2``); the parent keeps ``q - q_D``. The card's
+    THOLE is the *pair* value; OpenMM's ``DrudeGenerator`` sums two per-atom values
+    (``thole1 + thole2``), so each atom is written with half of it.
+    """
+    if not drude:
+        return []
+    alphas = drude.get("alphas") or {}
+    k = float(drude.get("k_kcal_A2", 1000.0))
+    thole = float(drude["thole_pair"]) / 2.0
+    out = []
+    for mol, raw, qualified in atom_types:
+        alpha = float(alphas.get(raw, 0.0))
+        if alpha <= 0.0:
+            continue
+        q_d = -(alpha * k / _DRUDE_COULOMB) ** 0.5
+        out.append((mol, raw, qualified, _qualify(mol, f"D{raw}"), q_d, alpha * 1.0e-3, thole))
+    return out
+
+
+def drude_atom_types(drudes):
+    """The Drude types as ``(mol, raw, qualified)`` rows, to append to ``atom_types`` for the
+    ``<CustomNonbondedForce>`` builders: their table rows stay zero, so Drudes carry no
+    repulsion and no dispersion."""
+    return [(mol, f"D{raw}", dq) for mol, raw, _, dq, _, _, _ in drudes]
+
+
+def gen_drude_force(drudes):
+    """``<DrudeForce>``: one ``<Particle>`` per polarizable type (``class1`` = Drude,
+    ``class2`` = parent). Must follow ``<NonbondedForce>``. OpenMM then excludes each Drude
+    wherever its parent is excluded (``bondCutoff``) and adds a screened pair for every
+    excluded Drude pair, i.e. the 1-2 and 1-3 pairs of a ``bondCutoff=2`` force field."""
+    lines = ['<DrudeForce>']
+    for _, _, qualified, dq, q_d, alpha_nm3, thole in drudes:
+        lines.append(f'<Particle class1="{dq}" class2="{qualified}" charge="{q_d!r}" '
+                     f'polarizability="{alpha_nm3!r}" thole="{thole!r}"/>')
+    lines.append('</DrudeForce>')
+    return '\n'.join(lines)
+
+
+def gen_atomtypes(bonded, atom_types, type_names=None, drudes=()):
     """``<AtomTypes>`` with one ``<Type>`` per qualified atom type.
 
     ``type_names`` (see :func:`build_type_names`) supplies the ``name``; the ``class`` is
@@ -280,11 +328,15 @@ def gen_atomtypes(bonded, atom_types, type_names=None):
             element = _element_symbol(raw)
             mass = _get_mass(element)
             lines.append(f'<Type name="{name}" class="{qualified}" element="{element}" mass="{mass}"/>')
+    for _, _, _, dq, _, _, _ in drudes:
+        # No element: that is how Modeller.addExtraParticles recognises a particle the PDB
+        # does not carry. Mass 0 here; createSystem(drudeMass=0.4 amu) moves it off the parent.
+        lines.append(f'<Type name="{dq}" class="{dq}" mass="0.0"/>')
     lines.append('</AtomTypes>')
     return '\n'.join(lines)
 
 
-def gen_residues(bonded, mol_names, molname_translations, type_names=None):
+def gen_residues(bonded, mol_names, molname_translations, type_names=None, drudes=()):
     """``<Residues>`` listing atoms, bonds, and virtual sites for every molecule.
 
     A residue's atoms must name a ``<Type>``, not a class -- OpenMM binds one type per atom
@@ -306,6 +358,15 @@ def gen_residues(bonded, mol_names, molname_translations, type_names=None):
             qualified = _qualify(mol, attype)
             lines.append(f'<Atom name="{unique[atid]}" '
                          f'type="{names.get(qualified, qualified)}"/>')
+
+        # One Drude per polarizable atom, named D<parent>, unbonded (DrudeForce ties it on).
+        drude_of = {q: dq for m, _, q, dq, _, _, _ in drudes if m == mol}
+        for atid in sorted(atom_map.keys()):
+            if atid not in unique:
+                continue
+            dq = drude_of.get(_qualify(mol, atom_map[atid][1]))
+            if dq is not None:
+                lines.append(f'<Atom name="D{unique[atid]}" type="{dq}"/>')
 
         written_bonds = set()
         for bond_type, pairs_dict in bonded[mol].get('BON', {}).items():
@@ -397,7 +458,7 @@ def _virtual_site_xml(site_name, definition, unique):
         return None
 
 
-def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False):
+def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False, drudes=()):
     """``<NonbondedForce>`` carrying point charges (sigma=epsilon=0).
 
     ``charges_elsewhere=True`` zeroes every charge here because an
@@ -406,10 +467,15 @@ def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False):
     declared, and ``afm_openmm.prepare_afm_system`` reads both off it. Leaving the charges
     in as well would double every Coulomb interaction in the system.
     """
+    # With Drudes the parent carries q - q_D and the Drude q_D, so each pair still sums to q.
+    q_drude = {q: q_d for _, _, q, _, q_d, _, _ in drudes}
     lines = ['<NonbondedForce coulomb14scale="1.0" lj14scale="1.0">']
     for mol, raw, qualified in atom_types:
         charge = 0.0 if charges_elsewhere else type_to_charge.get(qualified, 0.0)
-        lines.append(f'<Atom class="{qualified}" charge="{charge}" sigma="0.0" epsilon="0.0"/>')
+        charge -= q_drude.get(qualified, 0.0)
+        lines.append(f'<Atom class="{qualified}" charge="{charge!r}" sigma="0.0" epsilon="0.0"/>')
+    for _, _, _, dq, q_d, _, _ in drudes:
+        lines.append(f'<Atom class="{dq}" charge="{q_d!r}" sigma="0.0" epsilon="0.0"/>')
     lines.append('</NonbondedForce>')
     return '\n'.join(lines)
 

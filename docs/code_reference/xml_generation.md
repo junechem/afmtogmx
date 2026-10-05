@@ -70,12 +70,26 @@ Nothing raises — `_matrix` is zero-filled, so the XML comes out with `A = 0` f
 pairs and the failure only appears as a collapsing box in a later MD run. That is what
 the warning exists to catch.
 
+- `collect_drude(atom_types, drude)` — for a `[DRU]` document block, one
+  `(mol, raw, qualified, drude_qualified, q_D, alpha_nm3, thole_atom)` per polarizable
+  qualified type (`[]` without one). `q_D = -sqrt(alpha k / 332.0637)` (alpha Å³, k
+  kcal/mol/Å², pycryoff `openmm_backend/drude.py`); `thole_atom` is **half** the card's pair
+  value, because OpenMM's `DrudeGenerator` sums two per-atom values per screened pair.
+- `drude_atom_types(drudes)` — the Drude types as `(mol, raw, qualified)` rows, appended to
+  `atom_types` for the custom-force builders so every particle has a (zero) table row.
+
 ## Section builders (each returns a string, or `''` if empty)
-- `gen_atomtypes(bonded, atom_types, type_names=None)` — `<AtomTypes>`; `name` comes
+- `gen_drude_force(drudes)` — `<DrudeForce>`, one `<Particle class1=Drude class2=parent
+  charge polarizability thole>` per polarizable type; must follow `<NonbondedForce>`. OpenMM
+  gives each Drude its parent's exclusions (from `bondCutoff`) and adds a screened pair for
+  every excluded Drude pair.
+- `gen_atomtypes(bonded, atom_types, type_names=None, drudes=())` — `<AtomTypes>`; Drude
+  types are appended element-less with mass 0; `name` comes
   from `type_names`, `class` is always the qualified type; element/mass come from
   `_element_symbol` (handles two-letter elements like Na/Cl); virtual sites get
   mass 0.0 and no element.
-- `gen_residues(bonded, mol_names, molname_translations, type_names=None)` — `<Residues>` with
+- `gen_residues(bonded, mol_names, molname_translations, type_names=None, drudes=())` —
+  `<Residues>`; with `drudes`, one unbonded `D<atom>` per polarizable atom; otherwise
   `<Atom>`, `<Bond>` (from `BON` data, deduped), and `<VirtualSite>` entries.
   Residue name comes from `molname_translations` (falls back to molname).
 - `_virtual_site_xml(site_name, definition, unique)` — parse a virtual-site tuple
