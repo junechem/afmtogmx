@@ -137,16 +137,17 @@ class OpenMMBackend:
         if drude is not None and polarization is not None:
             raise ValueError("a force field cannot carry both [POL] and [DRU]")
         drudes = xml_generation.collect_drude(atom_types, drude)
+        sites = xml_generation.drude_sites(bonded, mol_names, drudes, type_names)
 
         sections = []
-        sections.append(xml_generation.gen_atomtypes(bonded, atom_types, type_names, drudes))
+        sections.append(xml_generation.gen_atomtypes(bonded, atom_types, type_names, sites))
         sections.append(xml_generation.gen_residues(bonded, mol_names, p.molname_translations,
-                                                    type_names, drudes))
+                                                    type_names, sites))
         sections.append(xml_generation.gen_nonbonded_force(
             atom_types, type_to_charge, charges_elsewhere=polarization is not None,
             drudes=drudes))
         if drudes:
-            sections.append(xml_generation.gen_drude_force(drudes))
+            sections.append(xml_generation.gen_drude_force(sites))
         if polarization is not None:
             sections.append(xml_generation.gen_multipole_force(
                 bonded, mol_names, atom_types, type_names, type_to_charge, polarization))

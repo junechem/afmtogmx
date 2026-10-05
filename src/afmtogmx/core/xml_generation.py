@@ -299,20 +299,54 @@ def drude_atom_types(drudes):
     return [(mol, f"D{raw}", dq) for mol, raw, _, dq, _, _, _ in drudes]
 
 
-def gen_drude_force(drudes):
-    """``<DrudeForce>``: one ``<Particle>`` per polarizable type (``class1`` = Drude,
-    ``class2`` = parent). Must follow ``<NonbondedForce>``. OpenMM then excludes each Drude
-    wherever its parent is excluded (``bondCutoff``) and adds a screened pair for every
-    excluded Drude pair, i.e. the 1-2 and 1-3 pairs of a ``bondCutoff=2`` force field."""
+def drude_sites(bonded, mol_names, drudes, type_names=None):
+    """``[(mol, atid, raw, parent_type, parent_class, drude_type, drude_class, q_D, alpha_nm3,
+    thole_atom)]``: one row per polarizable *atom*, from the per-type rows of
+    :func:`collect_drude`.
+
+    Each polarizable atom and its Drude get a ``<Type>`` of their own (``<type>_<atom>``,
+    e.g. ``UNK_C2q_C4`` / ``UNK_DC2q_C4``) under the shared class. OpenMM's
+    ``DrudeGenerator`` finds a Drude's parent by *type* within the residue and keeps the last
+    match, so two atoms of one type (cyclohexanol's C2/C4) hand both Drudes to the same parent
+    and the Context refuses the system ("Particle index is used by two different Drude
+    particles"). Every other section refers to atoms by class, so nothing else changes.
+    """
+    names = type_names or {}
+    by_type = {(row[0], row[2]): row for row in drudes}
+    out = []
+    for mol in mol_names:
+        atom_map = _atom_map(bonded[mol]['ATO']['All'])
+        unique = _unique_atom_names(atom_map)
+        for atid in sorted(atom_map.keys()):
+            if atid not in unique:
+                continue
+            raw = atom_map[atid][1]
+            qualified = _qualify(mol, raw)
+            row = by_type.get((mol, qualified))
+            if row is None:
+                continue
+            _, _, _, dq, q_d, alpha_nm3, thole = row
+            atname = unique[atid]
+            out.append((mol, atid, raw, f"{names.get(qualified, qualified)}_{atname}", qualified,
+                        f"{dq}_{atname}", dq, q_d, alpha_nm3, thole))
+    return out
+
+
+def gen_drude_force(sites):
+    """``<DrudeForce>``: one ``<Particle>`` per polarizable atom (``type1`` = its Drude,
+    ``type2`` = the atom; see :func:`drude_sites` for why not per class). Must follow
+    ``<NonbondedForce>``. OpenMM then excludes each Drude wherever its parent is excluded
+    (``bondCutoff``) and adds a screened pair for every excluded Drude pair, i.e. the 1-2 and
+    1-3 pairs of a ``bondCutoff=2`` force field."""
     lines = ['<DrudeForce>']
-    for _, _, qualified, dq, q_d, alpha_nm3, thole in drudes:
-        lines.append(f'<Particle class1="{dq}" class2="{qualified}" charge="{q_d!r}" '
+    for _, _, _, ptype, _, dtype, _, q_d, alpha_nm3, thole in sites:
+        lines.append(f'<Particle type1="{dtype}" type2="{ptype}" charge="{q_d!r}" '
                      f'polarizability="{alpha_nm3!r}" thole="{thole!r}"/>')
     lines.append('</DrudeForce>')
     return '\n'.join(lines)
 
 
-def gen_atomtypes(bonded, atom_types, type_names=None, drudes=()):
+def gen_atomtypes(bonded, atom_types, type_names=None, sites=()):
     """``<AtomTypes>`` with one ``<Type>`` per qualified atom type.
 
     ``type_names`` (see :func:`build_type_names`) supplies the ``name``; the ``class`` is
@@ -328,15 +362,20 @@ def gen_atomtypes(bonded, atom_types, type_names=None, drudes=()):
             element = _element_symbol(raw)
             mass = _get_mass(element)
             lines.append(f'<Type name="{name}" class="{qualified}" element="{element}" mass="{mass}"/>')
-    for _, _, _, dq, _, _, _ in drudes:
+    # Polarizable atoms and their Drudes: one type per atom (see drude_sites).
+    for _, _, raw, ptype, pclass, _, _, _, _, _ in sites:
+        element = _element_symbol(raw)
+        lines.append(f'<Type name="{ptype}" class="{pclass}" element="{element}" '
+                     f'mass="{_get_mass(element)}"/>')
+    for _, _, _, _, _, dtype, dclass, _, _, _ in sites:
         # No element: that is how Modeller.addExtraParticles recognises a particle the PDB
         # does not carry. Mass 0 here; createSystem(drudeMass=0.4 amu) moves it off the parent.
-        lines.append(f'<Type name="{dq}" class="{dq}" mass="0.0"/>')
+        lines.append(f'<Type name="{dtype}" class="{dclass}" mass="0.0"/>')
     lines.append('</AtomTypes>')
     return '\n'.join(lines)
 
 
-def gen_residues(bonded, mol_names, molname_translations, type_names=None, drudes=()):
+def gen_residues(bonded, mol_names, molname_translations, type_names=None, sites=()):
     """``<Residues>`` listing atoms, bonds, and virtual sites for every molecule.
 
     A residue's atoms must name a ``<Type>``, not a class -- OpenMM binds one type per atom
@@ -351,22 +390,20 @@ def gen_residues(bonded, mol_names, molname_translations, type_names=None, drude
 
         lines.append(f'<Residue name="{resname}">')
 
+        # A polarizable atom names its own type (drude_sites), everything else its class's.
+        site_of = {s[1]: s for s in sites if s[0] == mol}
         for atid in sorted(atom_map.keys()):
             if atid not in unique:
                 continue
             atname, attype = atom_map[atid]
             qualified = _qualify(mol, attype)
-            lines.append(f'<Atom name="{unique[atid]}" '
-                         f'type="{names.get(qualified, qualified)}"/>')
+            atype = site_of[atid][3] if atid in site_of else names.get(qualified, qualified)
+            lines.append(f'<Atom name="{unique[atid]}" type="{atype}"/>')
 
         # One Drude per polarizable atom, named D<parent>, unbonded (DrudeForce ties it on).
-        drude_of = {q: dq for m, _, q, dq, _, _, _ in drudes if m == mol}
         for atid in sorted(atom_map.keys()):
-            if atid not in unique:
-                continue
-            dq = drude_of.get(_qualify(mol, atom_map[atid][1]))
-            if dq is not None:
-                lines.append(f'<Atom name="D{unique[atid]}" type="{dq}"/>')
+            if atid in site_of and atid in unique:
+                lines.append(f'<Atom name="D{unique[atid]}" type="{site_of[atid][5]}"/>')
 
         written_bonds = set()
         for bond_type, pairs_dict in bonded[mol].get('BON', {}).items():

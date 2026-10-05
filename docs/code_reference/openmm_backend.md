@@ -32,10 +32,11 @@ Same explicit→config→default parameter resolution pattern as `GROMACSBackend
     `afm_openmm.prepare_afm_system(system, topology=...)` must still correct its
     covalent maps — see `xml_generation.gen_multipole_force`.
   - A `[DRU]` card (`parent.drude`, JSON path only) adds a Drude particle per polarizable
-    type: element-less `<Type>` (mass 0; `createSystem(drudeMass=...)` moves mass off the
+    atom, with a per-atom parent and Drude `<Type>` (`xml_generation.drude_sites`; OpenMM
+    resolves Drude parents by type) -- the Drude element-less (mass 0; `createSystem(drudeMass=...)` moves mass off the
     parent), a `D<atom>` entry in each `<Residue>`, parent charge `q - q_D` and Drude charge
     `q_D` in `<NonbondedForce>`, and a `<DrudeForce>` right after it
-    (`xml_generation.collect_drude`, `gen_drude_force`). Drude types are appended to the
+    (`xml_generation.collect_drude`, `drude_sites`, `gen_drude_force`). Drude types are appended to the
     custom-force type lists with zero table rows (no repulsion, no dispersion). `[POL]` with
     `[DRU]`, and CPN with `[DRU]`, are refused. The PDB carries no Drudes: add them with
     `Modeller.addExtraParticles(forcefield)` before `createSystem`, and use a Drude integrator.

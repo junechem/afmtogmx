@@ -77,19 +77,29 @@ the warning exists to catch.
   value, because OpenMM's `DrudeGenerator` sums two per-atom values per screened pair.
 - `drude_atom_types(drudes)` — the Drude types as `(mol, raw, qualified)` rows, appended to
   `atom_types` for the custom-force builders so every particle has a (zero) table row.
+- `drude_sites(bonded, mol_names, drudes, type_names=None)` — one row per polarizable
+  **atom**: `(mol, atid, raw, parent_type, parent_class, drude_type, drude_class, q_D,
+  alpha_nm3, thole_atom)`, types named `<type>_<atom>` (`UNK_C2q_C4`, `UNK_DC2q_C4`) under the
+  shared class. Needed because OpenMM's `DrudeGenerator` finds a Drude's parent by *type*
+  inside the residue and keeps the last match: two atoms of one polarizable type (cyclohexanol
+  C2/C4) would give both Drudes one parent ("Particle index is used by two different Drude
+  particles"). All other sections refer to atoms by class and are unaffected.
 
 ## Section builders (each returns a string, or `''` if empty)
-- `gen_drude_force(drudes)` — `<DrudeForce>`, one `<Particle class1=Drude class2=parent
-  charge polarizability thole>` per polarizable type; must follow `<NonbondedForce>`. OpenMM
+- `gen_drude_force(sites)` — `<DrudeForce>`, one `<Particle type1=Drude type2=parent
+  charge polarizability thole>` per polarizable atom (`drude_sites`); must follow
+  `<NonbondedForce>`. OpenMM
   gives each Drude its parent's exclusions (from `bondCutoff`) and adds a screened pair for
   every excluded Drude pair.
-- `gen_atomtypes(bonded, atom_types, type_names=None, drudes=())` — `<AtomTypes>`; Drude
-  types are appended element-less with mass 0; `name` comes
+- `gen_atomtypes(bonded, atom_types, type_names=None, sites=())` — `<AtomTypes>`; each
+  `drude_sites` row appends a per-atom parent type (element, mass) and a per-atom Drude type
+  (element-less, mass 0); `name` comes
   from `type_names`, `class` is always the qualified type; element/mass come from
   `_element_symbol` (handles two-letter elements like Na/Cl); virtual sites get
   mass 0.0 and no element.
-- `gen_residues(bonded, mol_names, molname_translations, type_names=None, drudes=())` —
-  `<Residues>`; with `drudes`, one unbonded `D<atom>` per polarizable atom; otherwise
+- `gen_residues(bonded, mol_names, molname_translations, type_names=None, sites=())` —
+  `<Residues>`; with `sites`, polarizable atoms name their per-atom type and each gets one
+  unbonded `D<atom>` of its per-atom Drude type; otherwise
   `<Atom>`, `<Bond>` (from `BON` data, deduped), and `<VirtualSite>` entries.
   Residue name comes from `molname_translations` (falls back to molname).
 - `_virtual_site_xml(site_name, definition, unique)` — parse a virtual-site tuple
