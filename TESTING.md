@@ -1,19 +1,60 @@
 # Testing Guide
 
-This document explains the regression testing infrastructure for the `afmtogmx` project.
+This document explains the testing infrastructure for the `afmtogmx` project.
 
-## Overview
+## Running the Tests
 
-The regression testing system ensures that code changes don't break existing functionality. Tests are located in `test/baseline_outputs/` and consist of baseline output files that represent correct behavior.
+From the repository root:
+
+```bash
+python -m pytest test/ -v            # everything
+python -m pytest test/test_regression.py -v
+python -m pytest test/test_parsing.py -v
+python -m pytest test/test_regression.py::test9_change_molecule_blypsp4f -v
+```
+
+Both test modules insert `src/` into `sys.path` themselves, so the package does not need
+to be installed. `pytest` comes from the `dev` extra: `pip install -e ".[dev]"`.
+
+## Test Layout
+
+```
+test/
+├── test_regression.py        # tests 1-9 (GROMACS outputs + change_molecule)
+├── test_parsing.py           # parser output vs JSON baselines
+├── sample_off_files/         # input .off files (do not modify)
+├── baseline_outputs/
+│   ├── parsing/              # JSON baselines for test_parsing.py
+│   └── testN_*/              # per-test baselines for test_regression.py
+└── compare/                  # base.off / compare.off, fixtures for core/compare.py
+```
+
+**`test_regression.py`** copies each test's inputs into a `tmp_path`, runs the workflow
+there, and diffs the results against the committed baseline: `.xvg` files are compared
+numerically (`numpy.allclose`, `rtol=1e-6`, `atol=1e-10`), `.top` files line-by-line with
+trailing whitespace stripped. `template.top` and `charges.txt` are treated as inputs and
+skipped.
+
+**`test_parsing.py`** compares `off.nonbonded` and `off.bonded` against JSON baselines in
+`test/baseline_outputs/parsing/`, parametrized over six sample `.off` files
+(`methane_intra`, `ethane_intra`, `water_intra`, `butanediol_intra`, `big_alanine`,
+`curcubituril`). Tuple keys are serialized as their `repr`.
 
 ## Test Structure
 
-Each test directory contains:
+Each of the test 1-8 baseline directories contains:
 - `generate_testX.py` - Python script to regenerate outputs
 - `template.top` - Input GROMACS topology template
 - `topol.top` - Final topology file (baseline)
 - `temp_nonbonded.top` - Intermediate topology file (baseline)
 - `tabpot/*.xvg` - Tabulated potential files (baseline)
+
+Test 9 is assertion-based and has no baseline directory.
+
+> **Note**: the `generate_testX.py` scripts predate the backend split and still call the
+> deprecated flat API (`off.set_config`, `off.gen_nonbonded_tabpot`, …), which now emits
+> `DeprecationWarning`. They still produce correct output. New tests should use
+> `off.gmx.*` / `off.openmm.*`.
 
 ## Available Test Cases
 
@@ -168,41 +209,65 @@ Each test directory contains:
 
 ---
 
-## How to Use Regression Tests
+### Test 9: Butanol + Water (Reference FF Replacement)
+**Location**: `test/test_regression.py::test9_change_molecule_blypsp4f` — no baseline directory
+
+**Purpose**: Tests `change_molecule()` against the bundled `BLYPSP-4F` reference force field
+
+**Covers**:
+- Fitted water-water params (`EXPW`, `STRC`) are removed
+- BLYPSP-4F water-water params (`EXP`, `STR`, `POW`) are inserted with correct values
+- Solute-water **cross-term pairs keep their original fitted values**
+- `H2OQM` charges are picked up from the sibling `BLYPSP-4F.charges`
+- Solute (`UNK`) charges are unaffected
+
+**Input**: `test/sample_off_files/h_butanol_fitwater.off`
+
+**Run**: `python -m pytest test/test_regression.py::test9_change_molecule_blypsp4f -v`
+
+This test is assertion-based rather than baseline-based — it checks parameter values
+directly, so there is nothing to regenerate.
+
+---
+
+## How to Use the Regression Tests
 
 ### When Making Code Changes
 
-1. **Before changing code**: Ensure all current tests pass
+1. **Before changing code**: confirm the suite is green
    ```bash
-   cd test/baseline_outputs/test1_methane_basic && python generate_test1.py
-   cd ../test2_ethane_bonded && python generate_test2.py
-   cd ../test3_water_charges && python generate_test3.py
-   cd ../test4_butanediol_nametrans && python generate_test4.py
-   cd ../test5_methane_scsigma && python generate_test5.py
-   cd ../test6_ethane_exclpairs && python generate_test6.py
-   cd ../test7_methane_config && python generate_test7.py
-   cd ../test8_ethane_clean_workflow && python generate_test8.py
+   python -m pytest test/ -v
    ```
 
 2. **Make your code changes** (e.g., refactoring, adding features)
 
-3. **Re-run all test generators** (same commands as step 1)
+3. **Re-run the suite** — a failure means an output changed
 
-4. **Check for differences**:
-   ```bash
-   git status  # Shows which files changed
-   git diff test/baseline_outputs/  # Shows exact line-by-line differences
-   ```
+4. **Interpret results**:
+   - **All green**: ✅ your changes did not alter any output
+   - **Failures**: investigate:
+     - **Expected change**: you intentionally modified the output format → regenerate and
+       commit new baselines (below)
+     - **Unexpected change**: bug introduced → fix your code and re-test
 
-5. **Interpret results**:
-   - **No changes**: ✅ Your code changes are safe and backward-compatible
-   - **Changes detected**: Investigate further:
-     - **Expected changes**: You intentionally modified output format → Commit new baselines
-     - **Unexpected changes**: Bug introduced → Fix your code and re-test
+Because `test_regression.py` writes into a `tmp_path`, running the suite never touches the
+committed baselines — a failing test tells you something changed without overwriting the
+evidence.
 
-### Running All Tests Quickly
+### Regenerating Baselines
 
-You can create a simple script to run all tests:
+The `generate_testN.py` scripts write directly into their own baseline directory, so run
+them only when you *intend* to update baselines:
+
+**Linux/Mac (Bash)**:
+```bash
+cd test/baseline_outputs
+for dir in test*/; do
+    (cd "$dir" && python generate_test*.py)
+done
+cd ../..
+git diff test/baseline_outputs/       # review every change before committing
+```
 
 **Windows (PowerShell)**:
 ```powershell
@@ -214,15 +279,7 @@ foreach ($dir in Get-ChildItem -Directory) {
 }
 ```
 
-**Linux/Mac (Bash)**:
-```bash
-cd test/baseline_outputs
-for dir in test*/; do
-    cd "$dir"
-    python generate_test*.py
-    cd ..
-done
-```
+Then re-run `python -m pytest test/ -v` to confirm the new baselines are self-consistent.
 
 ### What Files to Check
 
@@ -285,7 +342,9 @@ Original sample .off files are located in `test/sample_off_files/`:
 - `ethane_intra.off` - Small hydrocarbon with C-C bond
 - `water_intra.off` - Multiple water models (H20QM, X3MM, etc.)
 - `butanediol_intra.off` - 1,4-Butanediol (medium complexity)
-- `big_alanine.off` - Large biomolecule (not used in current tests)
+- `big_alanine.off` - Large biomolecule (parsing tests only)
+- `curcubituril.off` - Macrocycle (parsing tests only)
+- `h_butanol_fitwater.off` - Butanol with co-fitted water (used by Test 9)
 
 **Do not modify these files** - they are reference inputs for testing.
 
@@ -308,14 +367,28 @@ Original sample .off files are located in `test/sample_off_files/`:
 | C6 scaling | Test 1-8 (default) |
 | Multiple molecules | Test 3 (H20QM only) |
 | incl_mol parameter | Test 3 |
+| change_molecule() / reference FFs | Test 9 |
+| .off parsing (bonded + nonbonded) | `test_parsing.py`, 6 sample files |
+
+## Not Covered
+
+These have **no automated test** — changes to them are unguarded:
+
+- `off.openmm.gen_xml()` and `off.openmm.preprocess_pdb()` — no OpenMM test exists
+- `populate_bonded()` — no test, and no `atoms.dat` / `bonds.dat` / `valid_dihedrals.dat` /
+  `parameters.dat` fixtures anywhere in the repo
+- `write_report()`
+- `compare.py`
+- `gen_residues()`
 
 ## Future Test Additions
 
 Consider adding tests for:
+- The gaps listed under "Not Covered" above — a `populate_bonded` fixture directory is the
+  highest-value one, since that code path is entirely unexercised
 - `special_pairs` dictionary
 - `excl_interactions` parameter
 - `scale_C12` parameter (for HFE calculations)
-- Large molecules (big_alanine.off)
 - Multiple molecule types in same simulation
 - Edge cases (empty molecules, missing parameters)
 
@@ -333,9 +406,9 @@ Consider adding tests for:
 
 **Solution**: When using `incl_mol` in `gen_bonded_tabpot()`, you must also pass it to `gen_bonded_topology()` with the `bonded_tabpot` parameter:
 ```python
-bonded_tabpot = off.gen_bonded_tabpot(incl_mol=['UNK'])
-off.gen_bonded_topology(template_file='temp.top', write_to='topol.top',
-                        incl_mol=['UNK'], bonded_tabpot=bonded_tabpot)
+bonded_tabpot = off.gmx.gen_bonded_tabpot(incl_mol=['UNK'])
+off.gmx.gen_bonded_topology(template_file='temp.top', write_to='topol.top',
+                            incl_mol=['UNK'], bonded_tabpot=bonded_tabpot)
 ```
 
 ---
@@ -357,28 +430,16 @@ off.gen_bonded_topology(template_file='temp.top', write_to='topol.top',
 
 ## Continuous Integration (Future)
 
-For CI/CD integration, create a test runner that:
-1. Runs all test generators
-2. Checks git diff for changes
-3. Fails if unexpected changes detected
-4. Reports which tests passed/failed
+No CI runner is configured yet. The suite is already CI-ready — it is plain pytest, needs
+no installation step, and writes only into `tmp_path`:
 
-Example structure:
-```python
-import subprocess
-import sys
+```yaml
+- run: pip install numpy pytest
+- run: python -m pytest test/ -v
+```
 
-tests = ['test1_methane_basic', 'test2_ethane_bonded', ...]
-failed = []
+Adding `pytest-cov` (already in the `dev` extra) gives a coverage report:
 
-for test in tests:
-    result = subprocess.run(['python', f'test/baseline_outputs/{test}/generate_{test}.py'])
-    if result.returncode != 0:
-        failed.append(test)
-
-# Check for git changes
-diff_result = subprocess.run(['git', 'diff', '--exit-code', 'test/baseline_outputs/'])
-if diff_result.returncode != 0:
-    print("ERROR: Baseline outputs changed unexpectedly!")
-    sys.exit(1)
+```bash
+python -m pytest test/ --cov=afmtogmx --cov-report=term-missing
 ```

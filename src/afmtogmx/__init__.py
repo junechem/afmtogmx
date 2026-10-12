@@ -1,82 +1,117 @@
 """
-The afmtogmx package contains tools related to the production of input files for a GROMACS
-simulation based on a .off file produced from CRYOFF. The main functions of the program are found
-within the core modules. We suggest using the package in the following way:
+Convert CRYOFF `.off` force fields into GROMACS and OpenMM input files.
+
+Parsing a `.off` file gives you a `ReadOFF` object holding the force field data,
+plus one backend per simulation engine:
 
     >>> import afmtogmx
     >>> off = afmtogmx.ReadOFF(off_loc="path/to/intra.off")
+    >>>
+    >>> off.bonded, off.nonbonded, off.charges, off.residues   # shared parsed data
+    >>> off.gmx        # GROMACSBackend — tabulated potentials (.xvg) + topology (.top)
+    >>> off.openmm     # OpenMMBackend  — force field XML + processed PDB
 
-From here, bonded and nonbonded parameters are stored as dictionaries at off.bonded, off.nonbonded.
-
-CONFIGURATION SYSTEM
-====================
-
-The ReadOFF class supports a configuration system that allows you to set default parameters for all workflow methods.
-This is especially useful when you want to use the same parameter values across multiple method calls.
-
-To set configuration values:
-
-    >>> off.set_config(spacing_nonbonded=0.001, scale_C6=False, tabpot_prefix='my_table')
-
-To get configuration values:
-
-    >>> all_config = off.get_config()  # Returns full config dictionary
-    >>> spacing = off.get_config('spacing_nonbonded')  # Returns specific value
-
-Configuration keys include: incl_mol, excl_interactions, excl_pairs, spacing_nonbonded, length_nonbonded,
-scale_C6, sc_sigma, spacing_bonded, length_bonded, tabpot_prefix, tabpot_dir, write_blank, name_translation, special_pairs.
-
-When calling workflow methods, explicitly passed parameters override config values, which override built-in defaults.
+Methods that modify the force field itself live on `off` and affect both backends;
+engine-specific options live on the backend.
 
 CHARGE ASSIGNMENT
 =================
 
-By default, all atom charges are 0.0. If charges are needed, they can be assigned to the `off.charges` dictionary:
+All charges default to 0.0. Assign them directly:
 
-    >>> off.charges['H20QM']['OQM'] = -0.82
-    >>> off.charges['H20QM']['HQM'] = 0.41
+    >>> off.charges['H2OQM']['OQM'] = -0.82
+    >>> off.charges['H2OQM']['HQM'] = 0.41
 
-Alternatively, charges can be loaded from a file using `load_charges_from_file()`:
+or load them from a file (blank lines and '#' comments ignored):
 
     >>> off.load_charges_from_file('charges.txt')
 
-The file format should be:
     MOLNAME1
     Atom1 Charge1
     Atom2 Charge2
 
-Any atoms not specified in the file will remain at their default charge of 0.0.
+An `atom charge` line appearing before any molecule name is applied to every molecule
+containing that atom. Atoms not listed keep their default of 0.0.
 
-EXAMPLE WORKFLOW
+CONFIGURATION
+=============
+
+Each backend keeps its own config, so defaults are set once rather than repeated on
+every call. Resolution order is: explicit argument -> config value -> built-in default.
+
+    >>> off.gmx.set_config(spacing_nonbonded=0.001, scale_C6=False, tabpot_dir='tables/')
+    >>> off.gmx.get_config()             # full dict
+    >>> off.gmx.get_config('scale_C6')   # one value
+
+`off.gmx` keys: spacing_nonbonded, length_nonbonded, spacing_bonded, length_bonded,
+scale_C6, sc_sigma, tabpot_prefix, tabpot_dir, write_blank, incl_mol, excl_interactions,
+excl_pairs, name_translation, special_pairs.
+
+`off.openmm` keys: incl_mol, molname_translations.
+
+GROMACS WORKFLOW
 ================
-
-A typical workflow from an `.off` file to a complete GROMACS force field is as follows:
 
     >>> import afmtogmx
     >>>
-    >>> # 1. Initialize the reader with the .off file
     >>> off = afmtogmx.ReadOFF(off_loc="path/to/intra.off")
+    >>> off.load_charges_from_file('charges.txt')
+    >>> off.gmx.set_config(tabpot_dir='tables/', name_translation={'C_off': 'C_top'})
     >>>
-    >>> # 2. Set any desired global configurations
-    >>> off.set_config(tabpot_dir='tables/', name_translation={'C_off': 'C_top'})
+    >>> # generated tables are stored on the backend, so nothing needs passing around
+    >>> off.gmx.gen_nonbonded_tabpot()      # -> off.gmx.nonbonded_tabpot
+    >>> off.gmx.gen_bonded_tabpot()         # -> off.gmx.bonded_tabpot
+    >>> off.gmx.write_nonbonded_tabpot()
+    >>> off.gmx.write_bonded_tabpot()
     >>>
-    >>> # 3. Load charges if necessary
+    >>> # topology is built in two passes over a template
+    >>> off.gmx.gen_nonbonded_topology(template_file='template.top',
+    ...                                write_to='temp_nonbonded.top')
+    >>> off.gmx.gen_bonded_topology(template_file='temp_nonbonded.top',
+    ...                             write_to='topol.top')
+
+OPENMM WORKFLOW
+===============
+
+    >>> off = afmtogmx.ReadOFF(off_loc="path/to/intra.off")
     >>> off.load_charges_from_file('charges.txt')
     >>>
-    >>> # 4. Generate all required tabulated potentials (stored internally)
-    >>> off.gen_nonbonded_tabpot()
-    >>> off.gen_bonded_tabpot()
+    >>> off.openmm.set_config(molname_translations={'H2OQM': 'SOL'})
+    >>> off.openmm.gen_xml(output='forcefield.xml')
     >>>
-    >>> # 5. Write the tabulated potential .xvg files to the configured directory
-    >>> off.write_nonbonded_tabpot()
-    >>> off.write_bonded_tabpot()
-    >>>
-    >>> # 6. Generate the nonbonded topology from a template
-    >>> off.gen_nonbonded_topology(template_file='template.top', write_to='temp_nonbonded.top')
-    >>>
-    >>> # 7. Generate the final, complete topology
-    >>> off.gen_bonded_topology(template_file='temp_nonbonded.top', write_to='topol.top')
+    >>> # rename PDB atoms to match the XML and emit fresh CONECT records
+    >>> off.openmm.preprocess_pdb('conf.pdb', 'forcefield.xml', 'conf_processed.pdb')
 
+The XML is self-contained: no second force field file to merge at runtime. OpenMM itself
+is an optional dependency, used only to look up atomic masses — without it the XML is
+still written, but every `mass` attribute is 0.0.
+
+MODIFYING THE FORCE FIELD
+=========================
+
+`change_molecule` replaces one molecule's parameters with a reference force field stored
+in `afmtogmx/reference_ff/`. Cross-term (solute-solvent) pairs keep their fitted values:
+
+    >>> off.change_molecule(mol_name='H2OQM', reference_ff='BLYPSP-4F',
+    ...                     ref_mol_name='H2OQM')
+
+`populate_bonded` rebuilds a molecule's bonded section from a topology directory of
+atoms and bonds, deriving angles, dihedrals and exclusions from the bond graph. It
+returns a *new* ReadOFF; the original is untouched:
+
+    >>> new_off = off.populate_bonded(directory='cb7_topology/', new_mol_name='CB7',
+    ...                               remove_molecules=['C7F'])
+
+`gen_residues` splits a molecule into named residues by atom type or atom number:
+
+    >>> off.gen_residues(residue_definition={'PROT': {'ALA': ['CA', 'CB', 'HA']}})
+
+`write_report` writes a fixed-width text summary of every fitted parameter in the
+`.off` file's native kcal/Angstrom units:
+
+    >>> off.write_report('forcefield_parameters.txt')
+
+See README.md for full examples and docs/ for reference material.
 """
 
 __version__ = "0.1.0"

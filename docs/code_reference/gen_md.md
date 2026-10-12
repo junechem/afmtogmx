@@ -76,3 +76,12 @@ All forward to the matching `off.gmx` member — kept for backward compatibility
   molecule/atom names warn and skip. An atom-charge pair seen before any molname
   is applied to every molecule containing that atom name. **Overwrites** existing
   charges for listed atoms. Returns `self`. Raises on missing file / parse error.
+
+`write_report(path, incl_mol=None, name_translation=None, molname_translation=None, notation='standard')`
+- Delegates to `report.write_report(self, path, ...)` and returns `self`.
+  Writes a fixed-width ASCII summary of charges + bonded + nonbonded parameters in
+  the `.off`'s native kcal/Å units — **no unit conversion**. `notation` is
+  `'standard'` or `'PN'`; anything else raises `ValueError`. Nonbonded pairs are
+  kept under a molecule's section if *either* atom belongs to it, so cross terms
+  survive `incl_mol`. Validates as it renders and writes nothing if any item
+  fails to resolve. See [report.md](report.md).

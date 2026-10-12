@@ -135,9 +135,9 @@ BONDED_CATEGORY_ORDER = ['BON', 'ANG', 'BD3', 'DIH', 'CDI', 'CDIH']
 #
 # For POW and SRD the exponent stored by CRYOFF is signed (e.g. -6 for
 # attractive dispersion). The 'standard' notation reports the magnitude in
-# the `n` column and folds that magnitude into the coefficient label as
-# `C{n}` (e.g. C6), matching the convention used in Wang-group publications.
-# The coefficient itself keeps its sign, so the formula `U = Cn / r^n` with
+# the `n` column; the coefficient column header is the literal string
+# `Cn(kcal/mol)` — the exponent is NOT substituted into the label. The
+# coefficient itself keeps its sign, so the formula `U = Cn / r^n` with
 # positive n recovers the correct attractive/repulsive sign.
 
 # Section render order: Coulombics first, then short-range repulsion/dispersion
@@ -287,7 +287,7 @@ def write_report(off, path, incl_mol=None, name_translation=None,
     notation : {'standard', 'PN'}, default 'standard'
         Column label convention for nonbonded sections.
         - 'standard': publication-style names (A, alpha, Cn, R0, ...). For
-          POW and SRD, the coefficient column is ``C{|n|}`` (e.g. ``C6``)
+          POW and SRD, the coefficient column header is the literal ``Cn``
           and the exponent column reports ``|n|``; the coefficient keeps its
           fitted sign so ``Cn / r^n`` recovers the correct attractive vs.
           repulsive contribution.
