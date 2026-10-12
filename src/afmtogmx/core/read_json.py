@@ -187,6 +187,9 @@ def populate(obj, path):
     #: fitted with explicit induction is not the same model without it, and a consumer that
     #: writes a plain point-charge topology from it is producing a different force field.
     obj.polarization = doc.get("polarization")
+    #: ``[DRU]``: Drude oscillators on the declared charges (``{"thole_pair", "k_kcal_A2",
+    #: "alphas": {cou_type: A^3}}``). ``openmm.gen_xml`` writes them as a ``<DrudeForce>``.
+    obj.drude = doc.get("drude")
     obj.combinations = doc.get("combinations") or []
     obj.provenance = doc.get("provenance") or {}
     obj.fit = doc.get("fit")

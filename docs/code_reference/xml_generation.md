@@ -70,12 +70,36 @@ Nothing raises — `_matrix` is zero-filled, so the XML comes out with `A = 0` f
 pairs and the failure only appears as a collapsing box in a later MD run. That is what
 the warning exists to catch.
 
+- `collect_drude(atom_types, drude)` — for a `[DRU]` document block, one
+  `(mol, raw, qualified, drude_qualified, q_D, alpha_nm3, thole_atom)` per polarizable
+  qualified type (`[]` without one). `q_D = -sqrt(alpha k / 332.0637)` (alpha Å³, k
+  kcal/mol/Å², pycryoff `openmm_backend/drude.py`); `thole_atom` is **half** the card's pair
+  value, because OpenMM's `DrudeGenerator` sums two per-atom values per screened pair.
+- `drude_atom_types(drudes)` — the Drude types as `(mol, raw, qualified)` rows, appended to
+  `atom_types` for the custom-force builders so every particle has a (zero) table row.
+- `drude_sites(bonded, mol_names, drudes, type_names=None)` — one row per polarizable
+  **atom**: `(mol, atid, raw, parent_type, parent_class, drude_type, drude_class, q_D,
+  alpha_nm3, thole_atom)`, types named `<type>_<atom>` (`UNK_C2q_C4`, `UNK_DC2q_C4`) under the
+  shared class. Needed because OpenMM's `DrudeGenerator` finds a Drude's parent by *type*
+  inside the residue and keeps the last match: two atoms of one polarizable type (cyclohexanol
+  C2/C4) would give both Drudes one parent ("Particle index is used by two different Drude
+  particles"). All other sections refer to atoms by class and are unaffected.
+
 ## Section builders (each returns a string, or `''` if empty)
-- `gen_atomtypes(bonded, atom_types, type_names=None)` — `<AtomTypes>`; `name` comes
+- `gen_drude_force(sites)` — `<DrudeForce>`, one `<Particle type1=Drude type2=parent
+  charge polarizability thole>` per polarizable atom (`drude_sites`); must follow
+  `<NonbondedForce>`. OpenMM
+  gives each Drude its parent's exclusions (from `bondCutoff`) and adds a screened pair for
+  every excluded Drude pair.
+- `gen_atomtypes(bonded, atom_types, type_names=None, sites=())` — `<AtomTypes>`; each
+  `drude_sites` row appends a per-atom parent type (element, mass) and a per-atom Drude type
+  (element-less, mass 0); `name` comes
   from `type_names`, `class` is always the qualified type; element/mass come from
   `_element_symbol` (handles two-letter elements like Na/Cl); virtual sites get
   mass 0.0 and no element.
-- `gen_residues(bonded, mol_names, molname_translations, type_names=None)` — `<Residues>` with
+- `gen_residues(bonded, mol_names, molname_translations, type_names=None, sites=())` —
+  `<Residues>`; with `sites`, polarizable atoms name their per-atom type and each gets one
+  unbonded `D<atom>` of its per-atom Drude type; otherwise
   `<Atom>`, `<Bond>` (from `BON` data, deduped), and `<VirtualSite>` entries.
   Residue name comes from `molname_translations` (falls back to molname).
 - `_virtual_site_xml(site_name, definition, unique)` — parse a virtual-site tuple
@@ -94,7 +118,12 @@ the warning exists to catch.
 - `gen_angle_force(bonded, mol_names)` — `<CustomAngleForce>` for HAR angles
   (theta0→radians, k×4.184).
 - `gen_dihedral_force(bonded, mol_names)` — `<PeriodicTorsionForce>` for NCO
-  dihedrals (k kcal→kJ; phase already radians; reverse-duplicate suppressed).
+  dihedrals (k kcal→kJ; phase already radians). **One `<Proper>` per class quartet
+  carrying every term on it** (`periodicity1/2/3…`): OpenMM applies only one `<Proper>`
+  template per torsion, so separate elements for the n=1, n=2, n=3 terms of a quartet
+  kept the first and silently dropped the rest. A quartet and its reverse are merged.
+  Raises `ValueError` if two atom quartets sharing a class quartet carry different term
+  sets, which no class-based template can express.
 - `gen_exp_force(exp_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for
   `U=A·exp(-alpha·r)` via Discrete2D tables (A×4.184, alpha×10).
 - `gen_srd_force(entries, power, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for

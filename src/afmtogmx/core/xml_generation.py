@@ -264,7 +264,89 @@ def collect_nonbonded(nonbonded, atom_types, bonded=None):
 # Section builders
 # --------------------------------------------------------------------------
 
-def gen_atomtypes(bonded, atom_types, type_names=None):
+#: Coulomb constant in the .off's units, kcal*A/mol/e^2 (pycryoff openmm_backend/drude.py).
+_DRUDE_COULOMB = 332.0637
+
+
+def collect_drude(atom_types, drude):
+    """``[(mol, raw, qualified, drude_qualified, q_D, alpha_nm3, thole_atom)]`` for a ``[DRU]``
+    force field, one entry per polarizable qualified type; ``[]`` when ``drude`` is ``None``.
+
+    pycryoff's model (``openmm_backend/drude.py``): ``q_D = -sqrt(alpha k / 332.0637)`` with
+    alpha in A^3 and k in kcal/mol/A^2 (``k d^2/2``); the parent keeps ``q - q_D``. The card's
+    THOLE is the *pair* value; OpenMM's ``DrudeGenerator`` sums two per-atom values
+    (``thole1 + thole2``), so each atom is written with half of it.
+    """
+    if not drude:
+        return []
+    alphas = drude.get("alphas") or {}
+    k = float(drude.get("k_kcal_A2", 1000.0))
+    thole = float(drude["thole_pair"]) / 2.0
+    out = []
+    for mol, raw, qualified in atom_types:
+        alpha = float(alphas.get(raw, 0.0))
+        if alpha <= 0.0:
+            continue
+        q_d = -(alpha * k / _DRUDE_COULOMB) ** 0.5
+        out.append((mol, raw, qualified, _qualify(mol, f"D{raw}"), q_d, alpha * 1.0e-3, thole))
+    return out
+
+
+def drude_atom_types(drudes):
+    """The Drude types as ``(mol, raw, qualified)`` rows, to append to ``atom_types`` for the
+    ``<CustomNonbondedForce>`` builders: their table rows stay zero, so Drudes carry no
+    repulsion and no dispersion."""
+    return [(mol, f"D{raw}", dq) for mol, raw, _, dq, _, _, _ in drudes]
+
+
+def drude_sites(bonded, mol_names, drudes, type_names=None):
+    """``[(mol, atid, raw, parent_type, parent_class, drude_type, drude_class, q_D, alpha_nm3,
+    thole_atom)]``: one row per polarizable *atom*, from the per-type rows of
+    :func:`collect_drude`.
+
+    Each polarizable atom and its Drude get a ``<Type>`` of their own (``<type>_<atom>``,
+    e.g. ``UNK_C2q_C4`` / ``UNK_DC2q_C4``) under the shared class. OpenMM's
+    ``DrudeGenerator`` finds a Drude's parent by *type* within the residue and keeps the last
+    match, so two atoms of one type (cyclohexanol's C2/C4) hand both Drudes to the same parent
+    and the Context refuses the system ("Particle index is used by two different Drude
+    particles"). Every other section refers to atoms by class, so nothing else changes.
+    """
+    names = type_names or {}
+    by_type = {(row[0], row[2]): row for row in drudes}
+    out = []
+    for mol in mol_names:
+        atom_map = _atom_map(bonded[mol]['ATO']['All'])
+        unique = _unique_atom_names(atom_map)
+        for atid in sorted(atom_map.keys()):
+            if atid not in unique:
+                continue
+            raw = atom_map[atid][1]
+            qualified = _qualify(mol, raw)
+            row = by_type.get((mol, qualified))
+            if row is None:
+                continue
+            _, _, _, dq, q_d, alpha_nm3, thole = row
+            atname = unique[atid]
+            out.append((mol, atid, raw, f"{names.get(qualified, qualified)}_{atname}", qualified,
+                        f"{dq}_{atname}", dq, q_d, alpha_nm3, thole))
+    return out
+
+
+def gen_drude_force(sites):
+    """``<DrudeForce>``: one ``<Particle>`` per polarizable atom (``type1`` = its Drude,
+    ``type2`` = the atom; see :func:`drude_sites` for why not per class). Must follow
+    ``<NonbondedForce>``. OpenMM then excludes each Drude wherever its parent is excluded
+    (``bondCutoff``) and adds a screened pair for every excluded Drude pair, i.e. the 1-2 and
+    1-3 pairs of a ``bondCutoff=2`` force field."""
+    lines = ['<DrudeForce>']
+    for _, _, _, ptype, _, dtype, _, q_d, alpha_nm3, thole in sites:
+        lines.append(f'<Particle type1="{dtype}" type2="{ptype}" charge="{q_d!r}" '
+                     f'polarizability="{alpha_nm3!r}" thole="{thole!r}"/>')
+    lines.append('</DrudeForce>')
+    return '\n'.join(lines)
+
+
+def gen_atomtypes(bonded, atom_types, type_names=None, sites=()):
     """``<AtomTypes>`` with one ``<Type>`` per qualified atom type.
 
     ``type_names`` (see :func:`build_type_names`) supplies the ``name``; the ``class`` is
@@ -280,11 +362,20 @@ def gen_atomtypes(bonded, atom_types, type_names=None):
             element = _element_symbol(raw)
             mass = _get_mass(element)
             lines.append(f'<Type name="{name}" class="{qualified}" element="{element}" mass="{mass}"/>')
+    # Polarizable atoms and their Drudes: one type per atom (see drude_sites).
+    for _, _, raw, ptype, pclass, _, _, _, _, _ in sites:
+        element = _element_symbol(raw)
+        lines.append(f'<Type name="{ptype}" class="{pclass}" element="{element}" '
+                     f'mass="{_get_mass(element)}"/>')
+    for _, _, _, _, _, dtype, dclass, _, _, _ in sites:
+        # No element: that is how Modeller.addExtraParticles recognises a particle the PDB
+        # does not carry. Mass 0 here; createSystem(drudeMass=0.4 amu) moves it off the parent.
+        lines.append(f'<Type name="{dtype}" class="{dclass}" mass="0.0"/>')
     lines.append('</AtomTypes>')
     return '\n'.join(lines)
 
 
-def gen_residues(bonded, mol_names, molname_translations, type_names=None):
+def gen_residues(bonded, mol_names, molname_translations, type_names=None, sites=()):
     """``<Residues>`` listing atoms, bonds, and virtual sites for every molecule.
 
     A residue's atoms must name a ``<Type>``, not a class -- OpenMM binds one type per atom
@@ -299,13 +390,20 @@ def gen_residues(bonded, mol_names, molname_translations, type_names=None):
 
         lines.append(f'<Residue name="{resname}">')
 
+        # A polarizable atom names its own type (drude_sites), everything else its class's.
+        site_of = {s[1]: s for s in sites if s[0] == mol}
         for atid in sorted(atom_map.keys()):
             if atid not in unique:
                 continue
             atname, attype = atom_map[atid]
             qualified = _qualify(mol, attype)
-            lines.append(f'<Atom name="{unique[atid]}" '
-                         f'type="{names.get(qualified, qualified)}"/>')
+            atype = site_of[atid][3] if atid in site_of else names.get(qualified, qualified)
+            lines.append(f'<Atom name="{unique[atid]}" type="{atype}"/>')
+
+        # One Drude per polarizable atom, named D<parent>, unbonded (DrudeForce ties it on).
+        for atid in sorted(atom_map.keys()):
+            if atid in site_of and atid in unique:
+                lines.append(f'<Atom name="D{unique[atid]}" type="{site_of[atid][5]}"/>')
 
         written_bonds = set()
         for bond_type, pairs_dict in bonded[mol].get('BON', {}).items():
@@ -397,7 +495,7 @@ def _virtual_site_xml(site_name, definition, unique):
         return None
 
 
-def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False):
+def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False, drudes=()):
     """``<NonbondedForce>`` carrying point charges (sigma=epsilon=0).
 
     ``charges_elsewhere=True`` zeroes every charge here because an
@@ -406,10 +504,15 @@ def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False):
     declared, and ``afm_openmm.prepare_afm_system`` reads both off it. Leaving the charges
     in as well would double every Coulomb interaction in the system.
     """
+    # With Drudes the parent carries q - q_D and the Drude q_D, so each pair still sums to q.
+    q_drude = {q: q_d for _, _, q, _, q_d, _, _ in drudes}
     lines = ['<NonbondedForce coulomb14scale="1.0" lj14scale="1.0">']
     for mol, raw, qualified in atom_types:
         charge = 0.0 if charges_elsewhere else type_to_charge.get(qualified, 0.0)
-        lines.append(f'<Atom class="{qualified}" charge="{charge}" sigma="0.0" epsilon="0.0"/>')
+        charge -= q_drude.get(qualified, 0.0)
+        lines.append(f'<Atom class="{qualified}" charge="{charge!r}" sigma="0.0" epsilon="0.0"/>')
+    for _, _, _, dq, q_d, _, _ in drudes:
+        lines.append(f'<Atom class="{dq}" charge="{q_d!r}" sigma="0.0" epsilon="0.0"/>')
     lines.append('</NonbondedForce>')
     return '\n'.join(lines)
 
@@ -511,8 +614,18 @@ def gen_dihedral_force(bonded, mol_names):
 
     NCO tuple key in bonded dict: ``(k_kcal, periodicity, phase_rad)``;
     ``k`` is converted kcal/mol → kJ/mol, phase is already in radians.
+
+    All the terms on one class quartet go into ONE ``<Proper>`` (``periodicity1``,
+    ``periodicity2``, ...). OpenMM applies a single ``<Proper>`` template per torsion, so a
+    quartet written as several elements (an n=1, n=2, n=3 Fourier set) silently kept only
+    the first and dropped the rest. A quartet and its reverse are the same torsion.
+
+    The XML matches torsions by class, so every quartet of atoms sharing a class quartet
+    gets the same terms. Raises ``ValueError`` if the deck gives two such quartets
+    different term sets: no class-based ``<Proper>`` can reproduce that.
     """
-    entries, written = [], set()
+    terms_of_class = {}      # class quartet (first orientation seen) -> [(n, phase, k_kj)]
+    terms_of_quad = {}       # (mol, class key, atom-id quartet, canonical) -> set of terms
 
     for mol in mol_names:
         if 'DIH' not in bonded[mol]:
@@ -520,25 +633,35 @@ def gen_dihedral_force(bonded, mol_names):
         atom_map = _atom_map(bonded[mol]['ATO']['All'])
 
         for (k_kcal, periodicity, phase_rad), quads in bonded[mol]['DIH'].get('NCO', {}).items():
-            k_kj = k_kcal * 4.184
-            for at1_id, at2_id, at3_id, at4_id in quads:
-                atoms = [atom_map.get(aid) for aid in (at1_id, at2_id, at3_id, at4_id)]
+            term = (int(periodicity), phase_rad, k_kcal * 4.184)
+            for quad in quads:
+                atoms = [atom_map.get(aid) for aid in quad]
                 if any(a is None or a[1] in ('NETF', 'TORQ') for a in atoms):
                     continue
-                q = [_qualify(mol, a[1]) for a in atoms]
-                key  = tuple(q) + (k_kcal, periodicity, phase_rad)
-                rkey = tuple(reversed(q)) + (k_kcal, periodicity, phase_rad)
-                if key not in written and rkey not in written:
-                    written.add(key)
-                    entries.append((*q, int(periodicity), phase_rad, k_kj))
+                q = tuple(_qualify(mol, a[1]) for a in atoms)
+                key = q if q in terms_of_class or q[::-1] not in terms_of_class else q[::-1]
+                terms = terms_of_class.setdefault(key, [])
+                if term not in terms:
+                    terms.append(term)
+                ids = tuple(int(a) for a in quad)
+                terms_of_quad.setdefault((mol, key, min(ids, ids[::-1])), set()).add(term)
 
-    if not entries:
+    for (mol, key, ids), terms in terms_of_quad.items():
+        if terms != set(terms_of_class[key]):
+            raise ValueError(
+                f"NCO dihedral {mol} {ids} ({'-'.join(key)}) carries {len(terms)} of the "
+                f"{len(terms_of_class[key])} terms on its class quartet; a class-based "
+                f"<Proper> would give it all of them")
+
+    if not terms_of_class:
         return ''
 
     lines = ['<PeriodicTorsionForce>']
-    for q1, q2, q3, q4, period, phase, k in entries:
+    for (q1, q2, q3, q4), terms in terms_of_class.items():
+        fourier = ' '.join(f'periodicity{i}="{n}" phase{i}="{phase}" k{i}="{k}"'
+                           for i, (n, phase, k) in enumerate(terms, 1))
         lines.append(f'<Proper class1="{q1}" class2="{q2}" class3="{q3}" class4="{q4}" '
-                     f'periodicity1="{period}" phase1="{phase}" k1="{k}"/>')
+                     f'{fourier}/>')
     lines.append('</PeriodicTorsionForce>')
     return '\n'.join(lines)
 

@@ -116,7 +116,7 @@ def _parse_atomtypes_from_xml(root):
     return type_to_element
 
 
-def _parse_residues_from_xml(root, type_to_element):
+def _parse_residues_from_xml(root, type_to_element, skip_types=()):
     """Parse the ``<Residues>`` section.
 
     Reads each ``<Residue>``'s atom list (preserving XML order), its
@@ -149,8 +149,10 @@ def _parse_residues_from_xml(root, type_to_element):
         elements = {}
         for atom in residue.findall('Atom'):
             aname = atom.attrib['name']
-            atom_names.append(aname)
             atype = atom.attrib.get('type')
+            if atype in skip_types:                  # Drude particles: not in the PDB
+                continue
+            atom_names.append(aname)
             elements[aname] = (type_to_element.get(atype)
                                or _element_from_name(aname))
         bonds = [
@@ -217,7 +219,25 @@ def build_residue_topology_from_xml(xml_file):
     """
     root = ET.parse(xml_file).getroot()
     type_to_element = _parse_atomtypes_from_xml(root)
-    return _parse_residues_from_xml(root, type_to_element)
+    return _parse_residues_from_xml(root, type_to_element, _drude_types_from_xml(root))
+
+
+def _drude_types_from_xml(root):
+    """Type names of Drude particles (``<DrudeForce><Particle class1|type1>``).
+
+    A PDB never carries them: ``Modeller.addExtraParticles`` adds them after the PDB is read.
+    Virtual sites, the other element-less particles, are different -- they do sit in the PDB.
+    """
+    drude_classes, drude_types = set(), set()
+    for particle in root.findall('DrudeForce/Particle'):
+        if 'class1' in particle.attrib:
+            drude_classes.add(particle.attrib['class1'])
+        if 'type1' in particle.attrib:
+            drude_types.add(particle.attrib['type1'])
+    for atom_type in root.findall('AtomTypes/Type'):
+        if atom_type.attrib.get('class') in drude_classes:
+            drude_types.add(atom_type.attrib['name'])
+    return drude_types
 
 
 # --------------------------------------------------------------------------
