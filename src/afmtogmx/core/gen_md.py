@@ -70,10 +70,56 @@ class ReadOFF:
         # Initialize charges dictionary with all charges set to 0.0
         # Format: {"Mol1" : {'At1' : 0.0, 'At2' : 0.0...}, 'Mol2':...}
         # User can manually set charges via self.charges dictionary
-        self.charges = {mol: {pair[1]: 0.0 for key, pair in self.bonded[mol]['ATO']['All'].items()
-                              if pair[1] != 'NETF' and pair[1] != 'TORQ'}
-                        for mol in self.bonded}
+        # A .off holds charge PRODUCTS (q_i*q_j), never individual charges, so there is nothing
+        # here to read them from; load_charges_from_file() is the way in.
+        charges = {mol: {pair[1]: 0.0 for key, pair in self.bonded[mol]['ATO']['All'].items()
+                         if pair[1] != 'NETF' and pair[1] != 'TORQ'}
+                   for mol in self.bonded}
         self._gen_nonbonded()  # Creates self.nonbonded dictionary with all sections populated with fitted parameters
+        self._finalize(charges)
+
+    @classmethod
+    def from_json(cls, json_loc):
+        """Build a ReadOFF from a ``pycryoff-ff/1`` JSON document instead of a ``.off``.
+
+        pycryoff (the Python force-matching engine) writes its fitted force field as a versioned
+        JSON document; its own ``.off`` is a human report whose layout is not a contract. The
+        resulting object is indistinguishable from one parsed out of a ``.off`` — same ``bonded``,
+        ``nonbonded``, ``charges`` and ``residues``, same units — so every backend works on it
+        unchanged.
+
+        Unlike the ``.off`` path, ``charges`` arrives **populated** when the fit resolved per-atom
+        charges, and the object gains ``polarization``, ``combinations``, ``provenance`` and
+        ``fit`` for the pycryoff extensions a ``.off`` has no syntax for.
+
+        Parameters
+        ----------
+        json_loc : str
+            Path to the JSON document.
+
+        Returns
+        -------
+        ReadOFF
+
+        Raises
+        ------
+        ValueError
+            If the schema version or the units are not the ones this build reads.
+        """
+        from afmtogmx.core import read_json
+
+        obj = cls.__new__(cls)
+        charges = read_json.populate(obj, json_loc)
+        obj._finalize(charges)
+        return obj
+
+    def _finalize(self, charges):
+        """Everything both constructors do once ``bonded``/``nonbonded`` are populated.
+
+        Shared so the two entry points cannot drift: a residue grouping or a backend added for one
+        would otherwise silently be missing from the other.
+        """
+        self.charges = charges
         self.residues = {"Definitions" : {k : {'All' : functions._remove_netf_torq_atname(v['ATO']['All'])} for k, v in self.bonded.items()}, "Residues" : {k : {'All' : [functions._remove_netf_torq_atnum(v['ATO']['All'])]} for k, v in self.bonded.items()}}
         self.gmx = GROMACSBackend(self)
         self.openmm = OpenMMBackend(self)

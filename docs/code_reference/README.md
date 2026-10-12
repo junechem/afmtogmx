@@ -16,6 +16,7 @@ its inputs/outputs, and any non-obvious behavior.
 | Source file | Reference | Role |
 |-------------|-----------|------|
 | `gen_md.py` | [gen_md.md](gen_md.md) | Main `ReadOFF` class: parse `.off`, hold FF data, dispatch to backends |
+| `read_json.py` | [read_json.md](read_json.md) | `ReadOFF.from_json`: read a pycryoff `pycryoff-ff/1` document instead of a `.off` |
 | `functions.py` | [functions.md](functions.md) | Low-level `.off` parsing + interaction math (exp/srd/shtr/powe/quarbond) |
 | `tabulated_potentials.py` | [tabulated_potentials.md](tabulated_potentials.md) | GROMACS tabulated potential (`.xvg`) generation, bonded + nonbonded |
 | `topology.py` | [topology.md](topology.md) | GROMACS `.top` topology file generation |
@@ -33,6 +34,7 @@ Not documented here (excluded by request / trivial): `compare.py`, `residues.py`
 
 ```
 ReadOFF(off_loc)                      # gen_md.py — parses .off via functions.py
+ReadOFF.from_json(json_loc)           # gen_md.py — same object, via read_json.py
   ├── off.bonded / off.nonbonded      # parsed FF data (shared by both backends)
   ├── off.charges / off.residues
   ├── off.gmx   -> GROMACSBackend     # gmx_backend.py
@@ -44,6 +46,13 @@ ReadOFF(off_loc)                      # gen_md.py — parses .off via functions.
   │      └── preprocess_pdb   -> pdb_processing.py
   └── off.write_report                -> report.py
 ```
+
+Both constructors share `ReadOFF._finalize`, which installs `charges`, builds `residues` and
+constructs the two backends — so a change to either cannot apply to only one input format. The
+JSON path differs in exactly one visible way: `charges` arrives **populated** when the fit
+resolved per-atom charges, where the `.off` path can only default them to `0.0` (a `.off` holds
+charge *products*). It also adds `off.polarization`, `off.combinations`, `off.provenance` and
+`off.fit` for the pycryoff extensions a `.off` has no syntax for.
 
 `ReadOFF.change_molecule` and `ReadOFF.populate_bonded` (the latter via
 `populate_bonded.py`) rewrite the shared FF data before either backend runs.

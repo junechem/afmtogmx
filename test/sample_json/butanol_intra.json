@@ -1,0 +1,4105 @@
+{
+  "schema": "pycryoff-ff/1",
+  "units": {
+    "length": "angstrom",
+    "energy": "kcal/mol",
+    "angle": "degree",
+    "charge": "e",
+    "polarizability": "angstrom^3"
+  },
+  "provenance": {
+    "pycryoff": "0.1.0",
+    "commit": "(fixture)",
+    "written": "2026-08-17T15:17:44",
+    "ff_file": "intra.ff",
+    "ref_file": "total.ref",
+    "frames_read": 5,
+    "frames_used": 5,
+    "command": "pycryoff intra.ff",
+    "note": "pycryoff atomic-force fit of the 5 vendored butanol cluster frames"
+  },
+  "files": {
+    "ref": "total.ref",
+    "out": "butanol_intra.off"
+  },
+  "options": {
+    "mode": "intra",
+    "weight_scheme": "rms",
+    "weight_factor": 1.0,
+    "optimizer": "simplex",
+    "max_iter": 2000,
+    "tol": 1e-07,
+    "svd_rcond": 2.220446049250313e-12,
+    "ridge": null,
+    "kfold": 1,
+    "kfold_random_seed": null,
+    "frame_range": null,
+    "cmd_atoms": [],
+    "neutralize_prefer": [],
+    "charge_molecules": []
+  },
+  "molecules": [
+    {
+      "name": "UNK",
+      "equiv_to": null,
+      "atoms": [
+        {
+          "index": 1,
+          "name": "1",
+          "vdw_type": "O0",
+          "cou_type": "O0",
+          "pseudo": null
+        },
+        {
+          "index": 2,
+          "name": "2",
+          "vdw_type": "C1",
+          "cou_type": "C1",
+          "pseudo": null
+        },
+        {
+          "index": 3,
+          "name": "3",
+          "vdw_type": "C2",
+          "cou_type": "C2",
+          "pseudo": null
+        },
+        {
+          "index": 4,
+          "name": "4",
+          "vdw_type": "C2",
+          "cou_type": "C2",
+          "pseudo": null
+        },
+        {
+          "index": 5,
+          "name": "5",
+          "vdw_type": "C3",
+          "cou_type": "C3",
+          "pseudo": null
+        },
+        {
+          "index": 6,
+          "name": "6",
+          "vdw_type": "H0",
+          "cou_type": "H0",
+          "pseudo": null
+        },
+        {
+          "index": 7,
+          "name": "7",
+          "vdw_type": "H1",
+          "cou_type": "H1",
+          "pseudo": null
+        },
+        {
+          "index": 8,
+          "name": "8",
+          "vdw_type": "H1",
+          "cou_type": "H1",
+          "pseudo": null
+        },
+        {
+          "index": 9,
+          "name": "9",
+          "vdw_type": "H2",
+          "cou_type": "H2",
+          "pseudo": null
+        },
+        {
+          "index": 10,
+          "name": "10",
+          "vdw_type": "H2",
+          "cou_type": "H2",
+          "pseudo": null
+        },
+        {
+          "index": 11,
+          "name": "11",
+          "vdw_type": "H2",
+          "cou_type": "H2",
+          "pseudo": null
+        },
+        {
+          "index": 12,
+          "name": "12",
+          "vdw_type": "H2",
+          "cou_type": "H2",
+          "pseudo": null
+        },
+        {
+          "index": 13,
+          "name": "13",
+          "vdw_type": "H2",
+          "cou_type": "H2",
+          "pseudo": null
+        },
+        {
+          "index": 14,
+          "name": "14",
+          "vdw_type": "H2",
+          "cou_type": "H2",
+          "pseudo": null
+        },
+        {
+          "index": 15,
+          "name": "15",
+          "vdw_type": "H2",
+          "cou_type": "H2",
+          "pseudo": null
+        },
+        {
+          "index": 16,
+          "name": "16",
+          "vdw_type": "NetF",
+          "cou_type": "NetF",
+          "pseudo": "NETF"
+        },
+        {
+          "index": 17,
+          "name": "17",
+          "vdw_type": "Torq",
+          "cou_type": "Torq",
+          "pseudo": "TORQ"
+        }
+      ],
+      "exclusions": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          1,
+          8
+        ],
+        [
+          4,
+          15
+        ],
+        [
+          5,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          14,
+          15
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          9
+        ],
+        [
+          2,
+          10
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          11
+        ],
+        [
+          3,
+          12
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          4,
+          12
+        ],
+        [
+          4,
+          13
+        ],
+        [
+          4,
+          14
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          5,
+          13
+        ],
+        [
+          5,
+          14
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          13,
+          14
+        ]
+      ],
+      "fudge": {
+        "vdw": 1.0,
+        "qq": 1.0,
+        "pairs": []
+      },
+      "bonded": [
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 1.5145130400326057,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 379.3346135288087,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              3,
+              2
+            ]
+          ],
+          "label": "C2-C1"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 1.093867002111391,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 729.7414047412715,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              7,
+              2
+            ],
+            [
+              8,
+              2
+            ]
+          ],
+          "label": "H1-C1"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 1.4259634410155193,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 433.24098254221485,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              2,
+              1
+            ]
+          ],
+          "label": "C1-O0"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 1.5267831325996315,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 430.34633012408216,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              4,
+              3
+            ]
+          ],
+          "label": "C2-C2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 1.5356488406716986,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 412.4967978606287,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              5,
+              4
+            ]
+          ],
+          "label": "C3-C2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 1.0955683728028283,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 674.8793624177291,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              9,
+              3
+            ],
+            [
+              10,
+              3
+            ],
+            [
+              11,
+              4
+            ],
+            [
+              12,
+              4
+            ]
+          ],
+          "label": "H2-C2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 1.0928887164246168,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 692.9511633151798,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              13,
+              5
+            ],
+            [
+              14,
+              5
+            ],
+            [
+              15,
+              5
+            ]
+          ],
+          "label": "H2-C3"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "BON",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 0.9554424724472972,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 997.9833060123765,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              6,
+              1
+            ]
+          ],
+          "label": "H0-O0"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 113.73048244461849,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 129.5923657226449,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              2,
+              3,
+              4
+            ]
+          ],
+          "label": "C1-C2-C2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 111.12104378832557,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 95.86893428493566,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              2,
+              3,
+              9
+            ],
+            [
+              2,
+              3,
+              10
+            ]
+          ],
+          "label": "C1-C2-H2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 106.33104758966523,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 86.51253434011826,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              2,
+              1,
+              6
+            ]
+          ],
+          "label": "C1-O0-H0"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 114.55298857424997,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 88.20593497821282,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              3,
+              2,
+              7
+            ],
+            [
+              3,
+              2,
+              8
+            ]
+          ],
+          "label": "C2-C1-H1"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 114.96693517567175,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 133.42999206634758,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              3,
+              2,
+              1
+            ]
+          ],
+          "label": "C2-C1-O0"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 116.03381710702418,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 130.69558308017125,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              3,
+              4,
+              5
+            ]
+          ],
+          "label": "C2-C2-C3"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 111.6759543569452,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 96.55067206855553,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              3,
+              4,
+              11
+            ],
+            [
+              3,
+              4,
+              12
+            ],
+            [
+              4,
+              3,
+              9
+            ],
+            [
+              4,
+              3,
+              10
+            ]
+          ],
+          "label": "C2-C2-H2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 110.98236341401032,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 96.7164633928127,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              4,
+              5,
+              13
+            ],
+            [
+              4,
+              5,
+              14
+            ],
+            [
+              4,
+              5,
+              15
+            ]
+          ],
+          "label": "C2-C3-H2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 113.28147758451061,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 70.3890806400496,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              5,
+              4,
+              11
+            ],
+            [
+              5,
+              4,
+              12
+            ]
+          ],
+          "label": "C3-C2-H2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 113.56237564025857,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 64.78701705547348,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              7,
+              2,
+              8
+            ]
+          ],
+          "label": "H1-C1-H1"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 112.17268306264737,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 94.61923657281994,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              7,
+              2,
+              1
+            ],
+            [
+              8,
+              2,
+              1
+            ]
+          ],
+          "label": "H1-C1-O0"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 109.96827459118032,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 74.1037938504561,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              9,
+              3,
+              10
+            ],
+            [
+              11,
+              4,
+              12
+            ]
+          ],
+          "label": "H2-C2-H2"
+        },
+        {
+          "form": "HAR",
+          "raw_name": "HAR",
+          "card": "ANG",
+          "fit": true,
+          "params": [
+            {
+              "name": "r0",
+              "value": 106.82408916307301,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "k2",
+              "value": 70.30883160109363,
+              "linear": true,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              13,
+              5,
+              14
+            ],
+            [
+              13,
+              5,
+              15
+            ],
+            [
+              14,
+              5,
+              15
+            ]
+          ],
+          "label": "H2-C3-H2"
+        },
+        {
+          "form": "NCO",
+          "raw_name": "NCO",
+          "card": "DIH",
+          "fit": true,
+          "params": [
+            {
+              "name": "V",
+              "value": -0.29656258783526335,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "m",
+              "value": 3.0,
+              "linear": false,
+              "fit": true
+            },
+            {
+              "name": "delta",
+              "value": 0.0,
+              "linear": false,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              1,
+              2,
+              3,
+              4
+            ]
+          ],
+          "label": "O0-C1-C2-C2"
+        },
+        {
+          "form": "NCO",
+          "raw_name": "NCO",
+          "card": "DIH",
+          "fit": true,
+          "params": [
+            {
+              "name": "V",
+              "value": 0.5659850209368449,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "m",
+              "value": 3.0,
+              "linear": false,
+              "fit": true
+            },
+            {
+              "name": "delta",
+              "value": 0.0,
+              "linear": false,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              2,
+              3,
+              4,
+              5
+            ]
+          ],
+          "label": "C1-C2-C2-C3"
+        },
+        {
+          "form": "NCO",
+          "raw_name": "NCO",
+          "card": "DIH",
+          "fit": true,
+          "params": [
+            {
+              "name": "V",
+              "value": -0.02790872245601561,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "m",
+              "value": 3.0,
+              "linear": false,
+              "fit": true
+            },
+            {
+              "name": "delta",
+              "value": 0.0,
+              "linear": false,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              3,
+              2,
+              1,
+              6
+            ]
+          ],
+          "label": "C2-C1-O0-H0"
+        },
+        {
+          "form": "NCO",
+          "raw_name": "NCO",
+          "card": "DIH",
+          "fit": true,
+          "params": [
+            {
+              "name": "V",
+              "value": 0.24157208849172918,
+              "linear": true,
+              "fit": true
+            },
+            {
+              "name": "m",
+              "value": 3.0,
+              "linear": false,
+              "fit": true
+            },
+            {
+              "name": "delta",
+              "value": 0.0,
+              "linear": false,
+              "fit": true
+            }
+          ],
+          "groups": [
+            [
+              3,
+              4,
+              5,
+              13
+            ],
+            [
+              3,
+              4,
+              5,
+              14
+            ],
+            [
+              3,
+              4,
+              5,
+              15
+            ]
+          ],
+          "label": "C2-C2-C3-H2"
+        }
+      ]
+    },
+    {
+      "name": "U1NMM",
+      "equiv_to": null,
+      "atoms": [
+        {
+          "index": 1,
+          "name": "1",
+          "vdw_type": "O01MM",
+          "cou_type": "O01MM",
+          "pseudo": null
+        },
+        {
+          "index": 2,
+          "name": "2",
+          "vdw_type": "C11MM",
+          "cou_type": "C11MM",
+          "pseudo": null
+        },
+        {
+          "index": 3,
+          "name": "3",
+          "vdw_type": "C21MM",
+          "cou_type": "C21MM",
+          "pseudo": null
+        },
+        {
+          "index": 4,
+          "name": "4",
+          "vdw_type": "C21MM",
+          "cou_type": "C21MM",
+          "pseudo": null
+        },
+        {
+          "index": 5,
+          "name": "5",
+          "vdw_type": "C31MM",
+          "cou_type": "C31MM",
+          "pseudo": null
+        },
+        {
+          "index": 6,
+          "name": "6",
+          "vdw_type": "H01MM",
+          "cou_type": "H01MM",
+          "pseudo": null
+        },
+        {
+          "index": 7,
+          "name": "7",
+          "vdw_type": "H11MM",
+          "cou_type": "H11MM",
+          "pseudo": null
+        },
+        {
+          "index": 8,
+          "name": "8",
+          "vdw_type": "H11MM",
+          "cou_type": "H11MM",
+          "pseudo": null
+        },
+        {
+          "index": 9,
+          "name": "9",
+          "vdw_type": "H21MM",
+          "cou_type": "H21MM",
+          "pseudo": null
+        },
+        {
+          "index": 10,
+          "name": "10",
+          "vdw_type": "H21MM",
+          "cou_type": "H21MM",
+          "pseudo": null
+        },
+        {
+          "index": 11,
+          "name": "11",
+          "vdw_type": "H21MM",
+          "cou_type": "H21MM",
+          "pseudo": null
+        },
+        {
+          "index": 12,
+          "name": "12",
+          "vdw_type": "H21MM",
+          "cou_type": "H21MM",
+          "pseudo": null
+        },
+        {
+          "index": 13,
+          "name": "13",
+          "vdw_type": "H21MM",
+          "cou_type": "H21MM",
+          "pseudo": null
+        },
+        {
+          "index": 14,
+          "name": "14",
+          "vdw_type": "H21MM",
+          "cou_type": "H21MM",
+          "pseudo": null
+        },
+        {
+          "index": 15,
+          "name": "15",
+          "vdw_type": "H21MM",
+          "cou_type": "H21MM",
+          "pseudo": null
+        }
+      ],
+      "exclusions": [],
+      "fudge": {
+        "vdw": 1.0,
+        "qq": 1.0,
+        "pairs": []
+      },
+      "bonded": []
+    }
+  ],
+  "nonbonded": [
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.55328307,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "O0"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.064988427,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.066074419,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.098862445,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C3"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.32051635,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "H0"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.061336222,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "H1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.039445305,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "H2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0076335169,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.0077610771,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.011612347,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C3"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.037647733,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "H0"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0072045302,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "H1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0046332311,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "H2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0078907689,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "C2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.011806395,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "C3"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.038276847,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "H0"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.0073249218,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "H1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.0047106549,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "H2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.017665068,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "C3"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.057270919,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "H0"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.010959759,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "H1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.0070482173,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "H2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.18567481,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "H0"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.035532014,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "H1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.022850627,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "H2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0067996516,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "H1"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0043728538,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "H2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0028121809,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "H2"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.58701142,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "O01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.54249523,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.09120527,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.1807062,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "C31MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.30504452,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "H01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.12316736,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "H11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.053903756,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "O0",
+        "H21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.14891143,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "O01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.41501453,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.11247274,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.078105143,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "C31MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.022219715,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "H01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.12115296,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "H11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.043518313,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C1",
+        "H21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.061195953,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "O01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.026533874,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "C11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.10361289,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "C21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.15000334,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "C31MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.02648859,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "H01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0012276604,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "H11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.049514935,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C2",
+        "H21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.13704342,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "O01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.10128754,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "C11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.010991565,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "C21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.077615267,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "C31MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.065765426,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "H01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.0034022349,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "H11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.019490389,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "C3",
+        "H21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.39598446,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "O01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.37710096,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "C11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.058400233,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "C21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.16646141,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "C31MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.21778729,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "H01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.087261376,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "H11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.043944141,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H0",
+        "H21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.0076403505,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "O01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.11161849,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "C11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.035999709,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "C21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.032889077,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "C31MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.038679414,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "H01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.037690483,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "H11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.015723697,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H1",
+        "H21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.040895819,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "O01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.018282726,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "C11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.030080898,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "C21MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.054221423,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "C31MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.02155043,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "H01MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": 0.0015475656,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "H11MM"
+      ]
+    },
+    {
+      "form": "COU",
+      "raw_name": "COU",
+      "card": "COU",
+      "fit": false,
+      "params": [
+        {
+          "name": "qprod",
+          "value": -0.016620295,
+          "linear": true
+        }
+      ],
+      "pair": [
+        "H2",
+        "H21MM"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 1075539.9,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 4.827992,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "O0"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 94750.271,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.8074957,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "C1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 90157.186,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.8074957,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "C2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 121077.92,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.8074957,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "C3"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 368.163,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.1153844,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "H0"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 8958.5782,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.8932408,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "H1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 9009.4231,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.8932408,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "H2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 10612.702,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.14313,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "C1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 10098.244,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.14313,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "C2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 13561.586,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.14313,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "C3"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 9608.7246,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.14313,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "C2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 12904.179,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.14313,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "C3"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 17329.857,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.14313,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "C3"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 676.00962,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 2.656028,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "H0"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 643.23959,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 2.656028,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "H0"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 863.8481,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 2.656028,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "H0"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 2382.3437,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.2013339,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "H1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 2395.8648,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.2013339,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "H2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 2266.8579,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.2013339,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "H1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 2279.7236,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.2013339,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "H2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 3044.3103,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.2013339,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "H1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 3061.5885,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.2013339,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "H2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 145.10025,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 2.299644,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H0",
+        "H0"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 240.7823,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 2.6974707,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H0",
+        "H1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 242.14888,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 2.6974707,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H0",
+        "H2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 946.22732,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.261734,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H1",
+        "H1"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 951.59768,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.261734,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H1",
+        "H2"
+      ]
+    },
+    {
+      "form": "EXP",
+      "raw_name": "EXP",
+      "card": "EXP",
+      "fit": false,
+      "params": [
+        {
+          "name": "A",
+          "value": 956.99853,
+          "linear": true
+        },
+        {
+          "name": "alpha",
+          "value": 3.261734,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H2",
+        "H2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -415.24803,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.9495,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "O0"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -68.29338,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.9971,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "C1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -68.29338,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.9971,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "C2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -68.29338,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.9971,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "C3"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -87.856102,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8098,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "H0"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -221.64201,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8098,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "H1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -221.64201,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8098,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "O0",
+        "H2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -11.231807,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 2.0447,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "C1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -11.231807,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 2.0447,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "C2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -11.231807,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 2.0447,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "C3"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -14.449172,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "H0"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -36.452147,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "H1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -36.452147,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C1",
+        "H2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -11.231807,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 2.0447,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "C2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -11.231807,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 2.0447,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "C3"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -14.449172,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "H0"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -36.452147,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "H1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -36.452147,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C2",
+        "H2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -11.231807,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 2.0447,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "C3"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -14.449172,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "H0"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -36.452147,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "H1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -36.452147,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.8574,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "C3",
+        "H2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -18.588155,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.6701,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H0",
+        "H0"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -46.89391,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.6701,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H0",
+        "H1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -46.89391,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.6701,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H0",
+        "H2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -118.30323,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.6701,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H1",
+        "H1"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -118.30323,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.6701,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H1",
+        "H2"
+      ]
+    },
+    {
+      "form": "SRD",
+      "raw_name": "SRD",
+      "card": "SRD",
+      "fit": false,
+      "params": [
+        {
+          "name": "C",
+          "value": -118.30323,
+          "linear": true
+        },
+        {
+          "name": "n",
+          "value": -6.0,
+          "linear": false
+        },
+        {
+          "name": "r0",
+          "value": 1.6701,
+          "linear": false
+        }
+      ],
+      "pair": [
+        "H2",
+        "H2"
+      ]
+    }
+  ],
+  "combinations": [],
+  "charges": {
+    "per_atom": null,
+    "route": null,
+    "declared": null,
+    "products": {
+      "O0~O0": 0.55328307,
+      "O0~C1": -0.064988427,
+      "O0~C2": 0.066074419,
+      "O0~C3": 0.098862445,
+      "O0~H0": -0.32051635,
+      "O0~H1": -0.061336222,
+      "O0~H2": -0.039445305,
+      "C1~C1": 0.0076335169,
+      "C1~C2": -0.0077610771,
+      "C1~C3": -0.011612347,
+      "C1~H0": 0.037647733,
+      "C1~H1": 0.0072045302,
+      "C1~H2": 0.0046332311,
+      "C2~C2": 0.0078907689,
+      "C2~C3": 0.011806395,
+      "C2~H0": -0.038276847,
+      "C2~H1": -0.0073249218,
+      "C2~H2": -0.0047106549,
+      "C3~C3": 0.017665068,
+      "C3~H0": -0.057270919,
+      "C3~H1": -0.010959759,
+      "C3~H2": -0.0070482173,
+      "H0~H0": 0.18567481,
+      "H0~H1": 0.035532014,
+      "H0~H2": 0.022850627,
+      "H1~H1": 0.0067996516,
+      "H1~H2": 0.0043728538,
+      "H2~H2": 0.0028121809,
+      "O0~O01MM": 0.58701142,
+      "O0~C11MM": -0.54249523,
+      "O0~C21MM": -0.09120527,
+      "O0~C31MM": -0.1807062,
+      "O0~H01MM": -0.30504452,
+      "O0~H11MM": 0.12316736,
+      "O0~H21MM": 0.053903756,
+      "C1~O01MM": -0.14891143,
+      "C1~C11MM": 0.41501453,
+      "C1~C21MM": 0.11247274,
+      "C1~C31MM": 0.078105143,
+      "C1~H01MM": -0.022219715,
+      "C1~H11MM": -0.12115296,
+      "C1~H21MM": -0.043518313,
+      "C2~O01MM": 0.061195953,
+      "C2~C11MM": -0.026533874,
+      "C2~C21MM": -0.10361289,
+      "C2~C31MM": -0.15000334,
+      "C2~H01MM": -0.02648859,
+      "C2~H11MM": 0.0012276604,
+      "C2~H21MM": 0.049514935,
+      "C3~O01MM": 0.13704342,
+      "C3~C11MM": -0.10128754,
+      "C3~C21MM": -0.010991565,
+      "C3~C31MM": -0.077615267,
+      "C3~H01MM": -0.065765426,
+      "C3~H11MM": -0.0034022349,
+      "C3~H21MM": 0.019490389,
+      "H0~O01MM": -0.39598446,
+      "H0~C11MM": 0.37710096,
+      "H0~C21MM": 0.058400233,
+      "H0~C31MM": 0.16646141,
+      "H0~H01MM": 0.21778729,
+      "H0~H11MM": -0.087261376,
+      "H0~H21MM": -0.043944141,
+      "H1~O01MM": -0.0076403505,
+      "H1~C11MM": -0.11161849,
+      "H1~C21MM": -0.035999709,
+      "H1~C31MM": -0.032889077,
+      "H1~H01MM": 0.038679414,
+      "H1~H11MM": 0.037690483,
+      "H1~H21MM": 0.015723697,
+      "H2~O01MM": -0.040895819,
+      "H2~C11MM": 0.018282726,
+      "H2~C21MM": 0.030080898,
+      "H2~C31MM": 0.054221423,
+      "H2~H01MM": 0.02155043,
+      "H2~H11MM": 0.0015475656,
+      "H2~H21MM": -0.016620295
+    }
+  },
+  "polarization": null,
+  "charge_constraints": [],
+  "fit": {
+    "kind": "cluster_intra",
+    "chi2_per_row": 0.016545787009132767,
+    "rank": 46,
+    "singular_values": [
+      1.3772347971837935,
+      1.3328618004652564,
+      1.257492725708542,
+      1.04451931783175,
+      0.9625928777446191,
+      0.7947449307282024,
+      0.7158250846617763,
+      0.5773859093741611,
+      0.5674365178570718,
+      0.5276231464731451,
+      0.4496331591765933,
+      0.4303419546368159,
+      0.3781223963059949,
+      0.3751797567988762,
+      0.3564879159392371,
+      0.30932941830930505,
+      0.2939658679186029,
+      0.26860068193976866,
+      0.1990580256106776,
+      0.19737291103349053,
+      0.16879134200457213,
+      0.12563629552918318,
+      0.05720265203476728,
+      0.039811631891304385,
+      0.03794645776651421,
+      0.016493864117836918,
+      0.014591317405624794,
+      0.0143694902690207,
+      0.012353275839073365,
+      0.012323993382138947,
+      0.011507937502067953,
+      0.010627388117041517,
+      0.010099387214616357,
+      0.009516803575738477,
+      0.008069755608995404,
+      0.007745985440740209,
+      0.00627095968141317,
+      0.006006469010059426,
+      0.005205496526601743,
+      0.004958360842141473,
+      0.0043224242498135544,
+      0.0037379935837893005,
+      0.003475521864356875,
+      0.0032085214003024793,
+      0.002897323934413811,
+      0.0026113658989636176
+    ],
+    "n_rows": 900,
+    "n_linear": 46,
+    "n_nonlinear": 0,
+    "seconds": 2.544914484024048,
+    "quality": {
+      "Fatm": {
+        "n": 300,
+        "slope": 0.9514305350146378,
+        "intercept": 0.012969377019742384,
+        "pearson": 0.9748663150586705,
+        "rms_ref": 32.166948925844956,
+        "rms_fit": 31.39363442793188,
+        "rmsd": 7.166617266502668
+      }
+    }
+  }
+}
