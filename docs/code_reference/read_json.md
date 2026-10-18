@@ -38,7 +38,8 @@ polarizable model flattened to point charges is a *different* force field.
 2. **Name-keyed parameters.** No positional convention to agree on: `NCO` stores `(V, m, delta)`
    while `COS` stores `(delta, V, m)`, and the document names each one.
 3. **pycryoff's extensions**, surfaced on the object rather than dropped: `off.polarization`,
-   `off.combinations`, plus `off.provenance` and `off.fit`.
+   `off.combinations`, `off.fudge` (each molecule's `[FUD]` 1-4 scaling, `{molname: {"qq", "vdw",
+   "pairs"}}`), plus `off.provenance` and `off.fit`.
 
 ## Module contents
 
@@ -86,7 +87,7 @@ polarizable model flattened to point charges is a *different* force field.
 `populate(obj, path)` → the charges dict
 - Fills a bare `ReadOFF` with `off_loc`, `document`, `sections` (empty — there are no `.off` text
   sections), `bonded`, `nonbonded`, `polarization`, `drude` (the `[DRU]` block or `None`),
-  `combinations`, `provenance`, `fit`; returns
+  `fudge` (every molecule's `fudge` block, keyed by molecule name), `combinations`, `provenance`, `fit`; returns
   the charges for `_finalize` to install. Warns when `polarization` is present, because writing a
   polarizable model as a fixed point-charge topology reproduces only its permanent part.
 

@@ -42,6 +42,11 @@ Same explicit→config→default parameter resolution pattern as `GROMACSBackend
     `Modeller.addExtraParticles(forcefield)` before `createSystem`, and use a Drude integrator.
   - `bondCutoff` is derived from the deck's `[Exc]` card by
     `xml_generation.required_bond_cutoff`, not assumed to be 2.
+  - A `[FUD]` card (`parent.fudge`, JSON path only) scales every 1-4 pair: `coulomb14scale`
+    on `<NonbondedForce>` and the `afmFudgeQQ` / `afmFudgeVDW` global parameters on every
+    custom force, which `afm_openmm.prepare_afm_system` applies. What the XML cannot state
+    (a subset of the 1-4 pairs, per-molecule schemes, `[POL]`/`[DRU]`) is refused — see
+    `xml_generation.resolve_fudge`.
   - Units converted: kcal/mol→kJ/mol (×4.184), Å→nm (×0.1).
   - Charges live on `parent.charges` keyed by atom **name**; mapped name→type via
     the ATO section before writing `<NonbondedForce>`.

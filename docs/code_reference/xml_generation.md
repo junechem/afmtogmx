@@ -104,8 +104,12 @@ the warning exists to catch.
   Residue name comes from `molname_translations` (falls back to molname).
 - `_virtual_site_xml(site_name, definition, unique)` — parse a virtual-site tuple
   into an `average2`/`average3` `<VirtualSite>` element (or `None`).
-- `gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False)` —
-  `<NonbondedForce>` carrying point charges only (sigma=epsilon=0).
+- `gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False, drudes=(),
+  coulomb14scale=1.0)` —
+  `<NonbondedForce>` carrying point charges only (sigma=epsilon=0). `coulomb14scale` is a
+  `[FUD]` card's Coulomb factor (`resolve_fudge`); `createSystem` scales the 1-4 exceptions
+  with it, and `prepare_afm_system` keeps them only when the custom forces carry the fudge
+  global parameters too.
   `charges_elsewhere=True` zeroes them because an `<AmoebaMultipoleForce>` is carrying
   the permanent electrostatics; the force is still written, since it is where the
   periodic method and cutoff are declared and `afm_openmm.prepare_afm_system` reads
@@ -124,13 +128,13 @@ the warning exists to catch.
   kept the first and silently dropped the rest. A quartet and its reverse are merged.
   Raises `ValueError` if two atom quartets sharing a class quartet carry different term
   sets, which no class-based template can express.
-- `gen_exp_force(exp_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for
+- `gen_exp_force(exp_entries, atom_types, bond_cutoff=2, fudge=None)` — `<CustomNonbondedForce>` for
   `U=A·exp(-alpha·r)` via Discrete2D tables (A×4.184, alpha×10).
-- `gen_srd_force(entries, power, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for
+- `gen_srd_force(entries, power, atom_types, bond_cutoff=2, fudge=None)` — `<CustomNonbondedForce>` for
   `U=disp/(r^|p|+r0^|p|)` (disp scaled by `4.184·0.1^-power`, r0×0.1).
-- `gen_str_force(str_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>` for the
+- `gen_str_force(str_entries, atom_types, bond_cutoff=2, fudge=None)` — `<CustomNonbondedForce>` for the
   shifted-truncated power potential; guards against `0^0` for unused pairs.
-- `gen_cpn_force(cpn_entries, atom_types, bond_cutoff=2)` — `<CustomNonbondedForce>`
+- `gen_cpn_force(cpn_entries, atom_types, bond_cutoff=2, fudge=None)` — `<CustomNonbondedForce>`
   for CPN, charge penetration on the MBIS core/valence split. **The pycryoff form is
   not symmetric in i and j**, and a `CustomNonbondedForce` chooses which particle of a
   pair is `t1`, so the expression is rewritten as a sum over the two *exponentials*
@@ -154,9 +158,31 @@ the warning exists to catch.
   ForceField XML can only exclude by bond count; hard-coding 2 for a deck that
   excludes every intramolecular pair leaves the widest pairs interacting through an
   exchange wall the fit never applied to them.
-- `_custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2)` — assembles a
+- `_graph_distances(bonded, mol)` — `(real atom ids, {frozenset(pair): bond-graph distance})`
+  from the `BON` data (NETF/TORQ skipped); shared by `required_bond_cutoff` and `one_four_pairs`.
+- `_custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2, fudge=None)` — assembles a
   `<CustomNonbondedForce>` block with N×N Discrete2D `<Function>` lookup tables and
-  one `<Atom class=… t=index/>` per qualified type.
+  one `<Atom class=… t=index/>` per qualified type; `fudge=(s_qq, s_vdw)` adds the two
+  `[FUD]` `<GlobalParameter>`s (`fudge_global_parameters`). Every `gen_*_force` above passes
+  its `fudge` through.
+
+## 1-4 scaling (`[FUD]`)
+A pycryoff molecule may carry `"fudge": {"qq", "vdw", "pairs"}` (`off.fudge`, JSON path only):
+the 1-4 scaling its bonded terms were fitted with. A ForceField XML has no 1-4 scale for a
+`CustomNonbondedForce`, and `createSystem` keeps no record of `coulomb14scale` once it has made
+the exceptions, so the scheme is written twice: `coulomb14scale` on `<NonbondedForce>`, and the
+global parameters `afmFudgeQQ` / `afmFudgeVDW` (`FUDGE_QQ_PARAM`, `FUDGE_VDW_PARAM`) on every
+custom force, used in no energy expression. `afm_openmm.prepare_afm_system` reads them and keeps
+each 1-4 pair's Coulomb as an exception at `s_qq q_i q_j`, excludes the pair from the custom
+forces and gives it back at `s_vdw` through a `CustomCompoundBondForce` copy of each.
+- `fudge_global_parameters(fudge)` — the two `<GlobalParameter>` lines, `[]` for `None`.
+- `one_four_pairs(bonded, mol)` — `{frozenset((i, j))}` of real atoms exactly three bonds apart.
+- `resolve_fudge(bonded, mol_names, fudge, bond_cutoff, polarization=None, drude=None)` —
+  `(s_qq, s_vdw)` for the XML or `None`. A card with no pairs or with both factors 1 is
+  ignored. The XML states one scheme for every 1-4 pair of the system, so it **raises** when a
+  card's pairs are not exactly the molecule's 1-4 pairs, when molecules disagree, when a
+  molecule with 1-4 pairs has no card beside one that has, when `bond_cutoff > 2` (the
+  exclusions would reach the scaled pairs), and (`NotImplementedError`) with `[POL]`/`[DRU]`.
 
 ## Output
 - `write_xml(path, sections)` — wraps the section strings in `<ForceField>…</ForceField>`

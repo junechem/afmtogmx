@@ -22,6 +22,7 @@ to be installed. `pytest` comes from the `dev` extra: `pip install -e ".[dev]"`.
 test/
 ├── test_regression.py        # tests 1-9 (GROMACS outputs + change_molecule)
 ├── test_parsing.py           # parser output vs JSON baselines
+├── test_fudge.py             # [FUD] 1-4 scaling export (gen_xml) and its refusals
 ├── sample_off_files/         # input .off files (do not modify)
 ├── baseline_outputs/
 │   ├── parsing/              # JSON baselines for test_parsing.py
