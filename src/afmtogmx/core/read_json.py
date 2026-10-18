@@ -190,6 +190,10 @@ def populate(obj, path):
     #: ``[DRU]``: Drude oscillators on the declared charges (``{"thole_pair", "k_kcal_A2",
     #: "alphas": {cou_type: A^3}}``). ``openmm.gen_xml`` writes them as a ``<DrudeForce>``.
     obj.drude = doc.get("drude")
+    #: ``[FUD]``: ``{molname: {"qq", "vdw", "pairs"}}``, 1-4 scaling of the intramolecular
+    #: nonbonded terms the bonded terms were fitted with. ``openmm.gen_xml`` writes it (one
+    #: scheme for every 1-4 pair, see ``xml_generation.resolve_fudge``); the GROMACS writers refuse it.
+    obj.fudge = {m["name"]: m["fudge"] for m in doc.get("molecules", []) if m.get("fudge")}
     obj.combinations = doc.get("combinations") or []
     obj.provenance = doc.get("provenance") or {}
     obj.fit = doc.get("fit")

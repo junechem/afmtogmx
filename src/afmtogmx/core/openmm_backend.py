@@ -95,6 +95,10 @@ class OpenMMBackend:
           ``<AmoebaMultipoleForce>`` and the ``<NonbondedForce>`` charges are zeroed, since
           that force then carries the permanent electrostatics as well as the induced
           dipoles. ``afm_openmm.prepare_afm_system`` must still fix its covalent maps.
+        - A ``[FUD]`` card (``off.fudge``, JSON path only) scales every 1-4 pair: Coulomb
+          by ``coulomb14scale``, the custom forces through the ``afmFudgeQQ`` /
+          ``afmFudgeVDW`` global parameters, which ``afm_openmm.prepare_afm_system``
+          applies (see ``xml_generation.resolve_fudge`` for what is refused).
         - Unit conversions: kcal/mol → kJ/mol (×4.184), Å → nm (×0.1).
         - Charges live on ``self._parent.charges`` keyed by atom *name*; the
           builder maps name → type via the ATO section before writing the
@@ -138,6 +142,12 @@ class OpenMMBackend:
             raise ValueError("a force field cannot carry both [POL] and [DRU]")
         drudes = xml_generation.collect_drude(atom_types, drude)
         sites = xml_generation.drude_sites(bonded, mol_names, drudes, type_names)
+        # A [FUD] card (off.fudge, JSON path only): every 1-4 pair's Coulomb x s_qq and its other
+        # nonbonded terms x s_vdw. coulomb14scale carries the first; the second has no XML
+        # attribute, so both ride on the custom forces as global parameters, which
+        # afm_openmm.prepare_afm_system reads and applies.
+        fudge = xml_generation.resolve_fudge(bonded, mol_names, getattr(self._parent, 'fudge', None),
+                                             bond_cutoff, polarization, drude)
 
         sections = []
         sections.append(xml_generation.gen_atomtypes(bonded, atom_types, type_names, sites))
@@ -145,7 +155,7 @@ class OpenMMBackend:
                                                     type_names, sites))
         sections.append(xml_generation.gen_nonbonded_force(
             atom_types, type_to_charge, charges_elsewhere=polarization is not None,
-            drudes=drudes))
+            drudes=drudes, coulomb14scale=fudge[0] if fudge else 1.0))
         if drudes:
             sections.append(xml_generation.gen_drude_force(sites))
         if polarization is not None:
@@ -171,14 +181,15 @@ class OpenMMBackend:
         # dispersion. They must be listed, because every particle needs a per-particle value.
         atom_types = atom_types + xml_generation.drude_atom_types(drudes)
         if exp_entries:
-            sections.append(xml_generation.gen_exp_force(exp_entries, atom_types, bond_cutoff))
+            sections.append(xml_generation.gen_exp_force(exp_entries, atom_types, bond_cutoff,
+                                                         fudge))
         for power in sorted(srd_by_power.keys()):
             sections.append(xml_generation.gen_srd_force(srd_by_power[power], power, atom_types,
-                                                         bond_cutoff))
+                                                         bond_cutoff, fudge))
         if str_entries:
-            sections.append(xml_generation.gen_str_force(str_entries, atom_types, bond_cutoff))
+            sections.append(xml_generation.gen_str_force(str_entries, atom_types, bond_cutoff, fudge))
         if cpn_entries:
-            sections.append(xml_generation.gen_cpn_force(cpn_entries, atom_types, bond_cutoff))
+            sections.append(xml_generation.gen_cpn_force(cpn_entries, atom_types, bond_cutoff, fudge))
 
         xml_generation.write_xml(output, sections)
 

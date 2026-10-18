@@ -495,8 +495,14 @@ def _virtual_site_xml(site_name, definition, unique):
         return None
 
 
-def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False, drudes=()):
+def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False, drudes=(),
+                        coulomb14scale=1.0):
     """``<NonbondedForce>`` carrying point charges (sigma=epsilon=0).
+
+    ``coulomb14scale`` is a ``[FUD]`` card's Coulomb factor (:func:`resolve_fudge`).
+    ``createSystem`` uses it for the 1-4 exceptions; ``afm_openmm.prepare_afm_system``
+    rebuilds the exceptions and keeps those, scaled, only when the custom forces carry the
+    fudge global parameters too (:func:`fudge_global_parameters`).
 
     ``charges_elsewhere=True`` zeroes every charge here because an
     ``<AmoebaMultipoleForce>`` is carrying the permanent electrostatics instead. The force
@@ -506,7 +512,7 @@ def gen_nonbonded_force(atom_types, type_to_charge, charges_elsewhere=False, dru
     """
     # With Drudes the parent carries q - q_D and the Drude q_D, so each pair still sums to q.
     q_drude = {q: q_d for _, _, q, _, q_d, _, _ in drudes}
-    lines = ['<NonbondedForce coulomb14scale="1.0" lj14scale="1.0">']
+    lines = [f'<NonbondedForce coulomb14scale="{float(coulomb14scale)!r}" lj14scale="1.0">']
     for mol, raw, qualified in atom_types:
         charge = 0.0 if charges_elsewhere else type_to_charge.get(qualified, 0.0)
         charge -= q_drude.get(qualified, 0.0)
@@ -670,7 +676,7 @@ def gen_dihedral_force(bonded, mol_names):
 # CustomNonbondedForce builders (matrix lookup tables)
 # --------------------------------------------------------------------------
 
-def gen_exp_force(exp_entries, atom_types, bond_cutoff=2):
+def gen_exp_force(exp_entries, atom_types, bond_cutoff=2, fudge=None):
     """``<CustomNonbondedForce>`` for EXP: ``U(r) = A*exp(-alpha*r)``.
 
     A: kcal/mol → kJ/mol (×4.184); alpha: Å⁻¹ → nm⁻¹ (×10).
@@ -689,11 +695,11 @@ def gen_exp_force(exp_entries, atom_types, bond_cutoff=2):
     return _custom_nb_xml(
         energy='a*exp(-alpha*r); a=aTable(t1,t2); alpha=alphaTable(t1,t2)',
         tables=[('aTable', a_mat), ('alphaTable', alpha_mat)],
-        qualified=qualified, n=n, bond_cutoff=bond_cutoff,
+        qualified=qualified, n=n, bond_cutoff=bond_cutoff, fudge=fudge,
     )
 
 
-def gen_srd_force(entries, power, atom_types, bond_cutoff=2):
+def gen_srd_force(entries, power, atom_types, bond_cutoff=2, fudge=None):
     """``<CustomNonbondedForce>`` for SRD/POW: ``U(r) = disp/(r^|p| + r0^|p|)``.
 
     disp: kcal·Å^|p| → kJ·nm^|p|; r0: Å → nm.
@@ -717,11 +723,11 @@ def gen_srd_force(entries, power, atom_types, bond_cutoff=2):
     return _custom_nb_xml(
         energy=energy,
         tables=[('dispTable', disp_mat), ('rTable', r0_mat)],
-        qualified=qualified, n=n, bond_cutoff=bond_cutoff,
+        qualified=qualified, n=n, bond_cutoff=bond_cutoff, fudge=fudge,
     )
 
 
-def gen_str_force(str_entries, atom_types, bond_cutoff=2):
+def gen_str_force(str_entries, atom_types, bond_cutoff=2, fudge=None):
     """``<CustomNonbondedForce>`` for STR/STRC (shifted-truncated power)."""
     qualified = [q for _, _, q in atom_types]
     n   = len(qualified)
@@ -751,13 +757,17 @@ def gen_str_force(str_entries, atom_types, bond_cutoff=2):
     return _custom_nb_xml(
         energy=energy,
         tables=[('p1Table', p1_mat), ('p2Table', p2_mat), ('p3Table', p3_mat)],
-        qualified=qualified, n=n, bond_cutoff=bond_cutoff,
+        qualified=qualified, n=n, bond_cutoff=bond_cutoff, fudge=fudge,
     )
 
 
-def _custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2):
-    """Build a ``<CustomNonbondedForce>`` block with N×N Discrete2D lookup tables."""
+def _custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2, fudge=None):
+    """Build a ``<CustomNonbondedForce>`` block with N×N Discrete2D lookup tables.
+
+    ``fudge`` = ``(s_qq, s_vdw)`` of a ``[FUD]`` card adds the two marker global parameters
+    (:func:`fudge_global_parameters`)."""
     lines = [f'<CustomNonbondedForce energy="{energy}" bondCutoff="{bond_cutoff}">']
+    lines += fudge_global_parameters(fudge)
     for name, mat in tables:
         lines.append(f'<Function name="{name}" type="Discrete2D" xsize="{n}" ysize="{n}">')
         lines.append(_matrix_str(mat))
@@ -778,7 +788,7 @@ def _custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2):
 FCOV_COU = 332.0637
 
 
-def gen_cpn_force(cpn_entries, atom_types, bond_cutoff=2):
+def gen_cpn_force(cpn_entries, atom_types, bond_cutoff=2, fudge=None):
     """``<CustomNonbondedForce>`` for CPN, charge penetration on the core/valence split.
 
     pycryoff writes the correction as (r in Å, energy in kcal/mol)::
@@ -849,7 +859,7 @@ def gen_cpn_force(cpn_entries, atom_types, bond_cutoff=2):
     return _custom_nb_xml(
         energy=energy,
         tables=[(f'{name}Table', mats[name]) for name in names],
-        qualified=qualified, n=n, bond_cutoff=bond_cutoff,
+        qualified=qualified, n=n, bond_cutoff=bond_cutoff, fudge=fudge,
     )
 
 
@@ -949,6 +959,38 @@ def gen_multipole_force(bonded, mol_names, atom_types, type_names, type_to_charg
 # Exclusions
 # --------------------------------------------------------------------------
 
+def _graph_distances(bonded, mol):
+    """``(real atom ids, {frozenset(pair): bond-graph distance})`` of ``mol``'s real atoms."""
+    atom_map = _atom_map(bonded[mol]['ATO']['All'])
+    real = {aid for aid, (_, attype) in atom_map.items()
+            if attype not in ('NETF', 'TORQ')}
+
+    adj = defaultdict(set)
+    for pairs_dict in bonded[mol].get('BON', {}).values():
+        for atom_pairs in pairs_dict.values():
+            for a, b in atom_pairs:
+                if a in real and b in real:
+                    adj[a].add(b)
+                    adj[b].add(a)
+
+    dist = {}
+    for src in real:
+        seen = {src: 0}
+        frontier = [src]
+        while frontier:
+            nxt = []
+            for a in frontier:
+                for b in adj[a]:
+                    if b not in seen:
+                        seen[b] = seen[a] + 1
+                        nxt.append(b)
+            frontier = nxt
+        for b, d in seen.items():
+            if b != src:
+                dist[frozenset((src, b))] = d
+    return real, dist
+
+
 def required_bond_cutoff(bonded, mol_names, max_cutoff=5):
     """The ``bondCutoff`` that reproduces the deck's ``[Exc]`` card exactly.
 
@@ -964,34 +1006,7 @@ def required_bond_cutoff(bonded, mol_names, max_cutoff=5):
     """
     needed = 0
     for mol in mol_names:
-        atom_map = _atom_map(bonded[mol]['ATO']['All'])
-        real = {aid for aid, (_, attype) in atom_map.items()
-                if attype not in ('NETF', 'TORQ')}
-
-        adj = defaultdict(set)
-        for pairs_dict in bonded[mol].get('BON', {}).values():
-            for atom_pairs in pairs_dict.values():
-                for a, b in atom_pairs:
-                    if a in real and b in real:
-                        adj[a].add(b)
-                        adj[b].add(a)
-
-        # Bond-graph distance between every pair of real atoms.
-        dist = {}
-        for src in real:
-            seen = {src: 0}
-            frontier = [src]
-            while frontier:
-                nxt = []
-                for a in frontier:
-                    for b in adj[a]:
-                        if b not in seen:
-                            seen[b] = seen[a] + 1
-                            nxt.append(b)
-                frontier = nxt
-            for b, d in seen.items():
-                if b != src:
-                    dist[frozenset((src, b))] = d
+        real, dist = _graph_distances(bonded, mol)
 
         declared = {frozenset((int(a), int(b))) for a, b in bonded[mol].get('EXC', [])
                     if int(a) in real and int(b) in real}
@@ -1007,6 +1022,82 @@ def required_bond_cutoff(bonded, mol_names, max_cutoff=5):
                 "An OpenMM CustomNonbondedForce in a ForceField XML can only exclude by bond "
                 "count, so the exported model would not be the fitted one.")
     return needed
+
+
+# --------------------------------------------------------------------------
+# 1-4 scaling ([FUD])
+# --------------------------------------------------------------------------
+
+#: Global parameters that carry a ``[FUD]`` card's two factors into the ``System``. A ForceField
+#: XML has no 1-4 scale for a ``CustomNonbondedForce`` and ``createSystem`` keeps no record of
+#: ``coulomb14scale`` once it has made the exceptions, so these are how
+#: ``afm_openmm.prepare_afm_system`` learns the scheme. They appear in no energy expression.
+FUDGE_QQ_PARAM = 'afmFudgeQQ'
+FUDGE_VDW_PARAM = 'afmFudgeVDW'
+
+
+def fudge_global_parameters(fudge):
+    """``<GlobalParameter>`` lines for ``fudge`` = ``(s_qq, s_vdw)``; ``[]`` for ``None``."""
+    if fudge is None:
+        return []
+    qq, vdw = fudge
+    return [f'<GlobalParameter name="{FUDGE_QQ_PARAM}" defaultValue="{float(qq)!r}"/>',
+            f'<GlobalParameter name="{FUDGE_VDW_PARAM}" defaultValue="{float(vdw)!r}"/>']
+
+
+def one_four_pairs(bonded, mol):
+    """``{frozenset((i, j))}``: the real-atom pairs of ``mol`` three bonds apart (and no closer)."""
+    _, dist = _graph_distances(bonded, mol)
+    return {pair for pair, d in dist.items() if d == 3}
+
+
+def resolve_fudge(bonded, mol_names, fudge, bond_cutoff, polarization=None, drude=None):
+    """The ``(s_qq, s_vdw)`` the XML must carry for the molecules' ``[FUD]`` cards, or ``None``.
+
+    ``fudge`` is ``off.fudge`` (``{molname: {"qq", "vdw", "pairs"}}``, JSON path only). A card
+    with no pairs, or with both factors 1, changes nothing and is ignored. The XML can state
+    only one scheme, applied to every 1-4 pair of the system, so this refuses rather than
+    exporting a different model when
+
+    * a card lists other pairs than the molecule's 1-4 pairs (the XML cannot list pairs);
+    * two molecules disagree, or one with 1-4 pairs has no card while another has one;
+    * the exclusions reach 1-4 (``bond_cutoff`` > 2), so the scaled pairs would be excluded;
+    * the force field is polarizable (``[POL]``, ``[DRU]``): not implemented.
+    """
+    fudge = fudge or {}
+    active, plain = {}, []
+    for mol in mol_names:
+        card = fudge.get(mol) or {}
+        pairs = {frozenset((int(a), int(b))) for a, b in card.get('pairs', [])}
+        scales = (float(card.get('qq', 1.0)), float(card.get('vdw', 1.0)))
+        graph = one_four_pairs(bonded, mol)
+        if not pairs or scales == (1.0, 1.0):
+            if graph:
+                plain.append(mol)
+            continue
+        if pairs != graph:
+            raise ValueError(
+                f"{mol}: the [FUD] card lists {len(pairs)} pair(s), the molecule has "
+                f"{len(graph)} 1-4 pairs ({len(pairs - graph)} listed pair(s) are not 1-4, "
+                f"{len(graph - pairs)} 1-4 pair(s) are not listed). An OpenMM ForceField XML "
+                "can only scale every 1-4 pair, so the exported model would not be the "
+                "fitted one.")
+        active[mol] = scales
+    if not active:
+        return None
+    if len(set(active.values())) > 1:
+        raise ValueError(f"[FUD] factors differ between molecules {active}; the XML's "
+                         "coulomb14scale and the fudge parameters are global.")
+    if plain:
+        raise ValueError(f"molecules {plain} have 1-4 pairs and no [FUD] card while "
+                         f"{sorted(active)} have one; the XML's 1-4 scaling would apply to "
+                         "them too.")
+    if bond_cutoff > 2:
+        raise ValueError(f"[FUD] with bondCutoff {bond_cutoff}: the exclusions reach the "
+                         "1-4 pairs the card scales.")
+    if polarization is not None or drude is not None:
+        raise NotImplementedError("[FUD] with [POL] or [DRU] is not implemented")
+    return next(iter(active.values()))
 
 
 # --------------------------------------------------------------------------

@@ -2,6 +2,20 @@ from afmtogmx.core import topology, tabulated_potentials, functions
 from types import SimpleNamespace
 
 
+def _refuse_fudge(parent):
+    """Raise if the force field carries an active ``[FUD]`` card (``off.fudge``, JSON path).
+
+    The topology writers know no 1-4 scaling: ``[ pairs ]`` / ``gen-pairs`` are not written
+    for it, so a fudge-fitted model would be exported with every 1-4 pair at full strength.
+    """
+    for mol, card in (getattr(parent, 'fudge', None) or {}).items():
+        scales = (float(card.get('qq', 1.0)), float(card.get('vdw', 1.0)))
+        if card.get('pairs') and scales != (1.0, 1.0):
+            raise NotImplementedError(
+                f"{mol}: [FUD] 1-4 scaling (qq {scales[0]}, vdw {scales[1]}) is not "
+                "implemented in the GROMACS writers; only openmm.gen_xml exports it.")
+
+
 class GROMACSBackend:
     """GROMACS output backend for ReadOFF.
 
@@ -376,6 +390,7 @@ class GROMACSBackend:
         ...     write_to='my_nonbonded.top'
         ... )
         """
+        _refuse_fudge(self._parent)
         # Resolve parameters: explicit value → config → default
         p = SimpleNamespace(**{
             k: v if v is not None else self.config[k]
@@ -504,6 +519,7 @@ class GROMACSBackend:
         ... )
         # Still uses self.bonded_tabpot
         """
+        _refuse_fudge(self._parent)
         # Use stored attribute if no parameter provided
         if bonded_tabpot is None:
             bonded_tabpot = self.bonded_tabpot if self.bonded_tabpot is not None else {}

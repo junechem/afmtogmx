@@ -35,6 +35,9 @@ explicit arg (if not `None`) → `self.config` value → built-in default.
   `self.bonded_tabpot` (`{molname: {param_tuple: [table_no, x, U, F]}}`).
 
 ## Topology generation
+Both topology writers call `_refuse_fudge(parent)` first: an active `[FUD]` card (`off.fudge`
+with pairs and a factor ≠ 1) raises `NotImplementedError`, since the writers know no 1-4 scaling
+and would export every 1-4 pair at full strength. Only `openmm.gen_xml` exports it.
 - `gen_nonbonded_topology(name_translation=None, template_file=None, incl_mol=None,
   excl_interactions=None, excl_pairs=None, scale_C6=None, special_pairs=None,
   write_to=None, sc_sigma=None)` — inserts a generated `[ nonbond_params ]` block
