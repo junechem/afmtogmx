@@ -1054,9 +1054,15 @@ def fudge_global_parameters(fudge, form=None, power=None):
     With per-form overrides the force carries its own scale (:func:`fudge_vdw_for`)."""
     if fudge is None:
         return []
-    qq, vdw = fudge[0], fudge_vdw_for(fudge, form, power)
-    return [f'<GlobalParameter name="{FUDGE_QQ_PARAM}" defaultValue="{float(qq)!r}"/>',
-            f'<GlobalParameter name="{FUDGE_VDW_PARAM}" defaultValue="{float(vdw)!r}"/>']
+    qq, base, own = fudge[0], float(fudge[1]), fudge_vdw_for(fudge, form, power)
+    lines = [f'<GlobalParameter name="{FUDGE_QQ_PARAM}" defaultValue="{float(qq)!r}"/>',
+             f'<GlobalParameter name="{FUDGE_VDW_PARAM}" defaultValue="{base!r}"/>']
+    if own != base:
+        # OpenMM global parameters are System-wide (one default per name), so a force's own scale
+        # gets its own name: afmFudgeVDW_<FORM><|n|> (afm_openmm.scale_one_four prefers it)
+        ps = '' if power is None else (str(int(abs(power))) if abs(power) == int(abs(power)) else str(abs(power)))
+        lines.append(f'<GlobalParameter name="{FUDGE_VDW_PARAM}_{form}{ps}" defaultValue="{own!r}"/>')
+    return lines
 
 
 def one_four_pairs(bonded, mol):
