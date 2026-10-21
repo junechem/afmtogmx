@@ -693,7 +693,7 @@ def gen_exp_force(exp_entries, atom_types, bond_cutoff=2, fudge=None):
         alpha_mat[i][j] = alpha_mat[j][i] = alpha * 10.0
 
     return _custom_nb_xml(
-        energy='a*exp(-alpha*r); a=aTable(t1,t2); alpha=alphaTable(t1,t2)',
+        energy='a*exp(-alpha*r); a=aTable(t1,t2); alpha=alphaTable(t1,t2)', form='EXP',
         tables=[('aTable', a_mat), ('alphaTable', alpha_mat)],
         qualified=qualified, n=n, bond_cutoff=bond_cutoff, fudge=fudge,
     )
@@ -723,7 +723,7 @@ def gen_srd_force(entries, power, atom_types, bond_cutoff=2, fudge=None):
     return _custom_nb_xml(
         energy=energy,
         tables=[('dispTable', disp_mat), ('rTable', r0_mat)],
-        qualified=qualified, n=n, bond_cutoff=bond_cutoff, fudge=fudge,
+        qualified=qualified, n=n, bond_cutoff=bond_cutoff, fudge=fudge, form='SRD', power=power,
     )
 
 
@@ -761,13 +761,13 @@ def gen_str_force(str_entries, atom_types, bond_cutoff=2, fudge=None):
     )
 
 
-def _custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2, fudge=None):
+def _custom_nb_xml(energy, tables, qualified, n, bond_cutoff=2, fudge=None, form=None, power=None):
     """Build a ``<CustomNonbondedForce>`` block with N×N Discrete2D lookup tables.
 
     ``fudge`` = ``(s_qq, s_vdw)`` of a ``[FUD]`` card adds the two marker global parameters
     (:func:`fudge_global_parameters`)."""
     lines = [f'<CustomNonbondedForce energy="{energy}" bondCutoff="{bond_cutoff}">']
-    lines += fudge_global_parameters(fudge)
+    lines += fudge_global_parameters(fudge, form, power)
     for name, mat in tables:
         lines.append(f'<Function name="{name}" type="Discrete2D" xsize="{n}" ysize="{n}">')
         lines.append(_matrix_str(mat))
@@ -1036,11 +1036,25 @@ FUDGE_QQ_PARAM = 'afmFudgeQQ'
 FUDGE_VDW_PARAM = 'afmFudgeVDW'
 
 
-def fudge_global_parameters(fudge):
-    """``<GlobalParameter>`` lines for ``fudge`` = ``(s_qq, s_vdw)``; ``[]`` for ``None``."""
+def fudge_vdw_for(fudge, form=None, power=None):
+    """This force's 1-4 scale under ``fudge`` = ``(s_qq, s_vdw[, forms])``: ``forms[form + |power|]``
+    (e.g. ``SRD8``), else ``forms[form]`` (``SRD``, ``EXP``), else ``s_vdw`` (pycryoff's per-form
+    ``[FUD]`` overrides, ``fudge_vdw_for`` in pycryoff ``model/forcefield.py``)."""
+    vdw = float(fudge[1])
+    forms = dict(fudge[2]) if len(fudge) > 2 and fudge[2] else {}
+    if form is not None and power is not None:
+        ps = str(int(abs(power))) if abs(power) == int(abs(power)) else str(abs(power))
+        if f'{form}{ps}' in forms:
+            return float(forms[f'{form}{ps}'])
+    return float(forms.get(form, vdw)) if form is not None else vdw
+
+
+def fudge_global_parameters(fudge, form=None, power=None):
+    """``<GlobalParameter>`` lines for ``fudge`` = ``(s_qq, s_vdw[, forms])``; ``[]`` for ``None``.
+    With per-form overrides the force carries its own scale (:func:`fudge_vdw_for`)."""
     if fudge is None:
         return []
-    qq, vdw = fudge
+    qq, vdw = fudge[0], fudge_vdw_for(fudge, form, power)
     return [f'<GlobalParameter name="{FUDGE_QQ_PARAM}" defaultValue="{float(qq)!r}"/>',
             f'<GlobalParameter name="{FUDGE_VDW_PARAM}" defaultValue="{float(vdw)!r}"/>']
 
@@ -1052,7 +1066,8 @@ def one_four_pairs(bonded, mol):
 
 
 def resolve_fudge(bonded, mol_names, fudge, bond_cutoff, polarization=None, drude=None):
-    """The ``(s_qq, s_vdw)`` the XML must carry for the molecules' ``[FUD]`` cards, or ``None``.
+    """The ``(s_qq, s_vdw[, forms])`` the XML must carry for the molecules' ``[FUD]`` cards, or ``None``
+    (``forms`` = pycryoff's per-form overrides, e.g. ``{"SRD8": 0.5}``, only when the card has any).
 
     ``fudge`` is ``off.fudge`` (``{molname: {"qq", "vdw", "pairs"}}``, JSON path only). A card
     with no pairs, or with both factors 1, changes nothing and is ignored. The XML can state
@@ -1069,9 +1084,10 @@ def resolve_fudge(bonded, mol_names, fudge, bond_cutoff, polarization=None, drud
     for mol in mol_names:
         card = fudge.get(mol) or {}
         pairs = {frozenset((int(a), int(b))) for a, b in card.get('pairs', [])}
-        scales = (float(card.get('qq', 1.0)), float(card.get('vdw', 1.0)))
+        forms = tuple(sorted((str(k).upper(), float(v)) for k, v in (card.get('forms') or {}).items()))
+        scales = (float(card.get('qq', 1.0)), float(card.get('vdw', 1.0)), forms)
         graph = one_four_pairs(bonded, mol)
-        if not pairs or scales == (1.0, 1.0):
+        if not pairs or (scales[:2] == (1.0, 1.0) and all(v == 1.0 for _, v in forms)):
             if graph:
                 plain.append(mol)
             continue
@@ -1097,7 +1113,8 @@ def resolve_fudge(bonded, mol_names, fudge, bond_cutoff, polarization=None, drud
                          "1-4 pairs the card scales.")
     if polarization is not None or drude is not None:
         raise NotImplementedError("[FUD] with [POL] or [DRU] is not implemented")
-    return next(iter(active.values()))
+    qq, vdw, forms = next(iter(active.values()))
+    return (qq, vdw, dict(forms)) if forms else (qq, vdw)
 
 
 # --------------------------------------------------------------------------
